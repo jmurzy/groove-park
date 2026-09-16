@@ -28,8 +28,13 @@ export: import
     mkdir -p build/HEAVENLY
     "{{ godot_bin }}" --headless --path . --export-release "Windows Desktop" build/HEAVENLY/HEAVENLY.exe
 
-# Zip the exported game folder and create its SHA-256 checksum.
+# Zip the installer payload (Install.ps1 + game + artwork) and create its SHA-256 checksum.
+# The installer pre-creates both AGS folders, so AGS does not need to run first.
 package: export
-    rm -f HEAVENLY-windows-x86_64.zip HEAVENLY-windows-x86_64.zip.sha256
-    (cd build && zip -r ../HEAVENLY-windows-x86_64.zip HEAVENLY)
+    rm -rf dist HEAVENLY-windows-x86_64.zip HEAVENLY-windows-x86_64.zip.sha256
+    mkdir -p dist/game dist/artwork
+    cp -R "build/HEAVENLY/." "dist/game/"
+    cp "tools/Install.ps1" "dist/Install.ps1"
+    if [ -d "artwork/export" ]; then for f in artwork/export/*.png artwork/export/*.jpg artwork/export/*.jpeg; do [ -e "$f" ] || continue; cp "$f" "dist/artwork/"; done; fi
+    (cd dist && zip -r ../HEAVENLY-windows-x86_64.zip Install.ps1 game artwork)
     if command -v sha256sum >/dev/null 2>&1; then sha256sum HEAVENLY-windows-x86_64.zip; else shasum -a 256 HEAVENLY-windows-x86_64.zip; fi > HEAVENLY-windows-x86_64.zip.sha256

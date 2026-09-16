@@ -22,7 +22,19 @@ C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\
 
 Polycade documents this as the location for [DRM-free games or any Windows executable](https://help.apphq.co/api/articles/30281). The HEAVENLY GitHub Release ZIP is a DRM-free installation: it runs from its extracted files, does not require a Polycade store entitlement or Polycade sign-in, and should not be copied into Steam, GOG, or Itch.io directories. AGS may still offer optional account and store features; those do not apply to this local installation.
 
-After AGS discovers the game, it creates a separate artwork directory at `C:\Users\%USERNAME%\AppData\Roaming\polycade\assets\drm-free\HEAVENLY`. Keep the release files in `games\drm-free\HEAVENLY`; do not put them in the artwork directory.
+The installer writes to both locations in one run and pre-creates them, so AGS does not need to run first. `Install.ps1` copies `game\` to `games\drm-free\HEAVENLY` and `artwork\` to `assets\drm-free\HEAVENLY`. Do not copy game files into the artwork directory or artwork files into the game directory.
+
+Supported artwork names are lowercase (per [Polycade's official guide](https://polycade.gorgias.help/en-US/adding-custom-images-for-games-1106271); each can be jpg or png — close AGS before copying files in):
+
+| file | use | size (official) |
+|---|---|---|
+| `header` | library tile | `460x215` |
+| `hero` | detail view after selection | `1200x675` |
+| `logo` | logo overlay (transparent) | variable size |
+| `marquee` | digital marquee screen | `1920x360` |
+| `instructions` | controls/how-to overlay (png) | `1920x846` |
+
+Note: community reports mention `1920x1080` for hero working too, but the official spec is `1200x675` — prefer the official size. `background.png` / `icon.png` appear only in forum posts, not in the official guide, so treat them as unconfirmed. AGS may append a hash suffix to artwork filenames after its first scan (for example `headerabc123.png`); ship clean names and let AGS rename them.
 
 ## Option A: Install a release
 
@@ -37,10 +49,16 @@ Get-Content .\HEAVENLY-windows-x86_64.zip.sha256
 ```
 
 5. Confirm the two displayed hashes match. Do not install the archive if they differ.
-6. Right-click the ZIP, select **Extract All**, and extract it to `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\`. The extraction must create `HEAVENLY` directly inside `drm-free`.
-7. Ensure the final layout is `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY\HEAVENLY.exe`, not an extra nested directory such as `HEAVENLY\HEAVENLY\HEAVENLY.exe`.
-8. Start or restart AGS so it discovers the local executable.
-9. Confirm HEAVENLY appears in the selector, then launch it with the cabinet A button.
+6. Right-click the ZIP, select **Extract All**, and extract it to any temporary folder (for example Downloads). The extracted folder contains `Install.ps1` next to `game\` and `artwork\`.
+7. In the extracted folder, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Install.ps1
+```
+
+8. Confirm the script reports both `games\drm-free\HEAVENLY\HEAVENLY.exe` and `assets\drm-free\HEAVENLY\`, not an extra nested directory such as `HEAVENLY\HEAVENLY\HEAVENLY.exe`.
+9. Start or restart AGS so it discovers the local executable.
+10. Confirm HEAVENLY appears in the selector, then launch it with the cabinet A button.
 
 ## Option B: Install a test artifact
 
@@ -51,7 +69,7 @@ Get-Content .\HEAVENLY-windows-x86_64.zip.sha256
 5. In the run's **Artifacts** section, download `HEAVENLY-windows-x86_64`.
 6. Extract GitHub's outer artifact ZIP.
 7. Verify the enclosed `HEAVENLY-windows-x86_64.zip` against its `.sha256` file as described above.
-8. Extract the verified game ZIP to `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\` so the executable ends at `...\drm-free\HEAVENLY\HEAVENLY.exe`.
+8. Extract the verified game ZIP to a temporary folder and run `powershell -ExecutionPolicy Bypass -File .\Install.ps1` from the extracted folder, so the executable ends at `...\games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is pre-seeded under `...\assets\drm-free\HEAVENLY\`.
 9. Start or restart AGS, confirm it finds HEAVENLY, and launch it.
 
 Workflow artifacts are temporary and may require authentication. They are for development testing, not permanent distribution.
@@ -61,8 +79,8 @@ Workflow artifacts are temporary and may require authentication. They are for de
 1. Exit HEAVENLY and return to AGS.
 2. Download and verify the new release.
 3. Keep the existing installation until the new ZIP passes checksum verification.
-4. Replace `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY` with the newly extracted directory.
-5. Confirm the path still ends in `drm-free\HEAVENLY\HEAVENLY.exe`.
+4. Extract the new ZIP to a temporary folder and re-run `Install.ps1`; it overwrites the game files and merges artwork in place.
+5. Confirm the path still ends in `games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is under `assets\drm-free\HEAVENLY\`.
 6. Restart AGS only if it no longer finds the game.
 7. Launch HEAVENLY and confirm both primary-only and dual-display behavior as applicable.
 
@@ -77,7 +95,9 @@ Early unsigned builds may trigger Microsoft Defender SmartScreen. Only continue 
 | Problem | Check |
 | --- | --- |
 | AGS cannot find the game | Confirm the executable is at `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY\HEAVENLY.exe`; the folder and executable names must be similar |
-| Windows says the executable is missing | Re-extract the complete ZIP; do not copy only the `.exe` |
+| Windows says the executable is missing | Re-run `Install.ps1` from the fully extracted ZIP; do not copy only the `.exe` |
+| PowerShell blocks Install.ps1 | Run it as `powershell -ExecutionPolicy Bypass -File .\Install.ps1` from the extracted folder |
+| Artwork does not appear | Confirm lowercase names (`header.png`, `hero.png`, `marquee.png`) under `assets\drm-free\HEAVENLY\`; uppercase names are ignored by AGS |
 | Marquee does not appear | Confirm Windows detects both extended displays; primary-only mode is valid |
 | Marquee appears on the wrong screen | Record Windows and Godot screen mappings in Plan 00's completion record |
 | Both windows remain after exit | Record whether Escape and Start + Back behave differently |
