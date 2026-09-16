@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "HEAVENLY: Launch",
+      "type": "godot",
+      "request": "launch",
+      "project": "${workspaceFolder}",
+      "scene": "main",
+      "editor_path": "/Applications/Godot 4.6.3.app/Contents/MacOS/Godot"
+    }
+  ]
+}
