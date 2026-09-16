@@ -55,7 +55,9 @@ jobs:
         run: godot --headless --path . --import
 
       - name: Export Windows release
-        run: godot --headless --path . --export-release "Windows Desktop" build/HEAVENLY/HEAVENLY.exe
+        run: |
+          mkdir -p build/HEAVENLY
+          godot --headless --path . --export-release "Windows Desktop" build/HEAVENLY/HEAVENLY.exe
 
       - name: Package build and checksum
         working-directory: build
