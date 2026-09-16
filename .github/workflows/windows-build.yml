@@ -23,6 +23,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
+      - name: Install Just
+        uses: taiki-e/install-action@41049aa56687c35e0afa74eed4f09cec4f9afabf # v2
+        with:
+          tool: just@1.58.0
+          fallback: none
+
       - name: Download pinned Godot editor and export templates
         env:
           GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
@@ -51,20 +57,10 @@ jobs:
             "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION/"
           godot --version
 
-      - name: Import project
-        run: godot --headless --path . --import
-
-      - name: Export Windows release
-        run: |
-          mkdir -p build/HEAVENLY
-          godot --headless --path . --export-release "Windows Desktop" build/HEAVENLY/HEAVENLY.exe
-
-      - name: Package build and checksum
-        working-directory: build
-        run: |
-          zip -r ../HEAVENLY-windows-x86_64.zip HEAVENLY
-          cd ..
-          sha256sum HEAVENLY-windows-x86_64.zip > HEAVENLY-windows-x86_64.zip.sha256
+      - name: Import, export, and package Windows release
+        env:
+          GODOT_BIN: godot
+        run: just package
 
       - name: Upload Windows package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
