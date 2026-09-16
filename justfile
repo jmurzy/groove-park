@@ -19,6 +19,11 @@ dev: version
 run *args: version
     "{{ godot_bin }}" --path . {{ quote(args) }}
 
+# Run with Sente-sized dev windows (primary 1920x1080 + marquee 1920x360),
+# even on a single display. Forwards extra args to Godot.
+sente *args: version
+    "{{ godot_bin }}" --path . -- --sente {{ quote(args) }}
+
 # Import resources headlessly, matching the CI pre-export check.
 import: version
     "{{ godot_bin }}" --headless --path . --import
@@ -35,6 +40,8 @@ package: export
     mkdir -p dist/game dist/artwork
     cp -R "build/HEAVENLY/." "dist/game/"
     cp "tools/Install.ps1" "dist/Install.ps1"
+    # Ship heavenly.cfg without dev comments: only section/key lines go to the cabinet.
+    grep -v '^[[:space:]]*;' "heavenly.cfg.example" > "dist/game/heavenly.cfg"
     if [ -d "artwork/ags/export" ]; then for f in artwork/ags/export/*.png artwork/ags/export/*.jpg artwork/ags/export/*.jpeg; do [ -e "$f" ] || continue; cp "$f" "dist/artwork/"; done; fi
     (cd dist && zip -r ../HEAVENLY-windows-x86_64.zip Install.ps1 game artwork)
     if command -v sha256sum >/dev/null 2>&1; then sha256sum HEAVENLY-windows-x86_64.zip; else shasum -a 256 HEAVENLY-windows-x86_64.zip; fi > HEAVENLY-windows-x86_64.zip.sha256

@@ -1,0 +1,8 @@
+; Copy to heavenly.cfg (never commit the real file).
+; Dev: place at the repo root, the app reads it via res://heavenly.cfg.
+; Cabinet (Polycade AGS on Windows): `just package` ships this file renamed
+; to heavenly.cfg next to HEAVENLY.exe with these `;` comments stripped.
+; Install.ps1 seeds it only when missing and never overwrites live values.
+
+[liftie_api]
+user_agent="HEAVENLY/1.0 (+https://example.com; contact: you@example.com)"
