@@ -1,117 +1,109 @@
 class_name PrimaryScreen
 extends Control
 
-const DESIGN_SIZE := Vector2i(1920, 1080)
-
-const LiftStatusPanelScene := preload("res://src/lift_status.gd")
+const DESIGN_SIZE := Vector2(1920, 1080)
 
 @export var screen_index: int = 0
-@export var background_color: Color = Color("071f4a")
-@export var accent_color: Color = Color("35a7ff")
+var show_diagnostics := false
+var liftie_state_service
 
-var _elapsed_time := 0.0
-var _bar: ColorRect
-var _bar_width := float(DESIGN_SIZE.x)
+var _state := {"status": "unknown", "open_count": 0, "hold_count": 0, "closed_count": 0}
+var _elapsed := 0.0
+var _status_label: Label
 
 
 func _ready() -> void:
 	name = "PrimaryView"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	var background := ColorRect.new()
-	background.color = background_color
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
-
-	var title := Label.new()
-	title.text = "HEAVENLY"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.add_theme_color_override("font_color", Color("f5f7ff"))
-	title.add_theme_color_override("font_outline_color", accent_color.darkened(0.65))
-	title.add_theme_constant_override("outline_size", 10)
-	title.add_theme_font_size_override("font_size", 132)
-	title.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	title.anchor_left = 0.0
-	title.anchor_right = 1.0
-	title.offset_top = 280.0
-	title.offset_bottom = title.offset_top + 190.0
-	add_child(title)
-
-	var identifier := Label.new()
-	identifier.text = "PRIMARY"
-	identifier.position = Vector2(42, 28)
-	identifier.add_theme_color_override("font_color", accent_color)
-	identifier.add_theme_font_size_override("font_size", 30)
-	add_child(identifier)
-
-	var exit_button := Button.new()
-	exit_button.text = "EXIT"
-	exit_button.tooltip_text = "Exit HEAVENLY"
-	exit_button.position = Vector2(DESIGN_SIZE.x - 178, 28)
-	exit_button.size = Vector2(136, 54)
-	exit_button.add_theme_color_override("font_color", Color("f5f7ff"))
-	exit_button.add_theme_font_size_override("font_size", 22)
-	exit_button.pressed.connect(_on_exit_pressed)
-	add_child(exit_button)
-
-	add_child(_build_diagnostics())
-	_build_moving_bar()
-
-	var lift_panel := LiftStatusPanelScene.new()
-	lift_panel.accent_color = accent_color
-	lift_panel.design_width = float(DESIGN_SIZE.x)
-	add_child(lift_panel)
-
-	add_child(_build_resolution_border(6))
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_labels()
+	if show_diagnostics:
+		add_child(_build_diagnostics())
+	if liftie_state_service != null:
+		_state = liftie_state_service.state
+		liftie_state_service.state_changed.connect(_on_state_changed)
+	queue_redraw()
 
 
 func _process(delta: float) -> void:
-	_elapsed_time += delta
-	if is_instance_valid(_bar):
-		var progress := (sin(_elapsed_time * 1.35) + 1.0) * 0.5
-		_bar.position.x = progress * (_bar_width - _bar.size.x)
+	_elapsed += delta
+	queue_redraw()
+
+
+func _draw() -> void:
+	var sky_top := Color("071a3b")
+	draw_rect(Rect2(Vector2.ZERO, DESIGN_SIZE), sky_top)
+	for index in 9:
+		var x := fposmod(float(index) * 263.0 + _elapsed * 9.0, DESIGN_SIZE.x + 80.0) - 40.0
+		var y := fposmod(float(index) * 137.0 + _elapsed * 54.0, 650.0)
+		draw_circle(Vector2(x, y), 3.0 + float(index % 3), Color(0.9, 0.96, 1.0, 0.72))
+
+	# Stacked silhouettes keep the scene recognizable without dashboard chrome.
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 720), Vector2(390, 410), Vector2(710, 700), Vector2(1040, 340), Vector2(1430, 710), Vector2(1760, 450), Vector2(1920, 650), Vector2(1920, 1080), Vector2(0, 1080)]), Color("183f64"))
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 830), Vector2(500, 570), Vector2(805, 830), Vector2(1250, 480), Vector2(1550, 790), Vector2(1920, 610), Vector2(1920, 1080), Vector2(0, 1080)]), Color("0c294d"))
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 940), Vector2(440, 720), Vector2(750, 900), Vector2(1170, 620), Vector2(1510, 890), Vector2(1920, 720), Vector2(1920, 1080), Vector2(0, 1080)]), Color("071b36"))
+
+	var lift_color := _lift_color()
+	var cable_start := Vector2(450, 585)
+	var cable_end := Vector2(1480, 350)
+	draw_line(cable_start, cable_end, lift_color, 7.0, true)
+	for chair_index in 5:
+		var progress := (float(chair_index) / 5.0 + _chair_progress())
+		var position := cable_start.lerp(cable_end, progress)
+		draw_line(position, position + Vector2(0, 48), lift_color, 5.0, true)
+		draw_rect(Rect2(position + Vector2(-27, 48), Vector2(54, 20)), lift_color, true)
+	var beacon_alpha := 0.65 + 0.35 * sin(_elapsed * 5.0) if _state.status == "hold" else 1.0
+	draw_circle(Vector2(1515, 350), 19.0, Color(lift_color, beacon_alpha))
+
+
+func _build_labels() -> void:
+	var title := Label.new()
+	title.text = "HEAVENLY"
+	title.position = Vector2(92, 76)
+	title.add_theme_color_override("font_color", Color("f7f9ff"))
+	title.add_theme_color_override("font_outline_color", Color("0b2d50"))
+	title.add_theme_constant_override("outline_size", 10)
+	title.add_theme_font_size_override("font_size", 126)
+	add_child(title)
+
+	_status_label = Label.new()
+	_status_label.position = Vector2(96, 228)
+	_status_label.add_theme_color_override("font_color", Color("b9d8f7"))
+	_status_label.add_theme_font_size_override("font_size", 34)
+	add_child(_status_label)
+	_update_status_label()
 
 
 func _build_diagnostics() -> Label:
-	var screen_position := DisplayServer.screen_get_position(screen_index)
-	var screen_size := DisplayServer.screen_get_size(screen_index)
 	var diagnostics := Label.new()
-	diagnostics.text = "Godot screen %d  |  %d x %d  |  position %d, %d" % [
-		screen_index,
-		screen_size.x,
-		screen_size.y,
-		screen_position.x,
-		screen_position.y,
-	]
-	diagnostics.position = Vector2(42, DESIGN_SIZE.y - 64)
-	diagnostics.add_theme_color_override("font_color", Color(1, 1, 1, 0.78))
-	diagnostics.add_theme_font_size_override("font_size", 22)
+	var screen_size := DisplayServer.screen_get_size(screen_index)
+	diagnostics.text = "Godot screen %d  |  %d x %d" % [screen_index, screen_size.x, screen_size.y]
+	diagnostics.position = Vector2(92, 1000)
+	diagnostics.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
+	diagnostics.add_theme_font_size_override("font_size", 20)
 	return diagnostics
 
 
-func _build_moving_bar() -> void:
-	_bar = ColorRect.new()
-	_bar.color = accent_color
-	_bar.size = Vector2(260, 42)
-	_bar.position.y = DESIGN_SIZE.y * 0.72
-	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_bar)
+func _chair_progress() -> float:
+	return fposmod(_elapsed * 0.075, 1.0) if _state.status == "open" else 0.0
 
 
-func _build_resolution_border(width: int) -> Panel:
-	var border := Panel.new()
-	border.name = "ResolutionBorder"
-	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var style := StyleBoxFlat.new()
-	style.draw_center = false
-	style.set_border_width_all(width)
-	style.border_color = accent_color
-	border.add_theme_stylebox_override("panel", style)
-	return border
+func _lift_color() -> Color:
+	match _state.status:
+		"open": return Color("e8f7ff")
+		"hold": return Color("ffbd4a")
+		"closed": return Color("6d8294")
+		_: return Color("8aa0ad")
 
 
-func _on_exit_pressed() -> void:
-	get_tree().quit()
+func _on_state_changed(next_state: Dictionary) -> void:
+	_state = next_state
+	_update_status_label()
+
+
+func _update_status_label() -> void:
+	match _state.status:
+		"open": _status_label.text = "%d LIFTS OPEN  |  RIDE THE HIGH COUNTRY" % _state.open_count
+		"hold": _status_label.text = "%d LIFTS ON HOLD  |  MOUNTAIN WEATHER" % _state.hold_count
+		"closed": _status_label.text = "LIFTS CLOSED  |  SEE YOU ON THE MOUNTAIN"
+		_: _status_label.text = "MOUNTAIN CONDITIONS UNAVAILABLE"

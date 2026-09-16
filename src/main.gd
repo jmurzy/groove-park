@@ -9,8 +9,10 @@ const EXIT_HOLD_SECONDS := 2.0
 const PrimaryScreenScene := preload("res://src/primary_screen.gd")
 const MarqueeScreenScene := preload("res://src/marquee_screen.gd")
 const DevSente := preload("res://src/dev_sente.gd")
+const LiftieStateServiceScene := preload("res://src/liftie_state_service.gd")
 
 var _exit_hold_time := 0.0
+var _liftie_state_service
 
 
 func _ready() -> void:
@@ -23,6 +25,8 @@ func _ready() -> void:
 	_log_connected_controllers()
 
 	var overrides := DevSente.parse_overrides(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
+	_liftie_state_service = LiftieStateServiceScene.new()
+	add_child(_liftie_state_service)
 
 	var primary_screen := PRIMARY_SCREEN_WITH_MARQUEE if screen_count >= 2 else 0
 	if overrides.primary_size.x > 0:
@@ -32,6 +36,8 @@ func _ready() -> void:
 
 	var primary_view := PrimaryScreenScene.new()
 	primary_view.screen_index = primary_screen
+	primary_view.liftie_state_service = _liftie_state_service
+	primary_view.show_diagnostics = overrides.show_diagnostics
 	add_child(primary_view)
 
 	var show_marquee: bool = screen_count >= 2 or overrides.force_marquee
@@ -43,7 +49,7 @@ func _ready() -> void:
 			# Stack the dev marquee below the dev primary so both are visible on one screen.
 			var primary_height: int = overrides.primary_size.y if overrides.primary_size.x > 0 else 0
 			marquee_offset = Vector2i(0, primary_height + 28)
-		_create_marquee(marquee_screen, marquee_size, marquee_offset)
+		_create_marquee(marquee_screen, marquee_size, marquee_offset, overrides.show_diagnostics)
 
 
 func _process(delta: float) -> void:
@@ -59,7 +65,7 @@ func _process(delta: float) -> void:
 		_exit_hold_time = 0.0
 
 
-func _create_marquee(screen_index: int, window_size: Vector2i = Vector2i(-1, -1), offset: Vector2i = Vector2i(0, 0)) -> void:
+func _create_marquee(screen_index: int, window_size: Vector2i = Vector2i(-1, -1), offset: Vector2i = Vector2i(0, 0), show_diagnostics: bool = false) -> void:
 	var marquee := Window.new()
 	marquee.name = "MarqueeWindow"
 	marquee.transient = false
@@ -72,6 +78,8 @@ func _create_marquee(screen_index: int, window_size: Vector2i = Vector2i(-1, -1)
 
 	var marquee_view := MarqueeScreenScene.new()
 	marquee_view.screen_index = screen_index
+	marquee_view.liftie_state_service = _liftie_state_service
+	marquee_view.show_diagnostics = show_diagnostics
 	marquee.add_child(marquee_view)
 	marquee.show()
 

@@ -13,6 +13,7 @@ static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) 
 		"primary_size": Vector2i(-1, -1),
 		"marquee_size": Vector2i(-1, -1),
 		"force_marquee": false,
+		"show_diagnostics": false,
 	}
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--sente":
@@ -26,6 +27,8 @@ static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) 
 			overrides.force_marquee = true
 		elif arg == "--marquee":
 			overrides.force_marquee = true
+		elif arg == "--diagnostics":
+			overrides.show_diagnostics = true
 	if overrides.force_marquee and overrides.marquee_size.x < 0:
 		overrides.marquee_size = marquee_design
 	if overrides.primary_size.x > 0 or overrides.force_marquee:

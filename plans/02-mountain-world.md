@@ -2,7 +2,7 @@
 
 ## Goal
 
-Expand the vertical slice into a coherent mountain world with multiple lifts and data-driven visual behavior while continuing to use only mock data.
+Expand the vertical slice into a coherent mountain world with multiple lifts and data-driven visual behavior using the normalized Liftie state service.
 
 ## Scope
 
@@ -11,12 +11,11 @@ Expand the vertical slice into a coherent mountain world with multiple lifts and
 - Give each lift a cable path, chair animation, and recognizable location.
 - Add terrain layers, trees, buildings, and atmospheric depth.
 - Add smooth transitions when lift statuses change.
-- Expand mock fixtures to represent useful operating scenarios.
 - Expand marquee compositions to summarize overall mountain activity.
 
-## Mock scenarios
+## State scenarios
 
-Create separate fixtures or deterministic presets for:
+Exercise the presenter with injected normalized state during development for:
 
 - Normal operating day.
 - Most lifts closed.
@@ -25,7 +24,7 @@ Create separate fixtures or deterministic presets for:
 - Status changes during runtime.
 - Stale data.
 
-Fixtures should stay close to the normalized internal model. Do not imitate an undocumented upstream API response.
+Do not add fixtures that imitate the upstream API. Test helpers, if needed, must provide the normalized internal model directly.
 
 ## Status behavior
 
@@ -51,7 +50,7 @@ Avoid a generic event bus unless direct Godot signals become genuinely difficult
 
 ## Verification
 
-1. Cycle through every fixture without restarting.
+1. Cycle through every normalized state without restarting.
 2. Confirm all state transitions are deterministic and recoverable.
 3. Confirm unsupported and missing values resolve to `unknown` without crashing.
 4. Confirm the marquee remains optional in every scenario.
@@ -59,4 +58,4 @@ Avoid a generic event bus unless direct Godot signals become genuinely difficult
 
 ## Done when
 
-The complete mountain reacts coherently to a range of mocked operating conditions and maintains smooth cabinet performance.
+The complete mountain reacts coherently to a range of live-data operating conditions and maintains smooth cabinet performance.

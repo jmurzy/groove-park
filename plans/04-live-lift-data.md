@@ -1,10 +1,10 @@
-# Plan 04: Live lift data
+# Plan 04: Live data resilience
 
 ## Goal
 
-Replace the mock source with a resilient Heavenly API adapter while preserving the validated normalized model and offline behavior.
+Build resilience around the implemented Liftie adapter while preserving its normalized state contract and arcade presentation.
 
-Do not start this plan until actual API documentation, authentication requirements, rate limits, and representative responses are available.
+The initial Liftie endpoint integration is complete in Plan 01. Before adding caching or changing refresh behavior, confirm the current API requirements and representative responses.
 
 ## API assessment
 
@@ -24,10 +24,10 @@ If the API requires a secret that must not be distributed, add a small server-si
 ## Data flow
 
 ```text
-Heavenly API or proxy
+Liftie API or proxy
         |
         v
-HeavenlyApiDataSource
+LiftieStateService
         |
         v
 normalized MountainState
@@ -40,7 +40,7 @@ normalized MountainState
 ## Runtime behavior
 
 1. Load the last-known-good cache during startup.
-2. If no cache exists, load bundled mock/default state so rendering starts immediately.
+2. If no cache exists, publish the existing neutral `unknown` state so rendering starts immediately.
 3. Request live data asynchronously after the first frame.
 4. Validate and normalize the response before publishing it.
 5. Save only valid normalized state to the cache.
