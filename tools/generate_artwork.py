@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate shippable Polycade AGS artwork from artwork/heavenly.webp.
+"""Generate shippable Polycade AGS artwork from artwork/ags/heavenly.webp.
 
 Targets (see plans/WINDOWS-INSTALL.md):
   header.png  460x215   library tile
@@ -25,8 +25,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "artwork" / "heavenly.webp"
-OUT_DIR = ROOT / "artwork" / "export"
+SRC = ROOT / "artwork" / "ags" / "heavenly.webp"
+OUT_DIR = ROOT / "artwork" / "ags" / "export"
 
 TARGETS = [
     # (filename, width, height, mode)
