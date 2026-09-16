@@ -1,0 +1,98 @@
+name: Windows build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.6.3
+  GODOT_RELEASE: 4.6.3-stable
+  GODOT_TEMPLATE_VERSION: 4.6.3.stable
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Download pinned Godot editor and export templates
+        env:
+          GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
+          GODOT_EDITOR_SHA256: d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3
+          GODOT_TEMPLATES_SHA256: 3fbe2c0e2dec9d537ab9ec97bcf8da91dcf23357fc51f67092dd068d839290a8
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/godot.zip" \
+            "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/templates.tpz" \
+            "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$RUNNER_TEMP/godot.zip" | sha256sum --check
+          printf '%s  %s\n' "$GODOT_TEMPLATES_SHA256" "$RUNNER_TEMP/templates.tpz" | sha256sum --check
+
+      - name: Install Godot and export templates
+        run: |
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          sudo install \
+            "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" \
+            /usr/local/bin/godot
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/export-templates"
+          mkdir -p "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION"
+          cp -R \
+            "$RUNNER_TEMP/export-templates/templates/." \
+            "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION/"
+          godot --version
+
+      - name: Import project
+        run: godot --headless --path . --import
+
+      - name: Export Windows release
+        run: godot --headless --path . --export-release "Windows Desktop" build/HEAVENLY/HEAVENLY.exe
+
+      - name: Package build and checksum
+        working-directory: build
+        run: |
+          zip -r ../HEAVENLY-windows-x86_64.zip HEAVENLY
+          cd ..
+          sha256sum HEAVENLY-windows-x86_64.zip > HEAVENLY-windows-x86_64.zip.sha256
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: HEAVENLY-windows-x86_64
+          path: |
+            HEAVENLY-windows-x86_64.zip
+            HEAVENLY-windows-x86_64.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows package
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: HEAVENLY-windows-x86_64
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
+          gh release upload "$GITHUB_REF_NAME" \
+            HEAVENLY-windows-x86_64.zip \
+            HEAVENLY-windows-x86_64.zip.sha256 \
+            --clobber
