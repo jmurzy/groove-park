@@ -7,7 +7,7 @@ config/features=PackedStringArray("4.6")
 [application]
 
 config/name="HEAVENLY"
-run/main_scene="res://src/main.tscn"
+run/main_scene="res://src/app/main.tscn"
 
 [display]
 

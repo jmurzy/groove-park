@@ -6,13 +6,16 @@ const PRIMARY_DESIGN_SIZE := Vector2i(1920, 1080)
 const MARQUEE_DESIGN_SIZE := Vector2i(1920, 360)
 const EXIT_HOLD_SECONDS := 2.0
 
-const PrimaryScreenScene := preload("res://src/primary_screen.gd")
-const MarqueeScreenScene := preload("res://src/marquee_screen.gd")
-const DevSente := preload("res://src/dev_sente.gd")
-const LiftieStateServiceScene := preload("res://src/liftie_state_service.gd")
+const PrimaryScreenScene := preload("res://src/presentation/attract/primary_screen.gd")
+const MarqueeScreenScene := preload("res://src/presentation/marquee/marquee_screen.gd")
+const DevSente := preload("res://src/services/dev_sente.gd")
+const GameControllerScene := preload("res://src/game/game_controller.gd")
+const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
+const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
 const BackgroundMusic := preload("res://assets/fonts/slimeyfox-gameotoon.mp3")
 
 var _exit_hold_time := 0.0
+var _game_controller: GameController
 var _liftie_state_service: LiftieStateService
 
 
@@ -34,6 +37,9 @@ func _ready() -> void:
 	_log_connected_controllers()
 
 	var overrides := DevSente.parse_overrides(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
+	_game_controller = GameControllerScene.new()
+	_game_controller.set_mountain_state_source(MockMountainStateSourceScene.new())
+	add_child(_game_controller)
 	_liftie_state_service = LiftieStateServiceScene.new()
 	add_child(_liftie_state_service)
 
@@ -54,6 +60,7 @@ func _ready() -> void:
 	primary_view.screen_index = primary_screen
 	primary_view.liftie_state_service = _liftie_state_service
 	primary_view.show_diagnostics = overrides.show_diagnostics
+	primary_view.start_game_requested.connect(_game_controller.start_game)
 	primary_view.exit_requested.connect(_quit)
 	add_child(primary_view)
 

@@ -52,7 +52,7 @@ lint-check:
 
 [doc("Static typecheck each GDScript file. Runs import first to refresh the global class cache; strict warnings are errors (see project.godot [debug]).")]
 typecheck: import
-    for f in src/*.gd; do "{{ godot_bin }}" --headless --path . --check-only --script "res://$f"; done
+    for f in $(git ls-files --cached --others --exclude-standard -- '*.gd'); do [ -f "$f" ] || continue; "{{ godot_bin }}" --headless --path . --check-only --script "res://$f" || exit $?; done
 
 [doc("Check GitHub Actions workflows")]
 actionlint-check:
