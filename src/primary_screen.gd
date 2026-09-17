@@ -31,7 +31,7 @@ void vertex() {
 
 @export var screen_index: int = 0
 var show_diagnostics := false
-var liftie_state_service
+var liftie_state_service: LiftieStateService
 var logo_bob_time := 0.0
 var logo_subtitle: Label
 var gondola: AnimatedSprite2D
@@ -67,7 +67,9 @@ func _draw() -> void:
 func _process(delta: float) -> void:
 	logo_bob_time += delta
 	_update_snow(delta)
-	gondola.position.x = GONDOLA_LANE.position.x + pingpong(logo_bob_time * GONDOLA_SPEED, GONDOLA_LANE.size.x)
+	gondola.position.x = (
+		GONDOLA_LANE.position.x + pingpong(logo_bob_time * GONDOLA_SPEED, GONDOLA_LANE.size.x)
+	)
 	queue_redraw()
 
 
@@ -86,11 +88,19 @@ func _build_snow() -> void:
 		var snowflake_scale := _snow_random.randf_range(0.035, 0.08)
 		snowflake.scale = Vector2.ONE * snowflake_scale
 		add_child(snowflake)
-		_snowflakes.append({
-			"node": snowflake,
-			"velocity": Vector2(_snow_random.randf_range(-3.0, 7.0), _snow_random.randf_range(24.0, 36.0)),
-			"spin": _snow_random.randf_range(-0.2, 0.2),
-		})
+		(
+			_snowflakes
+			. append(
+				{
+					"node": snowflake,
+					"velocity":
+					Vector2(
+						_snow_random.randf_range(-3.0, 7.0), _snow_random.randf_range(24.0, 36.0)
+					),
+					"spin": _snow_random.randf_range(-0.2, 0.2),
+				}
+			)
+		)
 
 
 func _update_snow(delta: float) -> void:
@@ -99,7 +109,9 @@ func _update_snow(delta: float) -> void:
 		snowflake.position += snowflake_data.velocity * delta
 		snowflake.rotation += snowflake_data.spin * delta
 		if snowflake.position.y > DESIGN_SIZE.y + 50.0:
-			snowflake.position = Vector2(_snow_random.randf_range(-40.0, DESIGN_SIZE.x + 40.0), -50.0)
+			snowflake.position = Vector2(
+				_snow_random.randf_range(-40.0, DESIGN_SIZE.x + 40.0), -50.0
+			)
 
 
 func _build_gondola() -> AnimatedSprite2D:
@@ -174,10 +186,18 @@ func _build_start_button() -> Button:
 	button.add_theme_color_override("font_focus_color", Color("ffffff"))
 	button.add_theme_color_override("font_outline_color", Color("260700"))
 	button.add_theme_constant_override("outline_size", 8)
-	button.add_theme_stylebox_override("normal", _button_style(Color("d92c0ba6"), Color("ffb000"), 7, 12))
-	button.add_theme_stylebox_override("hover", _button_style(Color("f0440de6"), Color("ffe04a"), 9, 14))
-	button.add_theme_stylebox_override("pressed", _button_style(Color("9f1607bf"), Color("ff8a00"), 7, 5))
-	button.add_theme_stylebox_override("focus", _button_style(Color("f0440de6"), Color("fff16a"), 9, 14))
+	button.add_theme_stylebox_override(
+		"normal", _button_style(Color("d92c0ba6"), Color("ffb000"), 7, 12)
+	)
+	button.add_theme_stylebox_override(
+		"hover", _button_style(Color("f0440de6"), Color("ffe04a"), 9, 14)
+	)
+	button.add_theme_stylebox_override(
+		"pressed", _button_style(Color("9f1607bf"), Color("ff8a00"), 7, 5)
+	)
+	button.add_theme_stylebox_override(
+		"focus", _button_style(Color("f0440de6"), Color("fff16a"), 9, 14)
+	)
 	button.pressed.connect(_on_start_game_pressed)
 	button.call_deferred("grab_focus")
 	return button
@@ -198,10 +218,18 @@ func _build_exit_button() -> Button:
 	button.add_theme_color_override("font_focus_color", Color("ffffff"))
 	button.add_theme_color_override("font_outline_color", Color("28002f"))
 	button.add_theme_constant_override("outline_size", 6)
-	button.add_theme_stylebox_override("normal", _button_style(Color("b000d4a6"), Color("43f4ff"), 5, 8))
-	button.add_theme_stylebox_override("hover", _button_style(Color("e000cfe6"), Color("aefcff"), 7, 10))
-	button.add_theme_stylebox_override("pressed", _button_style(Color("7200a8bf"), Color("20dfea"), 5, 4))
-	button.add_theme_stylebox_override("focus", _button_style(Color("e000cfe6"), Color("ffffff"), 7, 10))
+	button.add_theme_stylebox_override(
+		"normal", _button_style(Color("b000d4a6"), Color("43f4ff"), 5, 8)
+	)
+	button.add_theme_stylebox_override(
+		"hover", _button_style(Color("e000cfe6"), Color("aefcff"), 7, 10)
+	)
+	button.add_theme_stylebox_override(
+		"pressed", _button_style(Color("7200a8bf"), Color("20dfea"), 5, 4)
+	)
+	button.add_theme_stylebox_override(
+		"focus", _button_style(Color("e000cfe6"), Color("ffffff"), 7, 10)
+	)
 	button.pressed.connect(_on_exit_pressed)
 	return button
 
@@ -216,7 +244,9 @@ func _animate_start_button(button: Button) -> void:
 	tween.parallel().tween_property(button, "modulate", Color.WHITE, 0.7)
 
 
-func _button_style(background: Color, border: Color, border_width: int, shadow_size: int) -> StyleBoxFlat:
+func _button_style(
+	background: Color, border: Color, border_width: int, shadow_size: int
+) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = background
 	style.border_color = border

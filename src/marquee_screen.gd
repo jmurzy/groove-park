@@ -16,7 +16,7 @@ const SKIER_SCALE := 0.34
 const SKIER_OFFSCREEN_MARGIN := 160.0
 const SNOWBOARDER_LEAD_DISTANCE := 280.0
 const SEPARATOR_COLOR_STEP_DURATION := 0.4
-const SEPARATOR_COLORS := [
+const SEPARATOR_COLORS: Array[Color] = [
 	Color("ffd166"),
 	Color("ff8c42"),
 	Color("ff5d8f"),
@@ -26,7 +26,7 @@ const SEPARATOR_COLORS := [
 	Color("80ed99"),
 	Color("ff4d4d"),
 ]
-const LIFTS := [
+const LIFTS: Array[Dictionary] = [
 	{"name": "HEAVENLY GONDOLA", "status": "OPEN"},
 	{"name": "GUNBARREL EXPRESS", "status": "HOLD"},
 	{"name": "POWDERBOWL EXPRESS", "status": "OPEN"},
@@ -36,7 +36,7 @@ const LIFTS := [
 
 @export var screen_index: int = 0
 var show_diagnostics := false
-var liftie_state_service
+var liftie_state_service: LiftieStateService
 
 var _elapsed := 0.0
 var _ticker_width := 1.0
@@ -100,11 +100,19 @@ func _build_snow() -> void:
 		var snowflake_scale := _snow_random.randf_range(0.035, 0.08)
 		snowflake.scale = Vector2.ONE * snowflake_scale
 		add_child(snowflake)
-		_snowflakes.append({
-			"node": snowflake,
-			"velocity": Vector2(_snow_random.randf_range(-3.0, 7.0), _snow_random.randf_range(24.0, 36.0)),
-			"spin": _snow_random.randf_range(-0.2, 0.2),
-		})
+		(
+			_snowflakes
+			. append(
+				{
+					"node": snowflake,
+					"velocity":
+					Vector2(
+						_snow_random.randf_range(-3.0, 7.0), _snow_random.randf_range(24.0, 36.0)
+					),
+					"spin": _snow_random.randf_range(-0.2, 0.2),
+				}
+			)
+		)
 
 
 func _update_snow(delta: float) -> void:
@@ -113,7 +121,9 @@ func _update_snow(delta: float) -> void:
 		snowflake.position += snowflake_data.velocity * delta
 		snowflake.rotation += snowflake_data.spin * delta
 		if snowflake.position.y > DESIGN_SIZE.y + 50.0:
-			snowflake.position = Vector2(_snow_random.randf_range(-40.0, DESIGN_SIZE.x + 40.0), -50.0)
+			snowflake.position = Vector2(
+				_snow_random.randf_range(-40.0, DESIGN_SIZE.x + 40.0), -50.0
+			)
 
 
 func _build_skier() -> void:
@@ -157,14 +167,16 @@ func _update_skier() -> void:
 		return
 	var travel_width := DESIGN_SIZE.x + SKIER_OFFSCREEN_MARGIN * 2.0
 	_skier.position.x = -SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
-	_snowboarder.position.x = -SKIER_OFFSCREEN_MARGIN + fposmod(
-		_elapsed * SKIER_SPEED + SNOWBOARDER_LEAD_DISTANCE,
-		travel_width
+	_snowboarder.position.x = (
+		-SKIER_OFFSCREEN_MARGIN
+		+ fposmod(_elapsed * SKIER_SPEED + SNOWBOARDER_LEAD_DISTANCE, travel_width)
 	)
 
 
 func _build_header() -> void:
-	var summary := _build_divided_line(["14 OPEN", "2 HOLD", "1 CLOSED"], 34, Color("ffffff"), 52, 6, true)
+	var summary := _build_divided_line(
+		["14 OPEN", "2 HOLD", "1 CLOSED"], 34, Color("ffffff"), 52, 6, true
+	)
 	summary.position = Vector2(0, 41)
 	summary.size = Vector2(DESIGN_SIZE.x, 52)
 	summary.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -338,10 +350,14 @@ func _status_style(status: String) -> StyleBoxFlat:
 
 func _status_text_color(status: String) -> Color:
 	match status:
-		"OPEN": return Color("bdf77d")
-		"HOLD", "WIND HOLD": return Color("ffd166")
-		"CLOSED": return Color("d7e0e8")
-		_: return Color("ffffff")
+		"OPEN":
+			return Color("bdf77d")
+		"HOLD", "WIND HOLD":
+			return Color("ffd166")
+		"CLOSED":
+			return Color("d7e0e8")
+		_:
+			return Color("ffffff")
 
 
 func _build_diagnostics() -> Label:

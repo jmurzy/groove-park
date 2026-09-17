@@ -15,7 +15,67 @@ env:
   GODOT_TEMPLATE_VERSION: 4.6.3.stable
 
 jobs:
+  static-checks:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Install Just
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+        with:
+          tool: just@1.58.0
+          fallback: none
+
+      - name: Install gdtoolkit
+        run: pipx install "gdtoolkit==4.*"
+
+      - name: Check formatting and lint
+        run: just lint-check
+
+      - name: Download pinned actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/actionlint.tar.gz" \
+            "https://github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+
+      - name: Check GitHub Actions workflows
+        run: |
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          sudo install "$RUNNER_TEMP/actionlint" /usr/local/bin/actionlint
+          just actionlint-check
+
+      - name: Download pinned Godot editor
+        env:
+          GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
+          GODOT_EDITOR_SHA256: d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/godot.zip" \
+            "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$RUNNER_TEMP/godot.zip" | sha256sum --check
+
+      - name: Install Godot
+        run: |
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          sudo install \
+            "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" \
+            /usr/local/bin/godot
+          godot --version
+
+      - name: Typecheck GDScript
+        env:
+          GODOT_BIN: godot
+        run: just typecheck
+
   build:
+    needs: static-checks
     runs-on: ubuntu-24.04
     permissions:
       contents: read

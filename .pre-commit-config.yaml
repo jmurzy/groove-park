@@ -1,0 +1,13 @@
+# Local enforcement for `just check`. The blocking gate is the
+# `static-checks` CI job (bypassable locally with `git commit --no-verify`).
+# One-time setup: just install.
+repos:
+  - repo: local
+    hooks:
+      - id: just-check
+        name: just check
+        entry: just check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

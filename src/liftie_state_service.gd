@@ -1,3 +1,4 @@
+class_name LiftieStateService
 extends Node
 
 signal state_changed(state: Dictionary)
@@ -50,9 +51,13 @@ func request_status() -> void:
 		_publish_unknown()
 
 
-func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_request_completed(
+	result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray
+) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
-		push_warning("Liftie status request failed with result %d and HTTP %d." % [result, response_code])
+		push_warning(
+			"Liftie status request failed with result %d and HTTP %d." % [result, response_code]
+		)
 		_publish_unknown()
 		return
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())

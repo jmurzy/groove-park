@@ -1,6 +1,7 @@
 class_name DevSente
 extends RefCounted
 
+
 # Dev overrides for testing Sente resolutions on a single display.
 # Usage:
 #   --sente                    primary 1920x1080 + marquee 1920x360 dev windows
@@ -32,10 +33,15 @@ static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) 
 	if overrides.force_marquee and overrides.marquee_size.x < 0:
 		overrides.marquee_size = marquee_design
 	if overrides.primary_size.x > 0 or overrides.force_marquee:
-		print("HEAVENLY dev windows: primary %s marquee %s" % [
-			size_to_string(overrides.primary_size),
-			size_to_string(overrides.marquee_size),
-		])
+		print(
+			(
+				"HEAVENLY dev windows: primary %s marquee %s"
+				% [
+					size_to_string(overrides.primary_size),
+					size_to_string(overrides.marquee_size),
+				]
+			)
+		)
 	return overrides
 
 
@@ -57,7 +63,14 @@ static func size_to_string(size: Vector2i) -> String:
 	return "%dx%d" % [size.x, size.y]
 
 
-static func configure(window: Window, screen_index: int, design_size: Vector2i, window_title: String, window_size: Vector2i, offset: Vector2i) -> void:
+static func configure(
+	window: Window,
+	screen_index: int,
+	design_size: Vector2i,
+	window_title: String,
+	window_size: Vector2i,
+	offset: Vector2i
+) -> void:
 	var screen_position := DisplayServer.screen_get_position(screen_index)
 	var screen_size := DisplayServer.screen_get_size(screen_index)
 

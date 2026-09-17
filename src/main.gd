@@ -13,7 +13,7 @@ const LiftieStateServiceScene := preload("res://src/liftie_state_service.gd")
 const BackgroundMusic := preload("res://assets/fonts/slimeyfox-gameotoon.mp3")
 
 var _exit_hold_time := 0.0
-var _liftie_state_service
+var _liftie_state_service: LiftieStateService
 
 
 func _ready() -> void:
@@ -39,7 +39,14 @@ func _ready() -> void:
 
 	var primary_screen := PRIMARY_SCREEN_WITH_MARQUEE if screen_count >= 2 else 0
 	if overrides.primary_size.x > 0:
-		DevSente.configure(get_window(), primary_screen, PRIMARY_DESIGN_SIZE, "HEAVENLY - PRIMARY", overrides.primary_size, Vector2i(0, 0))
+		DevSente.configure(
+			get_window(),
+			primary_screen,
+			PRIMARY_DESIGN_SIZE,
+			"HEAVENLY - PRIMARY",
+			overrides.primary_size,
+			Vector2i(0, 0)
+		)
 	else:
 		_configure_window(get_window(), primary_screen, PRIMARY_DESIGN_SIZE, "HEAVENLY - PRIMARY")
 
@@ -53,11 +60,15 @@ func _ready() -> void:
 	var show_marquee: bool = screen_count >= 2 or overrides.force_marquee
 	if show_marquee:
 		var marquee_screen := MARQUEE_SCREEN if screen_count >= 2 else primary_screen
-		var marquee_size: Vector2i = overrides.marquee_size if overrides.marquee_size.x > 0 else MARQUEE_DESIGN_SIZE
+		var marquee_size: Vector2i = (
+			overrides.marquee_size if overrides.marquee_size.x > 0 else MARQUEE_DESIGN_SIZE
+		)
 		var marquee_offset := Vector2i(0, 0)
 		if overrides.primary_size.x > 0 or overrides.marquee_size.x > 0:
 			# Stack the dev marquee below the dev primary so both are visible on one screen.
-			var primary_height: int = overrides.primary_size.y if overrides.primary_size.x > 0 else 0
+			var primary_height: int = (
+				overrides.primary_size.y if overrides.primary_size.x > 0 else 0
+			)
 			marquee_offset = Vector2i(0, primary_height + 28)
 		_create_marquee(marquee_screen, marquee_size, marquee_offset, overrides.show_diagnostics)
 
@@ -75,14 +86,21 @@ func _process(delta: float) -> void:
 		_exit_hold_time = 0.0
 
 
-func _create_marquee(screen_index: int, window_size: Vector2i = Vector2i(-1, -1), offset: Vector2i = Vector2i(0, 0), show_diagnostics: bool = false) -> void:
+func _create_marquee(
+	screen_index: int,
+	window_size: Vector2i = Vector2i(-1, -1),
+	offset: Vector2i = Vector2i(0, 0),
+	show_diagnostics: bool = false
+) -> void:
 	var marquee := Window.new()
 	marquee.name = "MarqueeWindow"
 	marquee.transient = false
 	marquee.close_requested.connect(_quit)
 	add_child(marquee)
 	if window_size.x > 0:
-		DevSente.configure(marquee, screen_index, MARQUEE_DESIGN_SIZE, "HEAVENLY - MARQUEE", window_size, offset)
+		DevSente.configure(
+			marquee, screen_index, MARQUEE_DESIGN_SIZE, "HEAVENLY - MARQUEE", window_size, offset
+		)
 	else:
 		_configure_window(marquee, screen_index, MARQUEE_DESIGN_SIZE, "HEAVENLY - MARQUEE")
 
@@ -94,7 +112,9 @@ func _create_marquee(screen_index: int, window_size: Vector2i = Vector2i(-1, -1)
 	marquee.show()
 
 
-func _configure_window(window: Window, screen_index: int, design_size: Vector2i, window_title: String) -> void:
+func _configure_window(
+	window: Window, screen_index: int, design_size: Vector2i, window_title: String
+) -> void:
 	var screen_position := DisplayServer.screen_get_position(screen_index)
 	var screen_size := DisplayServer.screen_get_size(screen_index)
 
@@ -116,14 +136,19 @@ func _log_displays(screen_count: int) -> void:
 		var position := DisplayServer.screen_get_position(screen_index)
 		var size := DisplayServer.screen_get_size(screen_index)
 		var refresh_rate := DisplayServer.screen_get_refresh_rate(screen_index)
-		print("Screen %d: %d x %d at (%d, %d), %.2f Hz" % [
-			screen_index,
-			size.x,
-			size.y,
-			position.x,
-			position.y,
-			refresh_rate,
-		])
+		print(
+			(
+				"Screen %d: %d x %d at (%d, %d), %.2f Hz"
+				% [
+					screen_index,
+					size.x,
+					size.y,
+					position.x,
+					position.y,
+					refresh_rate,
+				]
+			)
+		)
 
 
 func _log_connected_controllers() -> void:
