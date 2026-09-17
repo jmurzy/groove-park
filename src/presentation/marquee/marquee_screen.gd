@@ -3,10 +3,11 @@ extends Control
 
 const DESIGN_SIZE := Vector2(1920, 360)
 const MARQUEE_BACKGROUND := preload("res://artwork/marquee_bg.png")
-const SNOWFLAKE_TEXTURE := preload("res://artwork/snowflake.png")
+const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
 const SKIER_SHEET := preload("res://artwork/skiier_sprite.png")
 const SNOWBOARDER_SHEET := preload("res://artwork/snowboarder_sprite.png")
 const MARQUEE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
+const LiveIndicatorScene := preload("res://src/presentation/marquee/live_indicator.gd")
 const TICKER_SPEED := 85.0
 const BORDER_WIDTH := 14.0
 const SKIER_FRAME_COUNT := 8
@@ -44,8 +45,6 @@ var _ticker_tracks: Array[HBoxContainer] = []
 var _animated_separators: Array[Label] = []
 var _skier: AnimatedSprite2D
 var _snowboarder: AnimatedSprite2D
-var _snowflakes: Array[Dictionary] = []
-var _snow_random := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -53,7 +52,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_build_snow()
+	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28))
 	_build_header()
 	_build_ticker()
 	_build_skier()
@@ -65,7 +64,6 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_elapsed += delta
-	_update_snow(delta)
 	_update_skier()
 	_update_separator_colors()
 	if _ticker_tracks.size() != 2 or _ticker_width <= 1.0:
@@ -78,52 +76,11 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	draw_texture_rect(MARQUEE_BACKGROUND, Rect2(Vector2.ZERO, DESIGN_SIZE), false)
 	var cell_size := 8
-	for y in range(152, 284, cell_size):
+	for y in range(142, 264, cell_size):
 		for x in range(int(BORDER_WIDTH), int(DESIGN_SIZE.x - BORDER_WIDTH), cell_size):
 			if int(x / cell_size + y / cell_size) % 2 == 0:
 				var cell_width: int = min(cell_size, int(DESIGN_SIZE.x - BORDER_WIDTH) - x)
-				draw_rect(Rect2(x, y, cell_width, min(cell_size, 284 - y)), Color("02060cff"))
-
-
-func _build_snow() -> void:
-	_snow_random.seed = 2026
-	for index in 28:
-		var snowflake := Sprite2D.new()
-		snowflake.name = "Snowflake%d" % (index + 1)
-		snowflake.texture = SNOWFLAKE_TEXTURE
-		snowflake.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-		snowflake.position = Vector2(
-			_snow_random.randf_range(-40.0, DESIGN_SIZE.x + 40.0),
-			_snow_random.randf_range(-80.0, DESIGN_SIZE.y + 40.0)
-		)
-		snowflake.rotation = _snow_random.randf_range(0.0, TAU)
-		var snowflake_scale := _snow_random.randf_range(0.035, 0.08)
-		snowflake.scale = Vector2.ONE * snowflake_scale
-		add_child(snowflake)
-		(
-			_snowflakes
-			. append(
-				{
-					"node": snowflake,
-					"velocity":
-					Vector2(
-						_snow_random.randf_range(-3.0, 7.0), _snow_random.randf_range(24.0, 36.0)
-					),
-					"spin": _snow_random.randf_range(-0.2, 0.2),
-				}
-			)
-		)
-
-
-func _update_snow(delta: float) -> void:
-	for snowflake_data in _snowflakes:
-		var snowflake: Sprite2D = snowflake_data.node
-		snowflake.position += snowflake_data.velocity * delta
-		snowflake.rotation += snowflake_data.spin * delta
-		if snowflake.position.y > DESIGN_SIZE.y + 50.0:
-			snowflake.position = Vector2(
-				_snow_random.randf_range(-40.0, DESIGN_SIZE.x + 40.0), -50.0
-			)
+				draw_rect(Rect2(x, y, cell_width, min(cell_size, 264 - y)), Color("02060cff"))
 
 
 func _build_skier() -> void:
@@ -158,7 +115,7 @@ func _build_rider(rider_name: String, sprite_sheet: Texture2D) -> AnimatedSprite
 	rider.animation = "ski"
 	rider.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	rider.scale = Vector2.ONE * SKIER_SCALE
-	rider.position.y = 141
+	rider.position.y = 131
 	return rider
 
 
@@ -174,18 +131,23 @@ func _update_skier() -> void:
 
 
 func _build_header() -> void:
+	var header := HBoxContainer.new()
+	header.position = Vector2(0, 20)
+	header.size = Vector2(DESIGN_SIZE.x, 52)
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	header.add_theme_constant_override("separation", 28)
+	add_child(header)
+
 	var summary := _build_divided_line(
 		["14 OPEN", "2 HOLD", "1 CLOSED"], 34, Color("ffffff"), 52, 6, true
 	)
-	summary.position = Vector2(0, 41)
-	summary.size = Vector2(DESIGN_SIZE.x, 52)
-	summary.alignment = BoxContainer.ALIGNMENT_CENTER
-	add_child(summary)
+	header.add_child(LiveIndicatorScene.new())
+	header.add_child(summary)
 
 
 func _build_ticker() -> void:
 	var ticker_window := Control.new()
-	ticker_window.position = Vector2(BORDER_WIDTH, 152)
+	ticker_window.position = Vector2(BORDER_WIDTH, 142)
 	ticker_window.size = Vector2(DESIGN_SIZE.x - BORDER_WIDTH * 2.0, 132)
 	ticker_window.clip_contents = true
 	ticker_window.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -252,14 +214,9 @@ func _finish_ticker_layout() -> void:
 
 func _build_footer() -> void:
 	var footer := _build_divided_line(
-		["MOUNTAIN OPS", "CONDITIONS CAN CHANGE", "OBSERVE ALL POSTED SIGNAGE"],
-		26,
-		Color("d4efff"),
-		44,
-		4,
-		true
+		["CONDITIONS CAN CHANGE", "OBSERVE ALL POSTED SIGNAGE"], 26, Color("d4efff"), 44, 4, true
 	)
-	footer.position = Vector2(58, 294)
+	footer.position = Vector2(58, 284)
 	footer.size = Vector2(1804, 44)
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(footer)
