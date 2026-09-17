@@ -7,6 +7,7 @@ signal cancelled
 const DESIGN_WIDTH := 1920.0
 const SKIER_SHEET := preload("res://artwork/skiier_sprite.png")
 const SNOWBOARDER_SHEET := preload("res://artwork/snowboarder_sprite.png")
+const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CARD_SIZE := Vector2(560, 385)
 const ONE_PLAYER_POSITION := Vector2(375, 545)
 const TWO_PLAYER_POSITION := Vector2(985, 545)
@@ -14,6 +15,7 @@ const TWO_PLAYER_POSITION := Vector2(985, 545)
 var selected_player_count := 1
 var _cards: Array[Button] = []
 var _riders: Array[RiderPreview] = []
+var _switch_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -23,6 +25,9 @@ func _ready() -> void:
 	_build_title()
 	_build_cards()
 	_build_hint()
+	_switch_sound = AudioStreamPlayer.new()
+	_switch_sound.stream = SWITCH_SOUND
+	add_child(_switch_sound)
 	_select(1)
 
 
@@ -31,7 +36,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_select(2 if selected_player_count == 1 else 1)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"controller_start"):
-		confirmed.emit(selected_player_count)
+		_confirm(selected_player_count)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"controller_back"):
 		cancelled.emit()
@@ -72,9 +77,12 @@ func _build_cards() -> void:
 
 
 func _build_hint() -> void:
-	var hint := ArcadeTheme.make_label("<  SELECT  >     A / START  READY", 20, Color("d4efff"))
+	var hint := ArcadeTheme.make_label(
+		"<  SELECT  >     A / START  READY     B / ESC  BACK", 20, Color("d4efff")
+	)
 	hint.position = Vector2(0, 970)
 	hint.size = Vector2(DESIGN_WIDTH, 40)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hint)
 
 
@@ -126,12 +134,19 @@ func _build_card(player_count: int, card_position: Vector2) -> Button:
 
 
 func _select(player_count: int) -> void:
+	var selection_changed := selected_player_count != player_count
 	selected_player_count = player_count
 	for index in _riders.size():
 		var belongs_to_selection := index == 0 if player_count == 1 else index > 0
 		_riders[index].set_highlighted(belongs_to_selection)
 	if _cards.size() == 2:
 		_cards[player_count - 1].call_deferred("grab_focus")
+	if selection_changed:
+		_switch_sound.play()
+
+
+func _confirm(player_count: int) -> void:
+	confirmed.emit(player_count)
 
 
 func _on_card_focused(player_count: int) -> void:
@@ -142,4 +157,4 @@ func _on_card_focused(player_count: int) -> void:
 
 func _on_card_pressed(player_count: int) -> void:
 	selected_player_count = player_count
-	confirmed.emit(player_count)
+	_confirm(player_count)

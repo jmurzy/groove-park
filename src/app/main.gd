@@ -12,11 +12,13 @@ const DevSente := preload("res://src/services/dev_sente.gd")
 const GameControllerScene := preload("res://src/game/game_controller.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
 const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
-const BackgroundMusic := preload("res://assets/fonts/slimeyfox-gameotoon.mp3")
+const BackgroundMusic := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
 
 var _exit_hold_time := 0.0
+var _background_music: AudioStreamPlayer
 var _game_controller: GameController
 var _liftie_state_service: LiftieStateService
+var _primary_view: PrimaryScreen
 
 
 func _ready() -> void:
@@ -26,11 +28,11 @@ func _ready() -> void:
 
 	var background_music_stream: AudioStreamMP3 = BackgroundMusic.duplicate()
 	background_music_stream.loop = true
-	var background_music := AudioStreamPlayer.new()
-	background_music.name = "BackgroundMusic"
-	background_music.stream = background_music_stream
-	add_child(background_music)
-	background_music.play()
+	_background_music = AudioStreamPlayer.new()
+	_background_music.name = "BackgroundMusic"
+	_background_music.stream = background_music_stream
+	add_child(_background_music)
+	_background_music.play()
 
 	var screen_count := DisplayServer.get_screen_count()
 	_log_displays(screen_count)
@@ -56,13 +58,14 @@ func _ready() -> void:
 	else:
 		_configure_window(get_window(), primary_screen, PRIMARY_DESIGN_SIZE, "HEAVENLY - PRIMARY")
 
-	var primary_view := PrimaryScreenScene.new()
-	primary_view.screen_index = primary_screen
-	primary_view.liftie_state_service = _liftie_state_service
-	primary_view.show_diagnostics = overrides.show_diagnostics
-	primary_view.start_game_requested.connect(_game_controller.start_game)
-	primary_view.exit_requested.connect(_quit)
-	add_child(primary_view)
+	_primary_view = PrimaryScreenScene.new()
+	_primary_view.screen_index = primary_screen
+	_primary_view.liftie_state_service = _liftie_state_service
+	_primary_view.show_diagnostics = overrides.show_diagnostics
+	_primary_view.start_game_requested.connect(_start_game)
+	_primary_view.return_to_main_requested.connect(_return_to_attract)
+	_primary_view.exit_requested.connect(_quit)
+	add_child(_primary_view)
 
 	var show_marquee: bool = screen_count >= 2 or overrides.force_marquee
 	if show_marquee:
@@ -81,16 +84,30 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if Input.is_action_just_pressed(&"exit_escape"):
-		_quit()
-		return
-
 	if Input.is_action_pressed(&"controller_start") and Input.is_action_pressed(&"controller_back"):
 		_exit_hold_time += delta
 		if _exit_hold_time >= EXIT_HOLD_SECONDS:
 			_quit()
 	else:
 		_exit_hold_time = 0.0
+
+
+func _start_game(player_count: int) -> void:
+	_background_music.stop()
+	_game_controller.start_game(player_count)
+
+
+func _return_to_attract() -> void:
+	_background_music.play()
+	_game_controller.return_to_attract()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed(&"exit_escape"):
+		return
+	if not _primary_view.handle_escape():
+		_quit()
+	get_viewport().set_input_as_handled()
 
 
 func _create_marquee(
