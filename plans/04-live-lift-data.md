@@ -2,9 +2,9 @@
 
 ## Goal
 
-Build resilience around the implemented Liftie adapter while preserving its normalized state contract and arcade presentation.
+Replace Plan 02's authored per-lift mock state with resilient Liftie data while preserving its normalized state contract and arcade presentation.
 
-The initial Liftie endpoint integration is complete in Plan 01. Before adding caching or changing refresh behavior, confirm the current API requirements and representative responses.
+The initial aggregate Liftie endpoint integration is complete in Plan 01, but Plan 02 uses authored mock state until this plan. Before replacing the mock source, confirm the current API requirements and representative per-lift responses.
 
 ## API assessment
 
@@ -42,7 +42,7 @@ normalized MountainState
 1. Load the last-known-good cache during startup.
 2. If no cache exists, publish the existing neutral `unknown` state so rendering starts immediately.
 3. Request live data asynchronously after the first frame.
-4. Validate and normalize the response before publishing it.
+4. Validate and normalize the response into the same per-lift `MountainState` contract used by the mock source before publishing it.
 5. Save only valid normalized state to the cache.
 6. Refresh no more frequently than the API permits; begin with five minutes unless documentation says otherwise.
 7. Add bounded retry delays after failures rather than retrying every frame.

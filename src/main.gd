@@ -10,6 +10,7 @@ const PrimaryScreenScene := preload("res://src/primary_screen.gd")
 const MarqueeScreenScene := preload("res://src/marquee_screen.gd")
 const DevSente := preload("res://src/dev_sente.gd")
 const LiftieStateServiceScene := preload("res://src/liftie_state_service.gd")
+const BackgroundMusic := preload("res://assets/fonts/slimeyfox-gameotoon.mp3")
 
 var _exit_hold_time := 0.0
 var _liftie_state_service
@@ -19,6 +20,14 @@ func _ready() -> void:
 	get_tree().set_auto_accept_quit(false)
 	get_window().close_requested.connect(_quit)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+
+	var background_music_stream: AudioStreamMP3 = BackgroundMusic.duplicate()
+	background_music_stream.loop = true
+	var background_music := AudioStreamPlayer.new()
+	background_music.name = "BackgroundMusic"
+	background_music.stream = background_music_stream
+	add_child(background_music)
+	background_music.play()
 
 	var screen_count := DisplayServer.get_screen_count()
 	_log_displays(screen_count)
@@ -38,6 +47,7 @@ func _ready() -> void:
 	primary_view.screen_index = primary_screen
 	primary_view.liftie_state_service = _liftie_state_service
 	primary_view.show_diagnostics = overrides.show_diagnostics
+	primary_view.exit_requested.connect(_quit)
 	add_child(primary_view)
 
 	var show_marquee: bool = screen_count >= 2 or overrides.force_marquee

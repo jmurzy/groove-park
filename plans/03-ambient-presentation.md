@@ -2,7 +2,7 @@
 
 ## Goal
 
-Turn the functional mountain world into an ambient arcade attract mode that remains interesting without user interaction.
+Turn the functional `GUNBARREL 25` mountain world into an ambient arcade attract mode that remains interesting without user interaction and prepares for a future playable run.
 
 ## Visual direction
 
@@ -16,7 +16,7 @@ Turn the functional mountain world into an ambient arcade attract mode that rema
 
 1. Add a deterministic time-of-day cycle suitable for accelerated demonstration.
 2. Add weather variations that do not imply live weather yet.
-3. Add short attract-mode compositions such as mountain-wide, lift-focused, and title moments.
+3. Add short attract-mode compositions such as mountain-wide, lift-focused, `GUNBARREL 25` title, and lap-countdown moments.
 4. Add subtle environmental motion when lifts are closed.
 5. Add optional ambient audio and simple arcade cues with independent volume settings stored locally.
 6. Prevent burn-in by ensuring bright static elements move or vary over time.
@@ -25,7 +25,7 @@ Turn the functional mountain world into an ambient arcade attract mode that rema
 
 Create a small sequence of marquee states:
 
-- Hero title.
+- `GUNBARREL 25` hero title.
 - Mountain activity pulse.
 - Featured lift name and state.
 - Abstract snowfall or contour animation.
@@ -34,7 +34,7 @@ The marquee sequence must tolerate removal at any point. No timing or state prog
 
 ## Interaction
 
-Keep the experience primarily ambient. If cabinet controls affect the scene, limit them to harmless arcade-like reactions such as changing a camera emphasis or triggering a short snow burst. Do not introduce menus.
+Keep the experience primarily ambient. If cabinet controls affect the scene, limit them to harmless arcade-like reactions such as changing a camera emphasis or triggering a short snow burst. Do not introduce menus or playable-run rules before a dedicated gameplay plan.
 
 ## Verification
 

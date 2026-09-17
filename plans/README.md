@@ -5,10 +5,10 @@ Implement these plans in numerical order. Each plan ends with a usable milestone
 | Order | Plan | Result |
 | --- | --- | --- |
 | 00 | [Launch compatibility spike](00-launch-compatibility-spike.md) | The smallest Windows build that AGS can launch on the cabinet |
-| 01 | [Live-data vertical slice](01-mocked-vertical-slice.md) | A recognizable tiny arcade experience driven by Liftie data |
-| 02 | [Mountain world](02-mountain-world.md) | A complete stylized mountain with multiple animated lifts |
-| 03 | [Ambient presentation](03-ambient-presentation.md) | A polished, continuously changing attract-mode experience |
-| 04 | [Live data resilience](04-live-lift-data.md) | Cached, resilient live updates and offline fallback |
+| 01 | [Live-data vertical slice](01-mocked-vertical-slice.md) | A recognizable tiny arcade experience driven by one normalized state |
+| 02 | [Gunbarrel 25 mountain world](02-mountain-world.md) | A game-ready arcade mountain with mock per-lift statuses |
+| 03 | [Ambient presentation](03-ambient-presentation.md) | A polished, continuously changing Gunbarrel 25 attract-mode experience |
+| 04 | [Live data resilience](04-live-lift-data.md) | Liftie replaces mocks with cached, resilient live updates and offline fallback |
 | 05 | [Cabinet hardening and release](05-cabinet-hardening-and-release.md) | A repeatable, cabinet-ready release package |
 
 ## Fixed decisions
