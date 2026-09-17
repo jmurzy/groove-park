@@ -12,6 +12,7 @@ enum PresentationState {
 
 var mountain_state: MountainState
 var presentation_state: PresentationState = PresentationState.ATTRACT
+var player_count := 1
 var _mountain_state_source: MountainStateSource
 
 
@@ -30,7 +31,8 @@ func _ready() -> void:
 	add_child(_mountain_state_source)
 
 
-func start_game() -> void:
+func start_game(selected_player_count: int) -> void:
+	player_count = selected_player_count
 	_set_presentation_state(PresentationState.PLAYING)
 
 

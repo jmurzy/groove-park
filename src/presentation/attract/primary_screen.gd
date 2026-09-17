@@ -1,7 +1,7 @@
 class_name PrimaryScreen
 extends Control
 
-signal start_game_requested
+signal start_game_requested(player_count: int)
 signal exit_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
@@ -35,6 +35,9 @@ var liftie_state_service: LiftieStateService
 var logo_bob_time := 0.0
 var logo_subtitle: Label
 var gondola: AnimatedSprite2D
+var start_button: Button
+var exit_button: Button
+var player_select: PlayerSelectScreen
 var _snowflakes: Array[Dictionary] = []
 var _snow_random := RandomNumberGenerator.new()
 
@@ -50,10 +53,11 @@ func _ready() -> void:
 	add_child(gondola)
 	gondola.play()
 	_build_snow()
-	var start_button := _build_start_button()
+	start_button = _build_start_button()
 	add_child(start_button)
 	_animate_start_button(start_button)
-	add_child(_build_exit_button())
+	exit_button = _build_exit_button()
+	add_child(exit_button)
 	if show_diagnostics:
 		add_child(_build_diagnostics())
 	queue_redraw()
@@ -187,18 +191,18 @@ func _build_start_button() -> Button:
 	button.add_theme_color_override("font_outline_color", Color("260700"))
 	button.add_theme_constant_override("outline_size", 8)
 	button.add_theme_stylebox_override(
-		"normal", _button_style(Color("d92c0ba6"), Color("ffb000"), 7, 12)
+		"normal", ArcadeTheme.button_style(Color("d92c0ba6"), Color("ffb000"), 7, 12)
 	)
 	button.add_theme_stylebox_override(
-		"hover", _button_style(Color("f0440de6"), Color("ffe04a"), 9, 14)
+		"hover", ArcadeTheme.button_style(Color("f0440de6"), Color("ffe04a"), 9, 14)
 	)
 	button.add_theme_stylebox_override(
-		"pressed", _button_style(Color("9f1607bf"), Color("ff8a00"), 7, 5)
+		"pressed", ArcadeTheme.button_style(Color("9f1607bf"), Color("ff8a00"), 7, 5)
 	)
 	button.add_theme_stylebox_override(
-		"focus", _button_style(Color("f0440de6"), Color("fff16a"), 9, 14)
+		"focus", ArcadeTheme.button_style(Color("f0440de6"), Color("fff16a"), 9, 14)
 	)
-	button.pressed.connect(_on_start_game_pressed)
+	button.pressed.connect(_open_player_select)
 	button.call_deferred("grab_focus")
 	return button
 
@@ -219,16 +223,16 @@ func _build_exit_button() -> Button:
 	button.add_theme_color_override("font_outline_color", Color("28002f"))
 	button.add_theme_constant_override("outline_size", 6)
 	button.add_theme_stylebox_override(
-		"normal", _button_style(Color("b000d4a6"), Color("43f4ff"), 5, 8)
+		"normal", ArcadeTheme.button_style(Color("b000d4a6"), Color("43f4ff"), 5, 8)
 	)
 	button.add_theme_stylebox_override(
-		"hover", _button_style(Color("e000cfe6"), Color("aefcff"), 7, 10)
+		"hover", ArcadeTheme.button_style(Color("e000cfe6"), Color("aefcff"), 7, 10)
 	)
 	button.add_theme_stylebox_override(
-		"pressed", _button_style(Color("7200a8bf"), Color("20dfea"), 5, 4)
+		"pressed", ArcadeTheme.button_style(Color("7200a8bf"), Color("20dfea"), 5, 4)
 	)
 	button.add_theme_stylebox_override(
-		"focus", _button_style(Color("e000cfe6"), Color("ffffff"), 7, 10)
+		"focus", ArcadeTheme.button_style(Color("e000cfe6"), Color("ffffff"), 7, 10)
 	)
 	button.pressed.connect(_on_exit_pressed)
 	return button
@@ -244,21 +248,39 @@ func _animate_start_button(button: Button) -> void:
 	tween.parallel().tween_property(button, "modulate", Color.WHITE, 0.7)
 
 
-func _button_style(
-	background: Color, border: Color, border_width: int, shadow_size: int
-) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background
-	style.border_color = border
-	style.set_border_width_all(border_width)
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.shadow_color = Color("b0000000")
-	style.shadow_size = shadow_size
-	style.shadow_offset = Vector2(0, 9)
-	return style
+func _open_player_select() -> void:
+	if player_select:
+		return
+	start_button.hide()
+	exit_button.hide()
+	player_select = PlayerSelectScreen.new()
+	player_select.confirmed.connect(_on_player_select_confirmed)
+	player_select.cancelled.connect(_on_player_select_cancelled)
+	add_child(player_select)
+	player_select.focus_default()
+
+
+func _close_player_select() -> void:
+	if not player_select:
+		return
+	player_select.queue_free()
+	player_select = null
+	start_button.show()
+	exit_button.show()
+	start_button.call_deferred("grab_focus")
+
+
+func _on_player_select_confirmed(player_count: int) -> void:
+	if not player_select:
+		return
+	var selection := player_select
+	player_select = null
+	selection.queue_free()
+	start_game_requested.emit(player_count)
+
+
+func _on_player_select_cancelled() -> void:
+	_close_player_select()
 
 
 func _build_diagnostics() -> Label:
@@ -272,13 +294,11 @@ func _build_diagnostics() -> Label:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if player_select:
+		return
 	if event.is_action_pressed(&"controller_start"):
-		_on_start_game_pressed()
+		_open_player_select()
 		get_viewport().set_input_as_handled()
-
-
-func _on_start_game_pressed() -> void:
-	start_game_requested.emit()
 
 
 func _on_exit_pressed() -> void:
