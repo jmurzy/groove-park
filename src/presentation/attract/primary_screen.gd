@@ -20,6 +20,8 @@ const GONDOLA_SCALE := 0.36
 const GONDOLA_LANE := Rect2(712, 448, 497, 0)
 const GONDOLA_SPEED := 65.0
 const SNOWFLAKE_COUNT := 84
+const FOOTER_COPYRIGHT_FORMAT := "© %d JULIA & JAKE MURZY - ALL RIGHTS RESERVED"
+const FOOTER_DEV_SUFFIX := "DEV BUILD: BUT EXPECT NO BUGS!"
 const ARCADE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const LOGO_SUBTITLE_WAVE_SHADER := """
 shader_type canvas_item;
@@ -58,6 +60,7 @@ func _ready() -> void:
 	_animate_start_button(start_button)
 	exit_button = _build_exit_button()
 	add_child(exit_button)
+	_build_footer()
 	if show_diagnostics:
 		add_child(_build_diagnostics())
 	queue_redraw()
@@ -179,7 +182,7 @@ func _build_start_button() -> Button:
 	var button := Button.new()
 	button.name = "StartGameButton"
 	button.text = "START GAME"
-	button.position = Vector2(681, 786.1)
+	button.position = Vector2(681, 766.1)
 	button.size = Vector2(558, 109.8)
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_override("font", ARCADE_FONT)
@@ -194,13 +197,13 @@ func _build_start_button() -> Button:
 		"normal", ArcadeTheme.button_style(Color("d92c0ba6"), Color("ffb000"), 7, 12)
 	)
 	button.add_theme_stylebox_override(
-		"hover", ArcadeTheme.button_style(Color("f0440de6"), Color("ffe04a"), 9, 14)
+		"hover", ArcadeTheme.button_style(Color("f0440dbf"), Color("ffe04a"), 9, 14)
 	)
 	button.add_theme_stylebox_override(
-		"pressed", ArcadeTheme.button_style(Color("9f1607bf"), Color("ff8a00"), 7, 5)
+		"pressed", ArcadeTheme.button_style(Color("9f1607e6"), Color("ff8a00"), 7, 5)
 	)
 	button.add_theme_stylebox_override(
-		"focus", ArcadeTheme.button_style(Color("f0440de6"), Color("fff16a"), 9, 14)
+		"focus", ArcadeTheme.button_style(Color("f0440dbf"), Color("fff16a"), 9, 14)
 	)
 	button.pressed.connect(_open_player_select)
 	button.call_deferred("grab_focus")
@@ -211,7 +214,7 @@ func _build_exit_button() -> Button:
 	var button := Button.new()
 	button.name = "ExitButton"
 	button.text = "EXIT"
-	button.position = Vector2(780, 918.1)
+	button.position = Vector2(780, 898.1)
 	button.size = Vector2(360, 73.8)
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_override("font", ARCADE_FONT)
@@ -226,13 +229,13 @@ func _build_exit_button() -> Button:
 		"normal", ArcadeTheme.button_style(Color("b000d4a6"), Color("43f4ff"), 5, 8)
 	)
 	button.add_theme_stylebox_override(
-		"hover", ArcadeTheme.button_style(Color("e000cfe6"), Color("aefcff"), 7, 10)
+		"hover", ArcadeTheme.button_style(Color("e000cfbf"), Color("aefcff"), 7, 10)
 	)
 	button.add_theme_stylebox_override(
-		"pressed", ArcadeTheme.button_style(Color("7200a8bf"), Color("20dfea"), 5, 4)
+		"pressed", ArcadeTheme.button_style(Color("7200a8e6"), Color("20dfea"), 5, 4)
 	)
 	button.add_theme_stylebox_override(
-		"focus", ArcadeTheme.button_style(Color("e000cfe6"), Color("ffffff"), 7, 10)
+		"focus", ArcadeTheme.button_style(Color("e000cfbf"), Color("ffffff"), 7, 10)
 	)
 	button.pressed.connect(_on_exit_pressed)
 	return button
@@ -281,6 +284,26 @@ func _on_player_select_confirmed(player_count: int) -> void:
 
 func _on_player_select_cancelled() -> void:
 	_close_player_select()
+
+
+func _build_footer() -> void:
+	var year: int = Time.get_datetime_dict_from_system().get("year", 2026)
+	var footer := Label.new()
+	footer.name = "FooterLabel"
+	footer.text = ("%s   ◆   %s" % [FOOTER_COPYRIGHT_FORMAT % year, FOOTER_DEV_SUFFIX])
+	footer.position = Vector2(0, 1000)
+	footer.size = Vector2(DESIGN_SIZE.x, 34)
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	footer.add_theme_font_size_override("font_size", 26)
+	footer.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	footer.add_theme_color_override("font_outline_color", Color("061020"))
+	footer.add_theme_constant_override("outline_size", 6)
+	footer.add_theme_color_override("font_shadow_color", Color("02060fcc"))
+	footer.add_theme_constant_override("shadow_offset_x", 3)
+	footer.add_theme_constant_override("shadow_offset_y", 3)
+	add_child(footer)
 
 
 func _build_diagnostics() -> Label:
