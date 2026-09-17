@@ -314,6 +314,7 @@ func _return_to_main() -> void:
 	if not gameplay_screen:
 		return
 	confirmation_sound.play()
+	get_tree().paused = false
 	gameplay_screen.queue_free()
 	gameplay_screen = null
 	start_button.show()

@@ -22,6 +22,8 @@ var _focused_dialog_button: Button
 
 func _ready() -> void:
 	name = "GameplayScreen"
+	# Stay responsive while the tree is paused for the exit dialog.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_build_hud()
@@ -35,6 +37,8 @@ func _draw() -> void:
 
 
 func _process(delta: float) -> void:
+	if is_exit_confirmation_open():
+		return
 	_elapsed += delta
 	_ready_label.visible = fmod(_elapsed, 0.8) < 0.56
 
@@ -53,6 +57,7 @@ func _build_hud() -> void:
 func request_exit_confirmation() -> void:
 	if _exit_confirmation:
 		return
+	get_tree().paused = true
 	_exit_confirmation = Control.new()
 	_exit_confirmation.name = "ExitConfirmation"
 	_exit_confirmation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -160,18 +165,30 @@ func _on_dialog_button_focused(button: Button) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _exit_confirmation:
-		if event.is_action_pressed(&"exit_escape") or event.is_action_pressed(&"controller_back"):
+		# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, X tap opens the dialog.
+		# X hold quits to AGS via main._process. Esc is the Mac dev equivalent.
+		if (
+			event.is_action_pressed(&"exit_escape")
+			or event.is_action_pressed(&"controller_start")
+			or event.is_action_pressed(&"controller_back")
+			or event.is_action_pressed(&"cabinet_exit")
+		):
 			request_exit_confirmation()
 			get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_pressed(&"ui_left") or event.is_action_pressed(&"ui_right"):
+	if (
+		event.is_action_pressed(&"ui_left")
+		or event.is_action_pressed(&"ui_right")
+		or event.is_action_pressed(&"ui_up")
+		or event.is_action_pressed(&"ui_down")
+	):
 		if _return_button.has_focus():
 			_keep_playing_button.grab_focus()
 		else:
 			_return_button.grab_focus()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"controller_start"):
+	elif event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"ui_accept"):
 		if _return_button.has_focus():
 			_confirm_return_to_title()
 		else:
@@ -181,12 +198,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		event.is_action_pressed(&"exit_escape")
 		or event.is_action_pressed(&"ui_cancel")
 		or event.is_action_pressed(&"controller_back")
+		or event.is_action_pressed(&"cabinet_exit")
 	):
 		close_exit_confirmation()
 		get_viewport().set_input_as_handled()
 
 
 func _confirm_return_to_title() -> void:
+	get_tree().paused = false
 	return_to_title_requested.emit()
 
 
@@ -199,6 +218,7 @@ func _on_keep_playing_pressed() -> void:
 func close_exit_confirmation() -> void:
 	if not _exit_confirmation:
 		return
+	get_tree().paused = false
 	_exit_confirmation.queue_free()
 	_exit_confirmation = null
 	_return_button = null

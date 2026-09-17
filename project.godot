@@ -32,6 +32,10 @@ controller_start={
 "deadzone": 0.5,
 "events": [Object(InputEventJoypadButton,"button_index":6)]
 }
+cabinet_exit={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"button_index":5)]
+}
 
 [rendering]
 

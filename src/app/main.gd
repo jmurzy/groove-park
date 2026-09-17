@@ -23,6 +23,7 @@ var _primary_view: PrimaryScreen
 
 func _ready() -> void:
 	get_tree().set_auto_accept_quit(false)
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_window().close_requested.connect(_quit)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
@@ -84,7 +85,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if Input.is_action_pressed(&"controller_start") and Input.is_action_pressed(&"controller_back"):
+	# Cabinet hard exit: hold dedicated X (cabinet_exit) alone, or legacy Start + Back.
+	# Keep the combo so existing cabinets/frontends still quit to AGS.
+	var hold_exit: bool = (
+		Input.is_action_pressed(&"cabinet_exit")
+		or (
+			Input.is_action_pressed(&"controller_start")
+			and Input.is_action_pressed(&"controller_back")
+		)
+	)
+	if hold_exit:
 		_exit_hold_time += delta
 		if _exit_hold_time >= EXIT_HOLD_SECONDS:
 			_quit()
@@ -103,9 +113,21 @@ func _return_to_attract() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed(&"exit_escape"):
+	_log_unhandled_joy_button(event)
+	# Cabinet: ▷ (Start) pauses/opens dialog, ≡ (Back) backs out, X tap opens
+	# dialog (hold quits via _process). Esc stays as the Mac dev equivalent.
+	if (
+		not event.is_action_pressed(&"exit_escape")
+		and not event.is_action_pressed(&"controller_start")
+		and not event.is_action_pressed(&"controller_back")
+		and not event.is_action_pressed(&"cabinet_exit")
+	):
 		return
-	if not _primary_view.handle_escape():
+	if _primary_view.handle_escape():
+		get_viewport().set_input_as_handled()
+		return
+	# Esc is the desktop developer exit. Cabinet exit requires the hold handled in _process.
+	if event.is_action_pressed(&"exit_escape"):
 		_quit()
 	get_viewport().set_input_as_handled()
 
@@ -190,6 +212,18 @@ func _on_joy_connection_changed(device_id: int, connected: bool) -> void:
 		print("Controller %d connected: %s" % [device_id, Input.get_joy_name(device_id)])
 	else:
 		print("Controller %d disconnected." % device_id)
+
+
+func _log_unhandled_joy_button(event: InputEvent) -> void:
+	var joy_event := event as InputEventJoypadButton
+	if joy_event == null or not joy_event.pressed:
+		return
+	print(
+		(
+			"HEAVENLY unhandled joy button %d on device %d (%s)."
+			% [joy_event.button_index, joy_event.device, Input.get_joy_name(joy_event.device)]
+		)
+	)
 
 
 func _quit() -> void:
