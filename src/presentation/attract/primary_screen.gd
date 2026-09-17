@@ -10,6 +10,7 @@ const PRIMARY_BACKGROUND := preload("res://artwork/primary_bg.png")
 const HEAVENLY_LOGO := preload("res://artwork/heavenly_logo_no_tahoe.png")
 const GONDOLA_SHEET := preload("res://artwork/gondola_sprite.png")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
+const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
 const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
 const GameplayScreenScene := preload("res://src/presentation/gameplay/gameplay_screen.gd")
@@ -44,9 +45,11 @@ var gondola: AnimatedSprite2D
 var start_button: Button
 var exit_button: Button
 var confirmation_sound: AudioStreamPlayer
+var switch_sound: AudioStreamPlayer
 var player_select: PlayerSelectScreen
 var gameplay_screen: GameplayScreen
 var _transitioning := false
+var _focused_menu_button: Button
 
 
 func _ready() -> void:
@@ -63,11 +66,15 @@ func _ready() -> void:
 	confirmation_sound = AudioStreamPlayer.new()
 	confirmation_sound.stream = CONFIRMATION_SOUND
 	add_child(confirmation_sound)
+	switch_sound = AudioStreamPlayer.new()
+	switch_sound.stream = SWITCH_SOUND
+	add_child(switch_sound)
 	start_button = _build_start_button()
 	add_child(start_button)
 	_animate_start_button(start_button)
 	exit_button = _build_exit_button()
 	add_child(exit_button)
+	_wire_menu_button_focus()
 	_build_footer()
 	if show_diagnostics:
 		add_child(_build_diagnostics())
@@ -172,6 +179,8 @@ func _build_start_button() -> Button:
 		"focus", ArcadeTheme.button_style(Color("f0440dbf"), Color("fff16a"), 9, 14)
 	)
 	button.pressed.connect(_open_player_select)
+	button.focus_entered.connect(_on_menu_button_focused.bind(button))
+	button.mouse_entered.connect(button.grab_focus)
 	button.call_deferred("grab_focus")
 	return button
 
@@ -204,7 +213,25 @@ func _build_exit_button() -> Button:
 		"focus", ArcadeTheme.button_style(Color("e000cfbf"), Color("ffffff"), 7, 10)
 	)
 	button.pressed.connect(_on_exit_pressed)
+	button.focus_entered.connect(_on_menu_button_focused.bind(button))
+	button.mouse_entered.connect(button.grab_focus)
 	return button
+
+
+func _wire_menu_button_focus() -> void:
+	start_button.focus_neighbor_top = NodePath(".")
+	start_button.focus_neighbor_bottom = start_button.get_path_to(exit_button)
+	exit_button.focus_neighbor_top = exit_button.get_path_to(start_button)
+	exit_button.focus_neighbor_bottom = NodePath(".")
+
+
+func _on_menu_button_focused(button: Button) -> void:
+	if _focused_menu_button == button:
+		return
+	var is_first_focus := _focused_menu_button == null
+	_focused_menu_button = button
+	if not is_first_focus:
+		switch_sound.play()
 
 
 func _animate_start_button(button: Button) -> void:
@@ -286,6 +313,7 @@ func _finish_transition(transition: CrtTransition) -> void:
 func _return_to_main() -> void:
 	if not gameplay_screen:
 		return
+	confirmation_sound.play()
 	gameplay_screen.queue_free()
 	gameplay_screen = null
 	start_button.show()

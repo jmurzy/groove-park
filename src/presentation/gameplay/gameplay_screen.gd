@@ -5,6 +5,8 @@ signal return_to_title_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
 const PRIMARY_BACKGROUND := preload("res://artwork/primary_bg.png")
+const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
+const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
 
 var player_count := 1
@@ -13,6 +15,9 @@ var _elapsed := 0.0
 var _exit_confirmation: Control
 var _return_button: Button
 var _keep_playing_button: Button
+var _switch_sound: AudioStreamPlayer
+var _confirmation_sound: AudioStreamPlayer
+var _focused_dialog_button: Button
 
 
 func _ready() -> void:
@@ -78,10 +83,19 @@ func request_exit_confirmation() -> void:
 	warning.size = Vector2(panel.size.x, 38)
 	panel.add_child(warning)
 
+	_switch_sound = AudioStreamPlayer.new()
+	_switch_sound.stream = SWITCH_SOUND
+	_exit_confirmation.add_child(_switch_sound)
+	if _confirmation_sound == null:
+		_confirmation_sound = AudioStreamPlayer.new()
+		_confirmation_sound.stream = CONFIRMATION_SOUND
+		add_child(_confirmation_sound)
+	_focused_dialog_button = null
+
 	_keep_playing_button = _build_confirmation_button(
 		"KEEP PLAYING", Vector2(88, 252), Color("d92c0ba6"), Color("ffb000")
 	)
-	_keep_playing_button.pressed.connect(close_exit_confirmation)
+	_keep_playing_button.pressed.connect(_on_keep_playing_pressed)
 	panel.add_child(_keep_playing_button)
 
 	_return_button = _build_confirmation_button(
@@ -89,6 +103,7 @@ func request_exit_confirmation() -> void:
 	)
 	_return_button.pressed.connect(_confirm_return_to_title)
 	panel.add_child(_return_button)
+	_wire_dialog_button_focus()
 	_keep_playing_button.call_deferred("grab_focus")
 
 
@@ -122,7 +137,25 @@ func _build_confirmation_button(
 	button.add_theme_stylebox_override(
 		"focus", ArcadeTheme.button_style(fill.lightened(0.1), Color("fff16a"), 8, 10)
 	)
+	button.focus_entered.connect(_on_dialog_button_focused.bind(button))
+	button.mouse_entered.connect(button.grab_focus)
 	return button
+
+
+func _wire_dialog_button_focus() -> void:
+	_keep_playing_button.focus_neighbor_left = NodePath(".")
+	_keep_playing_button.focus_neighbor_right = _keep_playing_button.get_path_to(_return_button)
+	_return_button.focus_neighbor_left = _return_button.get_path_to(_keep_playing_button)
+	_return_button.focus_neighbor_right = NodePath(".")
+
+
+func _on_dialog_button_focused(button: Button) -> void:
+	if _focused_dialog_button == button:
+		return
+	var is_first_focus := _focused_dialog_button == null
+	_focused_dialog_button = button
+	if not is_first_focus and is_instance_valid(_switch_sound):
+		_switch_sound.play()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -142,7 +175,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _return_button.has_focus():
 			_confirm_return_to_title()
 		else:
-			close_exit_confirmation()
+			_on_keep_playing_pressed()
 		get_viewport().set_input_as_handled()
 	elif (
 		event.is_action_pressed(&"exit_escape")
@@ -157,6 +190,12 @@ func _confirm_return_to_title() -> void:
 	return_to_title_requested.emit()
 
 
+func _on_keep_playing_pressed() -> void:
+	if is_instance_valid(_confirmation_sound):
+		_confirmation_sound.play()
+	close_exit_confirmation()
+
+
 func close_exit_confirmation() -> void:
 	if not _exit_confirmation:
 		return
@@ -164,3 +203,5 @@ func close_exit_confirmation() -> void:
 	_exit_confirmation = null
 	_return_button = null
 	_keep_playing_button = null
+	_switch_sound = null
+	_focused_dialog_button = null
