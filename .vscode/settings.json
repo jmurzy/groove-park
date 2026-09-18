@@ -1,4 +1,30 @@
 {
+  "files.exclude": {
+    "**/build": true,
+    "**/.godot": true
+  },
+
+  // @see https://github.com/Microsoft/vscode/issues/6502
+  "search.exclude": {
+    "**/.git": true,
+    "**/build": true,
+    "**/.godot": true
+  },
+
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#76171e"
+  },
+
+  "explorer.compactFolders": false,
+
+  "[gdscript]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": false,
+    "editor.defaultFormatter": "geequlim.godot-tools",
+    "editor.formatOnSave": true
+  },
+
   "godotTools.editorPath.godot4": "/Applications/Godot 4.6.3.app/Contents/MacOS/Godot",
   "godotTools.lsp.headless": true
 }
