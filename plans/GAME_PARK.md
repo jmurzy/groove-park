@@ -464,7 +464,7 @@ Keep scoring based on simulation state, not sprite frames. Keep terrain and ride
 
 Attach the supplied HEAVENLY game-screen reference image (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file) to every generation request.
 
-> Match the attached game-screen reference exactly. The new asset must look native to that game, not like an interpretation of it. Do not add text, logos, watermarks, UI, or a background unless requested. Preserve true transparency for isolated assets. Do not bake scanlines or CRT effects into isolated sprites; the game applies those globally.
+> Match the attached game-screen reference exactly. The new asset must look native to that game, not like an interpretation of it. Do not add text, logos, watermarks, UI, or a background unless requested. Isolated assets must use true alpha transparency: every non-sprite pixel must be fully transparent (alpha 0). Never simulate transparency with a painted gray-and-white checkerboard, grid, gradient, vignette, floor, or any other fake background pattern. Do not bake scanlines or CRT effects into isolated sprites; the game applies those globally.
 
 Generate one approval sample before each complete set. Keep approved rider design, side-view camera, scale, palette, pixel density, lighting, outlines, and equipment anchors consistent across later generations.
 
@@ -472,11 +472,13 @@ Generate one approval sample before each complete set. Keep approved rider desig
 
 **Asset: `heavenly_park_skier_pose_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create one side-view freestyle skier in gameplay poses: neutral glide, tuck, carve uphill, carve downhill, compression, takeoff extension, neutral air, grab, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep the same character, skis, scale, and body anchors in every pose. Deliver separate transparent pixel-art PNGs on a shared grid. No snow, shadow, text, UI, background, scanlines, or CRT effect.
+> Use Image 1, `artwork/marquee/skiier_sprite.png`, as the only character reference. Create the same side-view pixel-art freestyle skier for `SkierView`: glossy blue helmet with white stripe, orange-yellow goggles, orange-red puffy jacket with dark-blue sides/backpack, dark-blue pants, green gloves, black poles with green tips, and red skis with yellow stripe. Keep character, skis, scale, body anchor, and ski contact/pivot anchor identical in every frame. Deliver 1024 x 1024 transparent PNGs under `artwork/players/skier/`, named `skier_<state>_f<index>.png`. The full body and skis must be centered and uncropped, with skis on the same horizontal baseline in every frame. Background pixels must be fully transparent (alpha 0); no solid black background, fake transparency pattern, snow, shadow, text, UI, scanlines, or CRT effect.
+>
+> Create these animation sets: neutral glide (3-4 looping frames with visible pole movement or ski shuffle); tuck (2 looping frames); carve uphill and downhill (2 looping frames each); compression (2-3 crouch frames ending in a hold); takeoff extension (1-2 frames); neutral air (2 looping frames); grab reach (1-2 frames) into grab hold (2 looping frames); grab tweak (1-2 frames); landing preparation (2 frames); deep landing compression (2 frames); sketchy recovery (3-4 looping wobble frames); crash (3-4 non-looping impact-to-settled frames); and celebration (2-4 frames). Keep rider movement restrained except where the state requires it. Equipment must remain legible through all rotation angles. Effects such as snow spray, shadows, and crash plumes are separate assets and must not be baked into the rider frames.
 
 **Asset: `heavenly_park_snowboarder_pose_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create one side-view freestyle snowboarder matching the skier set's scale and poses: neutral glide, tuck, heel/toe carve variants, compression, takeoff extension, neutral air, grab, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep board and body anchors consistent. Deliver separate transparent pixel-art PNGs on a shared grid. No snow, shadow, text, UI, background, scanlines, or CRT effect.
+> Use Image 1, `artwork/marquee/snowboarder_sprite.png`, as the only character reference. Create the same side-view pixel-art freestyle snowboarder for a future `SnowboarderView`: glossy blue helmet with white stripe, orange-yellow goggles, brown ponytail, pink puffy jacket with dark-blue sides, dark-blue pants, blue gloves, and pink snowboard with a white top stripe. Never add ski poles. Match the skier animation contract and scale: neutral glide, tuck, heel/toe carves, compression, takeoff extension, neutral air, grab reach/hold/tweak, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep board and body anchors consistent across one shared 1024 x 1024 canvas. Use the same frame counts and looping/one-shot intent as the skier set where applicable. Deliver frames under `artwork/players/snowboarder/`, named `snowboarder_<state>_f<index>.png`. The full body and board must be centered and uncropped, with the board on the same horizontal baseline in every frame. Background pixels must be fully transparent (alpha 0); no solid black background, fake transparency pattern, snow, shadow, text, UI, scanlines, or CRT effect.
 
 ### Priority 2 — park
 
@@ -501,11 +503,22 @@ Generate one approval sample before each complete set. Keep approved rider desig
 ### Asset acceptance
 
 - Approve one rider rotating over one jump in the actual camera before generating complete pose sets.
+- First approve `SkierView` samples for neutral glide (4 frames) and grab
+  reach/hold (3 frames total); this validates style, shared anchors, and
+  animation readability before generating the full set.
 - Confirm skis and snowboard remain readable at every 90-degree orientation.
 - Confirm rider anchors do not wobble when animation frames change.
+- Confirm every frame is on the agreed shared canvas with the agreed equipment
+  contact/pivot anchor; reject frame-size normalization performed only in code.
+- Confirm all background pixels are truly transparent (alpha 0). Reject a
+  solid background copied from a marquee reference, as well as painted
+  checkerboards, grids, gradients, vignettes, or other fake transparency.
 - Reject art that hides the lip, landing tangent, equipment, or rider orientation.
 - Reject art that shares only a general winter theme rather than the supplied HEAVENLY style.
 - Check transparency, pixel grid, scale, palette, outlines, and nearest-neighbor scaling in-engine.
+- Verify true alpha by sampling border pixels: prompt wording alone does not
+  reliably prevent baked checkerboard backgrounds, so every delivered frame
+  must pass a border-pixel alpha check before acceptance.
 - Build collision geometry, score text, trajectory tools, shadows, and changing UI in-engine.
 
 ## 16. Playtest questions

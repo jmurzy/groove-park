@@ -189,7 +189,7 @@ src/game/park/
     jump_judge.gd
     jump_result.gd
 src/presentation/gameplay/
-    rider_view.gd
+    skier_view.gd
     park_camera.gd
     physics_debug_overlay.gd
 tests/game/park/
@@ -706,30 +706,74 @@ jump_score = round(base * landing_multiplier)
 
 ## 14. Presentation integration
 
-### Rider view
+### Skier view
 
-`RiderView` reads state and chooses a pose:
+`SkierView` is the skier-specific presentation adapter. Do not name it
+`RiderView`: a future `SnowboarderView` will use the same presentation contract
+with snowboard-specific art, equipment anchors, and possibly different visual
+timing. Neither view owns rider physics.
+
+`SkierView` reads `RiderState` and selects an animation from simulation state:
 
 - Neutral glide.
 - Tuck.
-- Carve toward either lane direction.
+- Carve uphill and carve downhill.
 - Compression.
 - Takeoff extension.
 - Neutral air.
-- Grab.
+- Grab reach and grab hold.
+- Grab tweak.
 - Landing preparation.
 - Deep landing compression.
 - Sketchy recovery.
 - Crash.
+- Celebration.
 
-It then applies projected position and physical orientation. Pose selection may
-never alter simulation state.
+Use an `AnimatedSprite2D` with a named animation for each state, rather than
+one static `Sprite2D` per pose. Looping animations must be subtle and may play
+only while their state remains active:
+
+- Neutral glide: 3-4 frames at roughly 8-10 fps, with visible pole movement or
+  ski shuffle.
+- Tuck, both carves, and neutral air: 2-frame loops with restrained body motion.
+- Grab hold: 2-frame loop after the reach transition.
+- Sketchy recovery: 3-4 frame wobble loop.
+
+Transitions must play once and hold their final frame when the simulation state
+requires it:
+
+- Compression: 2-3 crouch frames, then hold until release or takeoff.
+- Takeoff extension: 1-2 frames.
+- Grab reach and tweak: 1-2 frames before or from the grab-hold loop.
+- Landing preparation and deep landing: 2 frames each.
+- Crash: 3-4 frames, impact through settled pose, then hold until restart.
+- Celebration: 2-4 frames, held or looped only after a successful run result.
+
+Animation changes occur only on a presentation-state change; do not restart an
+animation each physics tick. The view applies projected position and physical
+orientation, using terrain tangent while grounded and simulated orientation in
+the air. Pose selection, animation frames, and any visual easing may never
+alter simulation state.
+
+Keep all animation frames on a shared canvas and use a consistent equipment
+contact/pivot anchor. The current variable-size static pose PNGs are temporary
+keys; normalize future frames before integration so a frame switch cannot move
+the skier through the snow or cause visible popping. Keep snow spray, shadows,
+and crash plumes separate effects rather than baking them into skier frames.
+Every frame must use true alpha transparency (background pixels fully
+transparent, alpha 0). Reject any frame with a painted checkerboard, grid,
+gradient, or other fake transparency background.
+
+During migration, a one-frame animation made from each current pose key is an
+acceptable fallback. New art should follow the `skier_<state>_f<index>.png`
+naming convention under `artwork/players/skier/`, allowing additional frames to
+be added without changing simulation or pose-selection code.
 
 ### Gameplay screen
 
 Refactor `GameplayScreen` into a composition/presentation role:
 
-- Create the course, rider simulation adapter, rider view, camera, HUD, and
+- Create the course, rider simulation adapter, `SkierView`, camera, HUD, and
   debug overlay.
 - Forward pause and exit requests.
 - Advance simulation from `_physics_process()`.
@@ -984,9 +1028,9 @@ debug values.
 Work:
 
 1. Add the fresh-press transition rule.
-2. Add `A` signature grab using existing art.
+2. Add `A` signature grab with `SkierView` grab-reach and grab-hold animations.
 3. Add minimum valid duration and release timing.
-4. Add `X` tweak only if the pose remains readable.
+4. Add `X` tweak only if its distinct `SkierView` animation remains readable.
 5. Track cumulative physical rotation.
 6. Generate trick calls from measured state.
 
@@ -1011,7 +1055,7 @@ Work:
 
 1. Introduce world-space rendering and `Camera2D`.
 2. Frame approach, lip, flight, and landing predictably.
-3. Add rider pose transitions, snow spray, shadow, and basic sound cues.
+3. Add `SkierView` pose animations, snow spray, shadow, and basic sound cues.
 4. Keep HUD and pause UI fixed to the screen.
 5. Verify 1920 x 1080 at the cabinet target refresh while the marquee runs.
 

@@ -40,26 +40,30 @@ install:
 
 [doc("Check GDScript formatting without modifying files (gdtoolkit).")]
 format-check:
-    "{{ gdformat_bin }}" --check src/
+    "{{ gdformat_bin }}" --check src/ tests/
 
 [doc("Format GDScript files in place (gdtoolkit).")]
 format:
-    "{{ gdformat_bin }}" src/
+    "{{ gdformat_bin }}" src/ tests/
 
 [doc("Lint GDScript files, including the formatting check (gdtoolkit).")]
 lint-check:
-    "{{ gdlint_bin }}" src/
+    "{{ gdlint_bin }}" src/ tests/
 
 [doc("Static typecheck each GDScript file. Runs import first to refresh the global class cache; strict warnings are errors (see project.godot [debug]).")]
 typecheck: import
     for f in $(git ls-files --cached --others --exclude-standard -- '*.gd'); do [ -f "$f" ] || continue; "{{ godot_bin }}" --headless --path . --check-only --script "res://$f" || exit $?; done
 
+[doc("Run headless park simulation checks.")]
+test:
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_simulation.gd
+
 [doc("Check GitHub Actions workflows")]
 actionlint-check:
     "{{ actionlint_bin }}"
 
-[doc("Run all static checks: GDScript format, lint, typecheck, and GitHub Actions workflows.")]
-check: format-check lint-check actionlint-check typecheck
+[doc("Run formatting, lint, type, simulation, and GitHub Actions checks.")]
+check: format-check lint-check actionlint-check typecheck test
 
 [doc("Create a local Windows package for inspection. CI is the canonical cabinet build.")]
 export: import

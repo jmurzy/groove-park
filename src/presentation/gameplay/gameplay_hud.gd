@@ -7,6 +7,8 @@ const HUD_INSET := 11.0
 const HUD_LOGO_SIZE := Vector2(280, 90)
 const HUD_SEPARATORS := [490.0, 764.0, 1038.0, 1312.0, 1586.0]
 
+var _speed_value: Label
+
 
 func _ready() -> void:
 	name = "GameplayHud"
@@ -180,15 +182,19 @@ func _closed_points(points: PackedVector2Array) -> PackedVector2Array:
 
 func _build_metrics() -> void:
 	_add_metric("P1  SKIER", "READY", 506, Color("ffe126"), Color("f3f6ff"))
-	_add_metric("SPEED", "62 KM/H", 780, Color("42eaff"), Color("f3f6ff"))
+	_speed_value = _add_metric("SPEED", "0 KM/H", 780, Color("42eaff"), Color("f3f6ff"))
 	_add_metric("JUMP", "01 / 03", 1054, Color("42eaff"), Color("f3f6ff"))
 	_add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
 	_add_metric("ROTATION", "0", 1602, Color("42eaff"), Color("f3f6ff"))
 
 
+func set_speed(world_speed: float) -> void:
+	_speed_value.text = "%d KM/H" % roundi(maxf(world_speed, 0.0) * 0.12)
+
+
 func _add_metric(
 	title: String, value: String, x_position: float, title_color: Color, value_color: Color
-) -> void:
+) -> Label:
 	_add_metric_title(title, x_position, title_color)
 
 	var value_label := ArcadeTheme.make_label(value, 29, value_color)
@@ -199,6 +205,7 @@ func _add_metric(
 	value_label.add_theme_constant_override("shadow_offset_x", 3)
 	value_label.add_theme_constant_override("shadow_offset_y", 3)
 	add_child(value_label)
+	return value_label
 
 
 func _add_metric_title(title: String, x_position: float, title_color: Color) -> void:
