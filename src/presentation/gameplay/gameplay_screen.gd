@@ -441,8 +441,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_flip_skier()
 				get_viewport().set_input_as_handled()
 				return
-		# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, X tap opens the dialog.
-		# X hold quits to AGS via main._process. Esc is the Mac dev equivalent.
+		# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, white EXIT opens the dialog.
+		# Holding white EXIT quits to AGS via main._process. Esc is the Mac dev equivalent.
 		if (
 			event.is_action_pressed(&"exit_escape")
 			or event.is_action_pressed(&"controller_start")

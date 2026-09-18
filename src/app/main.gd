@@ -87,7 +87,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# Cabinet hard exit: hold dedicated X (cabinet_exit) alone, or legacy Start + Back.
+	# Cabinet hard exit: hold white EXIT (cabinet_exit) alone, or legacy Start + Back.
 	# Keep the combo so existing cabinets/frontends still quit to AGS.
 	var hold_exit: bool = (
 		Input.is_action_pressed(&"cabinet_exit")
@@ -146,7 +146,7 @@ func _return_to_attract() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	_log_unhandled_joy_button(event)
-	# Cabinet: ▷ (Start) pauses/opens dialog, ≡ (Back) backs out, X tap opens
+	# Cabinet: ▷ (Start) pauses/opens dialog, ≡ (Back) backs out, white EXIT opens
 	# dialog (hold quits via _process).
 	if (
 		not event.is_action_pressed(&"exit_escape")

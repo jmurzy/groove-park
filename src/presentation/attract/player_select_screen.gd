@@ -33,7 +33,7 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_left") or event.is_action_pressed(&"ui_right"):
-		_select(2 if selected_player_count == 1 else 1)
+		_select(1)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"controller_start"):
 		_confirm(selected_player_count)
@@ -69,11 +69,11 @@ func _build_cards() -> void:
 	var two_players := _build_card(2, TWO_PLAYER_POSITION)
 	add_child(two_players)
 	_cards.assign([one_player, two_players])
+	two_players.focus_mode = Control.FOCUS_NONE
+	two_players.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	one_player.focus_neighbor_left = NodePath(".")
-	one_player.focus_neighbor_right = one_player.get_path_to(two_players)
-	two_players.focus_neighbor_left = two_players.get_path_to(one_player)
-	two_players.focus_neighbor_right = NodePath(".")
+	one_player.focus_neighbor_right = NodePath(".")
 
 
 func _build_hint() -> void:
