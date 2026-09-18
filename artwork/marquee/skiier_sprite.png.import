@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gdoks4e143m6"
-path="res://.godot/imported/snowboarder_sprite.png-2ad75f928739ae82428e24d480cb2ee2.ctex"
+uid="uid://cctcw02ic28v1"
+path="res://.godot/imported/skiier_sprite.png-c9b9792466a10f2ad53dd1a4c46440e1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/snowboarder_sprite.png"
-dest_files=["res://.godot/imported/snowboarder_sprite.png-2ad75f928739ae82428e24d480cb2ee2.ctex"]
+source_file="res://artwork/marquee/skiier_sprite.png"
+dest_files=["res://.godot/imported/skiier_sprite.png-c9b9792466a10f2ad53dd1a4c46440e1.ctex"]
 
 [params]
 

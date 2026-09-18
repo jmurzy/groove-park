@@ -1,7 +1,7 @@
 class_name GameplayHud
 extends Control
 
-const HEAVENLY_LOGO := preload("res://artwork/heavenly_logo.png")
+const HEAVENLY_LOGO := preload("res://artwork/gameplay/heavenly_logo.png")
 const AnimatedTimeLabelScene := preload("res://src/presentation/gameplay/animated_time_label.gd")
 const HUD_RECT := Rect2(60, 24, 1800, 126)
 const HUD_INSET := 11.0

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dm60na0rtat8w"
-path="res://.godot/imported/heavenly_logo_no_tahoe.png-f7cbb4cd4d0a8135a075bee9ac239685.ctex"
+uid="uid://cim45nwjvbu7d"
+path="res://.godot/imported/marquee_bg.png-de49f53e2a04de089b9d8ae23fea67b9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/heavenly_logo_no_tahoe.png"
-dest_files=["res://.godot/imported/heavenly_logo_no_tahoe.png-f7cbb4cd4d0a8135a075bee9ac239685.ctex"]
+source_file="res://artwork/marquee/marquee_bg.png"
+dest_files=["res://.godot/imported/marquee_bg.png-de49f53e2a04de089b9d8ae23fea67b9.ctex"]
 
 [params]
 

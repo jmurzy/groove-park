@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csmgwqdq3hdyx"
-path="res://.godot/imported/primary_bg.png-dca87df2d867316e5867127ca77a3a04.ctex"
+uid="uid://gdoks4e143m6"
+path="res://.godot/imported/snowboarder_sprite.png-8849bbdd5f862222ffbbeba1310cc9b4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/primary_bg.png"
-dest_files=["res://.godot/imported/primary_bg.png-dca87df2d867316e5867127ca77a3a04.ctex"]
+source_file="res://artwork/marquee/snowboarder_sprite.png"
+dest_files=["res://.godot/imported/snowboarder_sprite.png-8849bbdd5f862222ffbbeba1310cc9b4.ctex"]
 
 [params]
 

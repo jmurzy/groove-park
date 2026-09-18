@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cctcw02ic28v1"
-path="res://.godot/imported/skiier_sprite.png-08dfbf5632eeb109095b97e75c35f546.ctex"
+uid="uid://dja4r8cjh76rs"
+path="res://.godot/imported/frame_overlay.png-da076087d7c1f16514a6cb6e09763e95.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/skiier_sprite.png"
-dest_files=["res://.godot/imported/skiier_sprite.png-08dfbf5632eeb109095b97e75c35f546.ctex"]
+source_file="res://artwork/gameplay/frame_overlay.png"
+dest_files=["res://.godot/imported/frame_overlay.png-da076087d7c1f16514a6cb6e09763e95.ctex"]
 
 [params]
 

@@ -1,7 +1,7 @@
 class_name SnowfallLayer
 extends Node2D
 
-const SNOWFLAKE_TEXTURE := preload("res://artwork/snowflake.png")
+const SNOWFLAKE_TEXTURE := preload("res://artwork/effects/snowflake.png")
 const SEED := 2026
 
 var _design_size: Vector2

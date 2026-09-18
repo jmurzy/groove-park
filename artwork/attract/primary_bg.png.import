@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gprqxii1amqp"
-path="res://.godot/imported/heavenly_logo.png-95ea8d47ed44cc2982bb9ca085c51bc5.ctex"
+uid="uid://csmgwqdq3hdyx"
+path="res://.godot/imported/primary_bg.png-ab87bc33c1f4edfb493924a5c83494c3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/heavenly_logo.png"
-dest_files=["res://.godot/imported/heavenly_logo.png-95ea8d47ed44cc2982bb9ca085c51bc5.ctex"]
+source_file="res://artwork/attract/primary_bg.png"
+dest_files=["res://.godot/imported/primary_bg.png-ab87bc33c1f4edfb493924a5c83494c3.ctex"]
 
 [params]
 

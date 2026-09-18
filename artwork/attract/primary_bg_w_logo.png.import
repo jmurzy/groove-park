@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc0qgjkr1gnpt"
-path="res://.godot/imported/gondola_sprite.png-f61fc6161d36acaacc10a6d55ddb3c1f.ctex"
+uid="uid://xox0pfigru66"
+path="res://.godot/imported/primary_bg_w_logo.png-0adeaa8cde542ac2ffd508a4da985bf3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/gondola_sprite.png"
-dest_files=["res://.godot/imported/gondola_sprite.png-f61fc6161d36acaacc10a6d55ddb3c1f.ctex"]
+source_file="res://artwork/attract/primary_bg_w_logo.png"
+dest_files=["res://.godot/imported/primary_bg_w_logo.png-0adeaa8cde542ac2ffd508a4da985bf3.ctex"]
 
 [params]
 

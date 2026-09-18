@@ -5,8 +5,8 @@ signal confirmed(player_count: int)
 signal cancelled
 
 const DESIGN_WIDTH := 1920.0
-const SKIER_SHEET := preload("res://artwork/skiier_sprite.png")
-const SNOWBOARDER_SHEET := preload("res://artwork/snowboarder_sprite.png")
+const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
+const SNOWBOARDER_SHEET := preload("res://artwork/marquee/snowboarder_sprite.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CARD_SIZE := Vector2(560, 385)
 const ONE_PLAYER_POSITION := Vector2(375, 545)

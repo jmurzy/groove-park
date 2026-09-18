@@ -2,10 +2,10 @@ class_name MarqueeScreen
 extends Control
 
 const DESIGN_SIZE := Vector2(1920, 360)
-const MARQUEE_BACKGROUND := preload("res://artwork/marquee_bg.png")
+const MARQUEE_BACKGROUND := preload("res://artwork/marquee/marquee_bg.png")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
-const SKIER_SHEET := preload("res://artwork/skiier_sprite.png")
-const SNOWBOARDER_SHEET := preload("res://artwork/snowboarder_sprite.png")
+const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
+const SNOWBOARDER_SHEET := preload("res://artwork/marquee/snowboarder_sprite.png")
 const MARQUEE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const LiveIndicatorScene := preload("res://src/presentation/marquee/live_indicator.gd")
 const TICKER_SPEED := 85.0

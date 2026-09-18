@@ -5,9 +5,9 @@ signal start_game_requested(player_count: int)
 signal exit_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
-const PRIMARY_BACKGROUND := preload("res://artwork/primary_bg.png")
-const HEAVENLY_LOGO := preload("res://artwork/heavenly_logo_no_tahoe.png")
-const GONDOLA_SHEET := preload("res://artwork/gondola_sprite.png")
+const PRIMARY_BACKGROUND := preload("res://artwork/attract/primary_bg.png")
+const HEAVENLY_LOGO := preload("res://artwork/attract/heavenly_logo_no_tahoe.png")
+const GONDOLA_SHEET := preload("res://artwork/attract/gondola_sprite.png")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")

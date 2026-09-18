@@ -4,7 +4,7 @@ extends Control
 signal return_to_title_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
-const FRAME_OVERLAY := preload("res://artwork/frame_overlay.png")
+const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
