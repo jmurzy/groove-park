@@ -11,6 +11,7 @@ const GONDOLA_SHEET := preload("res://artwork/attract/gondola_sprite.png")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
+const ControlsScreenScene := preload("res://src/presentation/attract/controls_screen.gd")
 const LOGO_RECT := Rect2(289, 20, 1387, 480)
 const LOGO_SUBTITLE_RECT := Rect2(276, 328, 1387, 62)
 const LOGO_SUBTITLE_GLYPH_SPACING := 12
@@ -40,10 +41,12 @@ var logo_bob_time := 0.0
 var logo_subtitle: Label
 var gondola: AnimatedSprite2D
 var start_button: Button
+var controls_button: Button
 var exit_button: Button
 var confirmation_sound: AudioStreamPlayer
 var switch_sound: AudioStreamPlayer
 var player_select: PlayerSelectScreen
+var controls_screen: ControlsScreen
 var _focused_menu_button: Button
 
 
@@ -66,9 +69,11 @@ func _ready() -> void:
 	add_child(switch_sound)
 	start_button = _build_start_button()
 	add_child(start_button)
-	_animate_start_button(start_button)
+	controls_button = _build_controls_button()
+	add_child(controls_button)
 	exit_button = _build_exit_button()
 	add_child(exit_button)
+	_apply_attract_menu_style()
 	_wire_menu_button_focus()
 	_build_footer()
 	if show_diagnostics:
@@ -184,7 +189,7 @@ func _build_exit_button() -> Button:
 	var button := Button.new()
 	button.name = "ExitButton"
 	button.text = "EXIT"
-	button.position = Vector2(780, 898.1)
+	button.position = Vector2(780, 926.0)
 	button.size = Vector2(360, 73.8)
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_override("font", ARCADE_FONT)
@@ -213,37 +218,119 @@ func _build_exit_button() -> Button:
 	return button
 
 
+func _build_controls_button() -> Button:
+	var button := Button.new()
+	button.name = "ControlsButton"
+	button.text = "HOW TO PLAY"
+	button.position = Vector2(681, 852.0)
+	button.size = Vector2(558, 58)
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_font_override("font", ARCADE_FONT)
+	button.add_theme_font_size_override("font_size", 22)
+	button.add_theme_color_override("font_color", Color("d4efff"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color("aefcff"))
+	button.add_theme_color_override("font_focus_color", Color.WHITE)
+	button.add_theme_color_override("font_outline_color", Color("061020"))
+	button.add_theme_constant_override("outline_size", 5)
+	button.add_theme_stylebox_override(
+		"normal", ArcadeTheme.button_style(Color("062a55cc"), Color("238bd4"), 5, 7)
+	)
+	button.add_theme_stylebox_override(
+		"hover", ArcadeTheme.button_style(Color("0a3d78e6"), Color("aefcff"), 7, 9)
+	)
+	button.add_theme_stylebox_override(
+		"pressed", ArcadeTheme.button_style(Color("041a38e6"), Color("238bd4"), 5, 4)
+	)
+	button.add_theme_stylebox_override(
+		"focus", ArcadeTheme.button_style(Color("0a3d78e6"), Color("fff16a"), 7, 9)
+	)
+	button.pressed.connect(_open_controls)
+	button.focus_entered.connect(_on_menu_button_focused.bind(button))
+	button.mouse_entered.connect(button.grab_focus)
+	return button
+
+
 func _wire_menu_button_focus() -> void:
-	start_button.focus_neighbor_top = NodePath(".")
+	controls_button.focus_neighbor_top = NodePath(".")
+	controls_button.focus_neighbor_bottom = controls_button.get_path_to(start_button)
+	start_button.focus_neighbor_top = start_button.get_path_to(controls_button)
 	start_button.focus_neighbor_bottom = start_button.get_path_to(exit_button)
 	exit_button.focus_neighbor_top = exit_button.get_path_to(start_button)
 	exit_button.focus_neighbor_bottom = NodePath(".")
+
+
+func _apply_attract_menu_style() -> void:
+	_style_attract_menu_button(controls_button, Vector2(665, 650))
+	_style_attract_menu_button(start_button, Vector2(665, 724))
+	_style_attract_menu_button(exit_button, Vector2(665, 798))
+
+
+func _style_attract_menu_button(button: Button, button_position: Vector2) -> void:
+	button.position = button_position
+	button.size = Vector2(590, 54)
+	button.add_theme_font_size_override("font_size", 28)
+	button.add_theme_color_override("font_color", Color("e8f7ff"))
+	button.add_theme_color_override("font_hover_color", Color("fff7cf"))
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_focus_color", Color("fff16a"))
+	button.add_theme_color_override("font_outline_color", Color("010713"))
+	button.add_theme_constant_override("outline_size", 8)
+	button.add_theme_color_override("font_shadow_color", Color("01040aff"))
+	button.add_theme_constant_override("shadow_offset_x", 4)
+	button.add_theme_constant_override("shadow_offset_y", 4)
+	button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override("hover", _selected_menu_style())
+	button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override("focus", _selected_menu_style())
+	_set_menu_button_text(button, false)
+
+
+func _selected_menu_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("03162be0")
+	style.border_color = Color("fff16a")
+	style.set_border_width_all(3)
+	style.corner_radius_top_left = 0
+	style.corner_radius_top_right = 0
+	style.corner_radius_bottom_left = 0
+	style.corner_radius_bottom_right = 0
+	style.shadow_color = Color("01040add")
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(0, 5)
+	return style
+
+
+func _set_menu_button_text(button: Button, selected: bool) -> void:
+	var label := ""
+	match button.name:
+		"StartGameButton":
+			label = "START GAME"
+		"ControlsButton":
+			label = "HOW TO PLAY"
+		"ExitButton":
+			label = "EXIT"
+	button.text = ">  %s  <" % label if selected else label
 
 
 func _on_menu_button_focused(button: Button) -> void:
 	if _focused_menu_button == button:
 		return
 	var is_first_focus := _focused_menu_button == null
+	if _focused_menu_button:
+		_set_menu_button_text(_focused_menu_button, false)
 	_focused_menu_button = button
+	_set_menu_button_text(button, true)
 	if not is_first_focus:
 		switch_sound.play()
 
 
-func _animate_start_button(button: Button) -> void:
-	button.pivot_offset = button.size / 2.0
-	var tween := button.create_tween().set_loops()
-	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(button, "scale", Vector2.ONE * 1.035, 0.7)
-	tween.parallel().tween_property(button, "modulate", Color("fff4cf"), 0.7)
-	tween.tween_property(button, "scale", Vector2.ONE, 0.7)
-	tween.parallel().tween_property(button, "modulate", Color.WHITE, 0.7)
-
-
 func _open_player_select() -> void:
-	if player_select:
+	if player_select or controls_screen:
 		return
 	confirmation_sound.play()
 	start_button.hide()
+	controls_button.hide()
 	exit_button.hide()
 	player_select = PlayerSelectScreen.new()
 	player_select.confirmed.connect(_on_player_select_confirmed)
@@ -258,15 +345,36 @@ func _close_player_select() -> void:
 	player_select.queue_free()
 	player_select = null
 	start_button.show()
+	controls_button.show()
 	exit_button.show()
 	start_button.call_deferred("grab_focus")
 
 
 func handle_escape() -> bool:
+	if controls_screen:
+		_close_controls()
+		return true
 	if player_select:
 		_close_player_select()
 		return true
 	return false
+
+
+func _open_controls() -> void:
+	if controls_screen or player_select:
+		return
+	confirmation_sound.play()
+	controls_screen = ControlsScreenScene.new()
+	controls_screen.closed.connect(_close_controls)
+	add_child(controls_screen)
+
+
+func _close_controls() -> void:
+	if not controls_screen:
+		return
+	controls_screen.queue_free()
+	controls_screen = null
+	controls_button.call_deferred("grab_focus")
 
 
 func _on_player_select_confirmed(player_count: int) -> void:
@@ -311,10 +419,13 @@ func _build_diagnostics() -> Label:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if player_select:
+	if player_select or controls_screen:
 		return
 	if event.is_action_pressed(&"controller_start"):
 		_open_player_select()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"action_y"):
+		_open_controls()
 		get_viewport().set_input_as_handled()
 
 

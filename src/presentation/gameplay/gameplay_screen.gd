@@ -10,6 +10,7 @@ const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
+const ControlsScreenScene := preload("res://src/presentation/attract/controls_screen.gd")
 const SLOPE_PATH_RESOURCE := preload("res://src/game/slope_path.tres")
 const SLOPE_PATH_RESOURCE_PATH := "res://src/game/slope_path.tres"
 const SKIER_SPEED := 520.0
@@ -32,9 +33,11 @@ var _skier_flip_tween: Tween
 var _exit_confirmation: Control
 var _return_button: Button
 var _keep_playing_button: Button
+var _controls_button: Button
 var _switch_sound: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
 var _focused_dialog_button: Button
+var _controls_screen: ControlsScreen
 var _slope_path_resource: SlopePath = SLOPE_PATH_RESOURCE.duplicate()
 var _slope_path := _slope_path_resource.points
 var _slope_drag_point := -1
@@ -287,11 +290,9 @@ func request_exit_confirmation() -> void:
 	_exit_confirmation.add_child(shade)
 
 	var panel := Panel.new()
-	panel.position = Vector2(472, 342)
-	panel.size = Vector2(976, 396)
-	panel.add_theme_stylebox_override(
-		"panel", ArcadeTheme.button_style(Color("071b39"), Color("fff16a"), 8, 12)
-	)
+	panel.position = Vector2(300, 342)
+	panel.size = Vector2(1320, 396)
+	panel.add_theme_stylebox_override("panel", _pause_dialog_style())
 	_exit_confirmation.add_child(panel)
 
 	var title := ArcadeTheme.make_label("ABANDON THIS RUN?", 36, Color("fff16a"))
@@ -313,18 +314,19 @@ func request_exit_confirmation() -> void:
 		add_child(_confirmation_sound)
 	_focused_dialog_button = null
 
-	_keep_playing_button = _build_confirmation_button(
-		"KEEP PLAYING", Vector2(88, 252), Color("d92c0ba6"), Color("ffb000")
-	)
+	_keep_playing_button = _build_confirmation_button("KEEP PLAYING", Vector2(460, 248))
 	_keep_playing_button.pressed.connect(_on_keep_playing_pressed)
 	panel.add_child(_keep_playing_button)
 
-	_return_button = _build_confirmation_button(
-		"RETURN TO MAIN MENU", Vector2(510, 252), Color("b000d4a6"), Color("43f4ff")
-	)
+	_controls_button = _build_confirmation_button("HOW TO PLAY", Vector2(60, 248))
+	_controls_button.pressed.connect(_open_controls)
+	panel.add_child(_controls_button)
+
+	_return_button = _build_confirmation_button("ABANDON RUN", Vector2(860, 248))
 	_return_button.pressed.connect(_confirm_return_to_title)
 	panel.add_child(_return_button)
 	_wire_dialog_button_focus()
+	_confirmation_sound.play()
 	_keep_playing_button.call_deferred("grab_focus")
 
 
@@ -332,39 +334,75 @@ func is_exit_confirmation_open() -> bool:
 	return _exit_confirmation != null
 
 
-func _build_confirmation_button(
-	text: String, button_position: Vector2, fill: Color, border: Color
-) -> Button:
+func _build_confirmation_button(text: String, button_position: Vector2) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.position = button_position
-	button.size = Vector2(378, 78)
+	button.size = Vector2(400, 86)
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
 	button.add_theme_font_size_override("font_size", 18)
-	button.add_theme_color_override("font_color", Color("fff7cf"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color("fff19a"))
-	button.add_theme_color_override("font_focus_color", Color.WHITE)
-	button.add_theme_color_override("font_outline_color", Color("260700"))
-	button.add_theme_constant_override("outline_size", 5)
-	button.add_theme_stylebox_override("normal", ArcadeTheme.button_style(fill, border, 6, 8))
-	button.add_theme_stylebox_override(
-		"hover", ArcadeTheme.button_style(fill.lightened(0.14), Color("fff16a"), 8, 10)
-	)
-	button.add_theme_stylebox_override(
-		"pressed", ArcadeTheme.button_style(fill.darkened(0.2), border, 6, 4)
-	)
-	button.add_theme_stylebox_override(
-		"focus", ArcadeTheme.button_style(fill.lightened(0.1), Color("fff16a"), 8, 10)
-	)
+	button.add_theme_color_override("font_color", Color("e8f7ff"))
+	button.add_theme_color_override("font_hover_color", Color("fff7cf"))
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_focus_color", Color("fff16a"))
+	button.add_theme_color_override("font_outline_color", Color("010713"))
+	button.add_theme_constant_override("outline_size", 7)
+	button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override("hover", _pause_selected_style())
+	button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override("focus", _pause_selected_style())
+	var left_marker := ArcadeTheme.make_label(">", 24, Color("fff16a"))
+	left_marker.name = "SelectionLeft"
+	left_marker.position = Vector2(14, 0)
+	left_marker.size = Vector2(30, button.size.y)
+	left_marker.hide()
+	button.add_child(left_marker)
+	var right_marker := ArcadeTheme.make_label("<", 24, Color("fff16a"))
+	right_marker.name = "SelectionRight"
+	right_marker.position = Vector2(button.size.x - 44, 0)
+	right_marker.size = Vector2(30, button.size.y)
+	right_marker.hide()
+	button.add_child(right_marker)
 	button.focus_entered.connect(_on_dialog_button_focused.bind(button))
 	button.mouse_entered.connect(button.grab_focus)
 	return button
 
 
+func _pause_selected_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("03162be0")
+	style.border_color = Color("fff16a")
+	style.set_border_width_all(3)
+	style.corner_radius_top_left = 0
+	style.corner_radius_top_right = 0
+	style.corner_radius_bottom_left = 0
+	style.corner_radius_bottom_right = 0
+	style.shadow_color = Color("01040ae6")
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(0, 5)
+	return style
+
+
+func _pause_dialog_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("071b39")
+	style.border_color = Color("fff16a")
+	style.set_border_width_all(4)
+	style.corner_radius_top_left = 0
+	style.corner_radius_top_right = 0
+	style.corner_radius_bottom_left = 0
+	style.corner_radius_bottom_right = 0
+	style.shadow_color = Color("01040add")
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(0, 5)
+	return style
+
+
 func _wire_dialog_button_focus() -> void:
-	_keep_playing_button.focus_neighbor_left = NodePath(".")
+	_controls_button.focus_neighbor_left = NodePath(".")
+	_controls_button.focus_neighbor_right = _controls_button.get_path_to(_keep_playing_button)
+	_keep_playing_button.focus_neighbor_left = _keep_playing_button.get_path_to(_controls_button)
 	_keep_playing_button.focus_neighbor_right = _keep_playing_button.get_path_to(_return_button)
 	_return_button.focus_neighbor_left = _return_button.get_path_to(_keep_playing_button)
 	_return_button.focus_neighbor_right = NodePath(".")
@@ -374,12 +412,24 @@ func _on_dialog_button_focused(button: Button) -> void:
 	if _focused_dialog_button == button:
 		return
 	var is_first_focus := _focused_dialog_button == null
+	if _focused_dialog_button:
+		_set_dialog_selection(_focused_dialog_button, false)
 	_focused_dialog_button = button
+	_set_dialog_selection(button, true)
 	if not is_first_focus and is_instance_valid(_switch_sound):
 		_switch_sound.play()
 
 
+func _set_dialog_selection(button: Button, selected: bool) -> void:
+	var left_marker := button.get_node("SelectionLeft") as Label
+	var right_marker := button.get_node("SelectionRight") as Label
+	left_marker.visible = selected
+	right_marker.visible = selected
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if _controls_screen:
+		return
 	if not _exit_confirmation:
 		if event is InputEventKey:
 			var key_event := event as InputEventKey
@@ -409,14 +459,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		or event.is_action_pressed(&"ui_up")
 		or event.is_action_pressed(&"ui_down")
 	):
-		if _return_button.has_focus():
-			_keep_playing_button.grab_focus()
-		else:
+		if _keep_playing_button.has_focus():
+			_controls_button.grab_focus()
+		elif _controls_button.has_focus():
 			_return_button.grab_focus()
+		else:
+			_keep_playing_button.grab_focus()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"ui_accept"):
 		if _return_button.has_focus():
 			_confirm_return_to_title()
+		elif _controls_button.has_focus():
+			_open_controls()
 		else:
 			_on_keep_playing_pressed()
 		get_viewport().set_input_as_handled()
@@ -449,5 +503,24 @@ func close_exit_confirmation() -> void:
 	_exit_confirmation = null
 	_return_button = null
 	_keep_playing_button = null
+	_controls_button = null
 	_switch_sound = null
 	_focused_dialog_button = null
+
+
+func _open_controls() -> void:
+	if _controls_screen:
+		return
+	if is_instance_valid(_confirmation_sound):
+		_confirmation_sound.play()
+	_controls_screen = ControlsScreenScene.new()
+	_controls_screen.closed.connect(_close_controls)
+	add_child(_controls_screen)
+
+
+func _close_controls() -> void:
+	if not _controls_screen:
+		return
+	_controls_screen.queue_free()
+	_controls_screen = null
+	_controls_button.call_deferred("grab_focus")
