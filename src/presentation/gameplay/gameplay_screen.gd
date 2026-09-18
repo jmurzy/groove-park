@@ -4,7 +4,7 @@ extends Control
 signal return_to_title_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
-const PRIMARY_BACKGROUND := preload("res://artwork/primary_bg.png")
+const FRAME_OVERLAY := preload("res://artwork/frame_overlay.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
@@ -31,7 +31,8 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	draw_texture_rect(PRIMARY_BACKGROUND, Rect2(Vector2.ZERO, DESIGN_SIZE), false)
+	draw_rect(Rect2(Vector2.ZERO, DESIGN_SIZE), Color.BLACK)
+	draw_texture_rect(FRAME_OVERLAY, Rect2(Vector2.ZERO, DESIGN_SIZE), false)
 	for y in range(0, int(DESIGN_SIZE.y), 6):
 		draw_line(Vector2(0, y), Vector2(DESIGN_SIZE.x, y), Color(0.0, 0.08, 0.16, 0.18), 1.0)
 
