@@ -227,4 +227,7 @@ func _log_unhandled_joy_button(event: InputEvent) -> void:
 
 
 func _quit() -> void:
+	if is_instance_valid(_background_music):
+		_background_music.stop()
+		_background_music.stream = null
 	get_tree().quit()
