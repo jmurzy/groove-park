@@ -147,7 +147,7 @@ func _return_to_attract() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	_log_unhandled_joy_button(event)
 	# Cabinet: ▷ (Start) pauses/opens dialog, ≡ (Back) backs out, X tap opens
-	# dialog (hold quits via _process). Esc stays as the Mac dev equivalent.
+	# dialog (hold quits via _process).
 	if (
 		not event.is_action_pressed(&"exit_escape")
 		and not event.is_action_pressed(&"controller_start")
@@ -165,9 +165,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_gameplay_screen.request_exit_confirmation()
 		get_viewport().set_input_as_handled()
 		return
-	# Esc is the desktop developer exit. Cabinet exit requires the hold handled in _process.
-	if event.is_action_pressed(&"exit_escape"):
-		_quit()
+	# Attract has no Esc-to-quit; cabinet exit requires the hold handled in _process.
 	get_viewport().set_input_as_handled()
 
 
