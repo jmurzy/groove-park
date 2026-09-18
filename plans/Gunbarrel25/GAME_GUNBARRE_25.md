@@ -8,7 +8,7 @@ HEAVENLY is a retro arcade ski game set at Lake Tahoe. Its featured event, **GUN
 
 Going faster saves time, but leaves less room to turn and makes every impact more dangerous. Braking is a racing skill. The fastest player reads the mountain and chooses a sustainable line instead of simply holding the accelerator.
 
-The supplied title, run-selection, and marquee images are the visual source of truth for the game. New screens and generated artwork must look as though they shipped in the same arcade game.
+The gameplay screen reference is `plans/look-and-feel.png` (relative to this file: `../look-and-feel.png`). The supplied title, run-selection, and marquee images are the visual source of truth for the game. New screens and generated artwork must look as though they shipped in the same arcade game.
 
 Single-player and two-player are both first-release experiences. Solo proves the core handling and endurance rules; two-player reuses the same course and rules with simultaneous split-screen racing from the start.
 
@@ -21,7 +21,7 @@ Proposed numbers in this document are playtest starting points, not fixed balanc
 - **Featured event:** `GUNBARREL 25`
 - **Primary fantasy:** survive and master 25 descents of one famous run
 - **Format:** immediate, cabinet-friendly arcade racing
-- **Visual authority:** the supplied reference screens
+- **Visual authority:** the supplied reference screens, with the gameplay screen reference at `plans/look-and-feel.png` (`../look-and-feel.png` relative to this file)
 
 `HEAVENLY` owns the title screen, shell, menus, and cabinet presentation. `GUNBARREL 25` names the event inside that game. Do not replace the main `HEAVENLY / LAKE TAHOE` lockup with a separate Gunbarrel logo.
 
@@ -88,7 +88,7 @@ If A and B are held together, braking wins. Movement must work with a digital ar
 
 ### Camera
 
-Use an elevated three-quarter downhill view with the skier in the lower third and terrain moving toward the bottom of the screen. Match the skier proportions and pixel treatment of the supplied game-screen reference while adapting the character to this gameplay camera.
+Use an elevated three-quarter downhill view with the skier in the lower third and terrain moving toward the bottom of the screen. Match the skier proportions and pixel treatment of the supplied game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file) while adapting the character to this gameplay camera.
 
 Keep enough terrain visible for a meaningful decision at maximum speed. Increase look-ahead gently with speed. Avoid camera rotation, fast zooms, and strong shake. Keep the full playable corridor visible horizontally.
 
@@ -204,7 +204,7 @@ Do not add skier-to-skier collision. Versus is a parallel time attack on shared 
 
 ### Visual source of truth
 
-The supplied reference images define the finished look. Match them for all new artwork and interface work. If written guidance conflicts with a reference image, the image wins unless gameplay readability or technical output requirements would be harmed.
+The supplied reference images — gameplay screen: `plans/look-and-feel.png` (`../look-and-feel.png` relative to this file) — define the finished look. Match them for all new artwork and interface work. If written guidance conflicts with a reference image, the image wins unless gameplay readability or technical output requirements would be harmed.
 
 The visual system must preserve:
 
@@ -332,7 +332,7 @@ Live mountain data remains ambient and separate from race rules. Save records on
 
 ### Reference rule for every generation
 
-Attach the supplied HEAVENLY game-screen reference image to every generation request.
+Attach the supplied HEAVENLY game-screen reference image (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file) to every generation request.
 
 > Match the attached game-screen reference exactly. The new asset must look native to that game, not like an interpretation of it. Do not add text, logos, watermarks, UI, or a background unless requested. Preserve true transparency for isolated assets. Do not bake scanlines or CRT effects into isolated sprites; the game applies those globally.
 
@@ -342,39 +342,39 @@ Generate one approval sample before each complete set. Keep approved character d
 
 **Asset: `heavenly_skier_pose_set`**
 
-> Using the attached game-screen reference, create one approved player skier in eight gameplay poses: neutral downhill, tuck, brake/snowplow, carve left, carve right, light-hit wobble, tumble, and finish celebration. Rear elevated gameplay view. Keep the character design and scale identical in every pose. Deliver separate transparent PNGs on a shared pixel grid with equal framing and a consistent ski-contact anchor. No snow spray or ground shadow.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create one approved player skier in eight gameplay poses: neutral downhill, tuck, brake/snowplow, carve left, carve right, light-hit wobble, tumble, and finish celebration. Rear elevated gameplay view. Keep the character design and scale identical in every pose. Deliver separate transparent PNGs on a shared pixel grid with equal framing and a consistent ski-contact anchor. No snow spray or ground shadow.
 
 **Asset: `heavenly_mogul_set`**
 
-> Using the attached game-screen reference, create one small and one large packed-snow mogul for the gameplay camera. Each must have a distinct, readable footprint. Deliver separate transparent PNGs on a shared pixel grid. No surrounding terrain, spray, or long cast shadow.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create one small and one large packed-snow mogul for the gameplay camera. Each must have a distinct, readable footprint. Deliver separate transparent PNGs on a shared pixel grid. No surrounding terrain, spray, or long cast shadow.
 
 **Asset: `heavenly_snow_surface`**
 
-> Using the attached game-screen reference, create a seamless gameplay snow tile. Keep it quiet enough for moguls, tracks, and the skier to remain readable. Deliver a tileable PNG with no objects, distinct hazards, deep grooves, text, or cast shadows.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create a seamless gameplay snow tile. Keep it quiet enough for moguls, tracks, and the skier to remain readable. Deliver a tileable PNG with no objects, distinct hazards, deep grooves, text, or cast shadows.
 
 ### Priority 2 — course
 
 **Asset: `heavenly_course_edge_set`**
 
-> Using the attached game-screen reference, create individual snowy pines, pine clusters, snowbank segments, snow-covered rocks, and unbranded course-marker poles for the gameplay camera. Deliver each object as a separate transparent PNG on a shared pixel grid. Include left/right variants where needed. Collision trees must show their trunks clearly. No text or background.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create individual snowy pines, pine clusters, snowbank segments, snow-covered rocks, and unbranded course-marker poles for the gameplay camera. Deliver each object as a separate transparent PNG on a shared pixel grid. Include left/right variants where needed. Collision trees must show their trunks clearly. No text or background.
 
 **Asset: `heavenly_park_feature_set`**
 
-> Using the attached game-screen reference, create a small snow kicker, rounded roller, low straight rail, wide box, and left/right berm pieces for the gameplay camera. Make approach direction and footprint readable at racing speed. Deliver each as a separate transparent PNG on a shared pixel grid. No riders, logos, text, background, or collision guides.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create a small snow kicker, rounded roller, low straight rail, wide box, and left/right berm pieces for the gameplay camera. Make approach direction and footprint readable at racing speed. Deliver each as a separate transparent PNG on a shared pixel grid. No riders, logos, text, background, or collision guides.
 
 **Asset: `heavenly_start_finish_set`**
 
-> Using the attached game-screen reference, create a start gate, finish gate, lap marker, and course flags for Gunbarrel 25. Deliver separate transparent PNGs on a shared pixel grid. Leave all changing words and numbers blank for runtime text. No logos or background.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create a start gate, finish gate, lap marker, and course flags for Gunbarrel 25. Deliver separate transparent PNGs on a shared pixel grid. Leave all changing words and numbers blank for runtime text. No logos or background.
 
 ### Priority 3 — effects and results
 
 **Asset: `heavenly_snow_fx_set`**
 
-> Using the attached game-screen reference, create three short pixel-art effects: light ski spray, strong braking spray, and a tumble snow burst. Deliver six ordered transparent frames per effect on a shared pixel grid. No skier, ground, text, background, scanlines, or CRT effect.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create three short pixel-art effects: light ski spray, strong braking spray, and a tumble snow burst. Deliver six ordered transparent frames per effect on a shared pixel grid. No skier, ground, text, background, scanlines, or CRT effect.
 
 **Asset: `heavenly_finish_scene`**
 
-> Using the attached game-screen reference, create a 16:9 results-screen background with the approved skier exhausted but triumphant at the bottom of Gunbarrel and Lake Tahoe in the distance. Leave the right third visually quiet for runtime results. No text, numbers, logos, medals, UI panels, scanlines, or CRT effect.
+> Using the attached game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create a 16:9 results-screen background with the approved skier exhausted but triumphant at the bottom of Gunbarrel and Lake Tahoe in the distance. Leave the right third visually quiet for runtime results. No text, numbers, logos, medals, UI panels, scanlines, or CRT effect.
 
 **Asset: `heavenly_marquee_race_set`**
 
