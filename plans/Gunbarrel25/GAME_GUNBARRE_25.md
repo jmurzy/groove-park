@@ -10,7 +10,7 @@ Going faster saves time, but leaves less room to turn and makes every impact mor
 
 The supplied title, run-selection, and marquee images are the visual source of truth for the game. New screens and generated artwork must look as though they shipped in the same arcade game.
 
-Single-player is the complete first-release experience. The design may support competitive modes later, but they are not required to prove the core game.
+Single-player and two-player are both first-release experiences. Solo proves the core handling and endurance rules; two-player reuses the same course and rules with simultaneous split-screen racing from the start.
 
 Proposed numbers in this document are playtest starting points, not fixed balance requirements.
 
@@ -37,21 +37,21 @@ Proposed numbers in this document are playtest starting points, not fixed balanc
 ## 3. Player flow
 
 1. The `HEAVENLY / LAKE TAHOE` title screen invites the player to start.
-2. The player chooses **GUNBARREL 25** or **PRACTICE RUN**.
-3. The game shows `STEER  •  A TUCK  •  B BRAKE  •  FINISH 25 LAPS`.
-4. The player descends through the moguls, balancing pace, line choice, and injury risk.
+2. The player chooses **1 PLAYER** (`GUNBARREL 25` solo or `PRACTICE RUN`) or **2 PLAYERS** (`GUNBARREL 25` versus).
+3. The game shows `STEER  •  A TUCK  •  B BRAKE  •  FINISH 25 LAPS`. In 2P, both racers see the same prompt inside their own split pane.
+4. The player descends through the moguls, balancing pace, line choice, and injury risk. In 2P the screen splits vertically (left / right) so each racer gets an independent downhill view of the same authored course.
 5. Crossing the finish gate shows the lap split, cumulative time, and condition.
 6. A short automatic lift-return transition resets the slope for the next lap.
 7. The attempt ends after lap 25 or when condition reaches zero.
 8. Results show the run summary and collect initials for a qualifying local record.
 9. After inactivity, the game returns to the title and mountain presentation.
 
-The run-selection screen should use the same composition and interaction language as the supplied selection reference. Do not show unavailable multiplayer choices in the first release; use the established card treatment for the two playable solo modes.
+The run-selection screen should use the same composition and interaction language as the supplied selection reference. The first release offers `1 PLAYER` and `2 PLAYERS` cards using the established card treatment. `1 PLAYER` leads to `GUNBARREL 25` solo or `PRACTICE RUN`; `2 PLAYERS` starts a simultaneous `GUNBARREL 25` versus race with a vertical split screen. Simultaneous racers share the course layout and rules but run independent lap, timing, and condition state with no skier-to-skier collision.
 
 ### Event timing
 
-- Target **35–50 seconds per descent** at a competent pace, or roughly **16–23 minutes** for the full event including transitions.
-- Practice is one complete descent with immediate retry and identical handling rules.
+- Target **35–50 seconds per descent** at a competent pace, or roughly **16–23 minutes** for the full event including transitions. 2P versus uses the same per-descent target; both panes race the clock and each other.
+- Practice is one complete descent with immediate retry and identical handling rules. Practice stays solo-only in the first release.
 - Race time includes active descent time and crash recovery.
 - Countdowns, results, and lift-return transitions do not add race time.
 - Use a 2–3 second skippable lap transition. Skipping presentation must not alter race time.
@@ -65,14 +65,15 @@ The run-selection screen should use the same composition and interaction languag
 
 | Input | Action |
 | --- | --- |
-| Joystick left / right | Steer across the slope |
+| Joystick left / right | Steer across the slope (P1 stick in 1P; P1/P2 sticks in 2P) |
 | Hold A | Tuck and accelerate toward maximum downhill speed |
 | Hold B | Brake and gain tighter turning control |
 | Release A and B | Coast toward a moderate downhill speed |
 | Start during a solo race | Pause / resume |
+| Start in 2P (either player) | Pause / resume both panes together |
 | Existing cabinet exit inputs | Preserve Escape and the two-second Start + Back hold |
 
-If A and B are held together, braking wins. Movement must work with a digital arcade stick; analog input is optional. Provide matching keyboard controls for development and desktop play. Forward and backward stick movement have no required gameplay action in the first release.
+If A and B are held together, braking wins. Movement must work with a digital arcade stick; analog input is optional. Provide matching keyboard controls for development and desktop play. Forward and backward stick movement have no required gameplay action in the first release. In 2P, P1 and P2 require independent mapped inputs (two sticks, two A/B pairs, or split keyboard bindings in dev) so both skiers steer simultaneously.
 
 ### Movement model
 
@@ -90,6 +91,10 @@ If A and B are held together, braking wins. Movement must work with a digital ar
 Use an elevated three-quarter downhill view with the skier in the lower third and terrain moving toward the bottom of the screen. Match the skier proportions and pixel treatment of the supplied game-screen reference while adapting the character to this gameplay camera.
 
 Keep enough terrain visible for a meaningful decision at maximum speed. Increase look-ahead gently with speed. Avoid camera rotation, fast zooms, and strong shake. Keep the full playable corridor visible horizontally.
+
+### Split-screen camera (2P)
+
+Use a vertical side-by-side split (P1 left, P2 right) because the game scrolls downhill: side-by-side preserves look-ahead, while a top/bottom split would starve it. Each pane gets an independent camera following only its own skier on an independent instance of the same authored course. Never tether, rubber-band, or merge the two cameras; if racers diverge in line, speed, crash recovery, or lap transitions, their views diverge with them. Keep a visible center divider and per-pane player color/label so ownership is readable from cabinet distance.
 
 ## 5. Course and hazards
 
@@ -153,7 +158,7 @@ Interpolate severity so tiny speed differences do not produce radically differen
 | 1–34 | Hurting | Strong warning; modestly reduced maximum speed |
 | 0 | Retired | End the attempt with a DNF |
 
-Condition persists across laps. Preserve braking and steering authority so damage changes tactics without making the next crash inevitable. Initially cap the total performance penalty around 15%.
+Condition persists across laps and is tracked independently per racer in 2P. Preserve braking and steering authority so damage changes tactics without making the next crash inevitable. Initially cap the total performance penalty around 15%.
 
 ### Recovery choice — after the core prototype
 
@@ -165,12 +170,12 @@ Offer recovery once per checkpoint and default to continuing after a short selec
 
 The event is about learning one legendary slope, not surviving 25 unrelated maps.
 
-- Repeat one authored course for all 25 laps.
+- Repeat one authored course for all 25 laps. In 2P both panes use independent instances of the same authored course version so memorized lines transfer between solo and versus.
 - Keep terrain stable so players can memorize and improve a line.
 - Let damage and the clock create pressure before adding new difficulty systems.
-- Celebrate laps 5, 10, 15, and 20 with brief callouts that do not hide terrain.
-- Mark lap 25 with a short audio cue and `FINAL LAP` treatment.
-- Finish immediately after the final gate crossing.
+- Celebrate laps 5, 10, 15, and 20 with brief per-pane callouts that do not hide terrain.
+- Mark lap 25 with a short audio cue and `FINAL LAP` treatment per pane.
+- Finish immediately after the final gate crossing. In 2P each racer finishes independently: the first finisher is the versus winner, the second still records a valid total time; a DNF by one racer never ends the other racer's attempt.
 
 Later versions may add authored variants or seeded daily races. Competitive records must include course and rules versions. Weather and lighting may vary presentation, but ranked visibility and traction remain consistent. Live resort status must never alter race rules.
 
@@ -178,9 +183,10 @@ Later versions may add authored variants or seeded daily races. Competitive reco
 
 ### First-release priorities
 
-1. **Practice Run:** learn one descent and chase a best lap.
-2. **Gunbarrel 25:** finish all 25 laps with the fastest total time.
-3. **Local records:** separate practice laps and full-event times; show initials, time, and finish condition.
+1. **Practice Run (solo):** learn one descent and chase a best lap.
+2. **Gunbarrel 25 (solo):** finish all 25 laps with the fastest total time.
+3. **Gunbarrel 25 versus (2P split-screen):** simultaneous race on independent instances of the same course; first to complete lap 25 wins, both times are recorded.
+4. **Local records:** separate practice laps, solo full-event times, and versus results; show initials, time, and finish condition. Versus records tag the course/rules version and player side.
 
 For finishers, lower total time wins. Remaining condition breaks equal recorded times. Store DNF progress separately.
 
@@ -190,10 +196,9 @@ Award presentation-only accolades such as `CLEAN LAP`, `NO FALLS`, and `IRON LEG
 
 - **Personal-best ghost:** replay recorded movement as a non-colliding racer with split deltas.
 - **Pass-the-cabinet challenge:** run the same course and compare results locally.
-- **Two-player racing:** investigate only after solo handling and shared-screen readability are proven.
 - **Daily race and online records:** add only with course versioning, validation, and offline behavior.
 
-Do not add skier-to-skier collision to the first competitive version.
+Do not add skier-to-skier collision. Versus is a parallel time attack on shared terrain, not a contact sport.
 
 ## 9. Visual and cabinet direction
 
@@ -225,8 +230,8 @@ Do not reinterpret the references as modern flat UI, mobile cards, glossy 3D art
 
 - Keep the supplied arcade border visible on title, selection, pause, and results screens.
 - During play, use a lighter gameplay frame or edge treatment only if the full border reduces the readable course area.
-- Persistent HUD: lap, total time, speed, and condition.
-- Secondary feedback: lap time, best lap, and brief split callouts.
+- Persistent HUD: lap, total time, speed, and condition. In 2P each split pane renders its own compact HUD instance; a thin shared event header may show `GUNBARREL 25` and the versus gap (leader + delta).
+- Secondary feedback: lap time, best lap, and brief split callouts, all per-pane in 2P.
 - Use the reference panel and type treatments for prompts, warnings, and results.
 - Keep the upcoming racing line free of large text, particles, and panels.
 - Results include completed laps, total time, best lap, crashes, remaining condition, and personal-best status.
@@ -235,7 +240,7 @@ Do not reinterpret the references as modern flat UI, mobile cards, glossy 3D art
 
 - Match the supplied marquee reference image.
 - Attract mode shows the mountain identity and live lift-status presentation.
-- Racing emphasizes `GUNBARREL 25`, lap progress, and elapsed time.
+- Racing emphasizes `GUNBARREL 25`, lap progress, and elapsed time. In 2P show `P1 / P2` lap progress and the versus leader/delta.
 - Milestones and results use dedicated wide pixel-art compositions.
 - The primary display always contains everything required to play.
 
@@ -264,31 +269,32 @@ Preserve the existing Windows executable, primary display, optional independent 
 
 ## 10. First playable milestone
 
-**Goal: prove that one descent is fun, then prove that repeating it 25 times creates a worthwhile endurance race.**
+**Goal: prove that one descent is fun, then prove that repeating it 25 times creates a worthwhile endurance race — solo and side-by-side.**
 
 ### Included
 
-- One skier with reference-matched pixel art.
-- One authored downhill course with moguls, snowbanks, tree landmarks, and one optional park-feature route.
-- Steering, tuck, coast, and brake.
-- Speed-sensitive collisions, condition loss, tumble recovery, and DNF.
-- Practice and a complete 25-lap solo event on the same course.
+- One skier with reference-matched pixel art, with P1/P2 palette or trim variants for split-screen readability.
+- One authored downhill course with moguls, snowbanks, tree landmarks, and one optional park-feature route, instanced independently per racer in 2P.
+- Steering, tuck, coast, and brake, with independent P1/P2 inputs.
+- Vertical split-screen versus (P1 left / P2 right) with independent cameras and per-pane HUD, plus solo full-screen play.
+- Speed-sensitive collisions, condition loss, tumble recovery, and DNF, all tracked per racer.
+- Practice (solo) and a complete 25-lap solo event plus a 25-lap versus event on the same course.
 - Race clock, lap transitions, HUD, results, and restart.
 - Title-to-race and results-to-attract transitions.
 - Basic sound and optional marquee race information.
 
 ### Deferred
 
-Ghosts, multiplayer, online records, procedural courses, weather physics, gear upgrades, tricks, grinding, active jump controls, recovery checkpoints, and additional playable characters.
+Ghosts, online records, procedural courses, weather physics, gear upgrades, tricks, grinding, active jump controls, recovery checkpoints, and additional playable characters. Multiplayer stays local split-screen; no online versus and no skier-to-skier collision.
 
 ### Implementation sequence
 
-1. **Visual lock:** establish internal resolution, pixel scaling, gameplay camera, one skier, and one mogul together in-engine.
-2. **Handling sandbox:** tune steering, tuck, brake, coast, camera, and speed feedback on an empty slope.
-3. **One fun descent:** add authored hazards, landmarks, collisions, safe recovery, and repeated Practice testing.
-4. **Endurance rules:** add persistent condition, lap count, total time, 25-lap completion, and DNF.
-5. **Cabinet loop:** connect title, selection, race, pause, results, restart, exit behavior, and marquee state.
-6. **Presentation pass:** replace placeholders, add sound and milestones, and test on the cabinet.
+1. **Visual lock:** establish internal resolution, pixel scaling, gameplay camera, one skier, and one mogul together in-engine. Prove the vertical split (two cameras + divider + per-pane HUD) stays crisp at 1920 × 1080 before tuning handling.
+2. **Handling sandbox:** tune steering, tuck, brake, coast, camera, and speed feedback on an empty slope. Verify independent P1/P2 inputs with no crosstalk.
+3. **One fun descent:** add authored hazards, landmarks, collisions, safe recovery, and repeated Practice testing. Test the same descent in both solo full-screen and 2P split panes.
+4. **Endurance rules:** add persistent per-racer condition, lap count, total time, 25-lap completion, independent finish/DNF, and versus win/delta logic.
+5. **Cabinet loop:** connect title, selection, race, pause (pauses both panes together), results (solo + versus winner/2nd), restart, exit behavior, and marquee state.
+6. **Presentation pass:** replace placeholders, add sound and milestones, and test on the cabinet. Confirm split-screen readability and P1/P2 identity from cabinet distance.
 
 ### Acceptance checks
 
@@ -299,24 +305,24 @@ Ghosts, multiplayer, online records, procedural courses, weather physics, gear u
 - Clean aggressive skiing beats cautious skiing; repeated high-speed crashes erase that advantage.
 - Hazard silhouettes and collision behavior agree at low and maximum speed.
 - One overlap cannot deal repeated damage, and recovery cannot trap the skier.
-- Race time includes crashes, excludes transitions, and is independent of animation skipping and render rate.
-- Condition persists correctly and produces a DNF only at zero.
-- The event completes exactly once after the 25th finish crossing.
-- A cautious player can finish; a skilled player can improve through better lines and speed management.
-- All required information remains readable from normal cabinet distance with or without the marquee.
-- Gameplay remains smooth at the existing 1080p / 75 Hz primary target while the marquee is active.
+- Race time includes crashes, excludes transitions, and is independent of animation skipping and render rate. Each 2P pane times its own racer independently.
+- Condition persists correctly and produces a DNF only at zero. In 2P one racer's DNF never ends the other's attempt.
+- The event completes exactly once after the 25th finish crossing per racer. Versus declares the first finisher the winner and still records the second finisher's time.
+- A cautious player can finish; a skilled player can improve through better lines and speed management, solo or in versus.
+- All required information remains readable from normal cabinet distance with or without the marquee, in solo full-screen and in each 2P split pane.
+- Gameplay remains smooth at the existing 1080p / 75 Hz primary target while the marquee is active, in both solo and 2P split-screen.
 
 ## 11. Implementation boundaries
 
 Use the project's established Godot/GDScript architecture. Keep race simulation separate from presentation on either display.
 
-- **Race session:** phase, mode, course/rules version, lap state, timing, condition, and results.
-- **Skier controller:** input, speed, steering, movement, and recovery state.
-- **Course:** authored geometry, hazard placement, safe zones, and collision data.
-- **Impact resolution:** severity, damage, slowdown, and recovery initiation.
-- **Presenters:** primary world/HUD and optional marquee, both driven by race state.
+- **Race session:** phase, mode (solo / versus), course/rules version, per-racer lap state, timing, condition, and results. Versus runs two independent per-racer states under one shared event phase (ready → racing → lap_transition → results).
+- **Skier controller:** input (P1 vs P2 mapping), speed, steering, movement, and recovery state — one instance per racer.
+- **Course:** authored geometry, hazard placement, safe zones, and collision data. Versus instances the same authored course independently per pane so racers never share collision space.
+- **Impact resolution:** severity, damage, slowdown, and recovery initiation, resolved per racer with no cross-racer effects.
+- **Presenters:** primary world/HUD and optional marquee, both driven by race state. In versus, each split pane gets its own world view + HUD; the marquee shows the shared event plus P1/P2 status.
 
-Suggested phases are `attract → select → ready → racing → lap_transition → ready`, followed by `results` after completion or retirement. Pause suspends the solo session and timer. Reuse direct signals and the existing app-controller boundary rather than introducing a generic event framework.
+Suggested phases are `attract → select → ready → racing → lap_transition → ready`, followed by `results` after completion or retirement. Pause suspends the solo session and timer; in versus, pause suspends both racers and both timers together. Reuse direct signals and the existing app-controller boundary rather than introducing a generic event framework.
 
 Keep movement and timing independent of render frame rate. Keep downhill progress, collision coordinates, and finish detection in one course coordinate system. Screen scrolling is presentation, not the source of race distance. A finish gate can register only once per lap.
 
