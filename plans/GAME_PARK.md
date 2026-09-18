@@ -10,7 +10,7 @@ Two players share one screen and one camera. This is a judged event, not a race:
 
 The game should be easy to understand from one attempt and difficult to master over many. Holding spin is not enough. Players must choose an approach speed, leave the ramp in balance, manage angular momentum in the air, spot the landing, and stop rotating before touchdown.
 
-The gameplay screen reference is `plans/look-and-feel.png` (relative to this file: `../look-and-feel.png`). The supplied `HEAVENLY / LAKE TAHOE` title, selection, game-screen, and marquee artwork remain the visual source of truth. New park art must look as though it shipped in the same arcade cabinet.
+The gameplay screen reference is `plans/look-and-feel.png` (relative to this file: `./look-and-feel.png`). The supplied `HEAVENLY / LAKE TAHOE` title, selection, game-screen, and marquee artwork remain the visual source of truth. New park art must look as though it shipped in the same arcade cabinet.
 
 Proposed numbers in this document are playtest starting points, not fixed balance requirements.
 
@@ -23,7 +23,7 @@ Proposed numbers in this document are playtest starting points, not fixed balanc
 - **Format:** short, replayable arcade score attack
 - **Players:** one or two local players on one shared screen
 - **Playable riders:** skier and snowboarder
-- **Visual authority:** the supplied HEAVENLY reference screens, with the gameplay screen reference at `plans/look-and-feel.png` (`../look-and-feel.png` relative to this file)
+- **Visual authority:** the supplied HEAVENLY reference screens, with the gameplay screen reference at `plans/look-and-feel.png` (`./look-and-feel.png` relative to this file)
 
 `HEAVENLY` owns the title screen, shell, menus, and cabinet presentation. `HEAVENLY PARK` names the event inside that game. Do not replace the established `HEAVENLY / LAKE TAHOE` lockup with an unrelated park logo.
 
@@ -316,7 +316,7 @@ The result is two athletes performing in the same event, not racing for track po
 
 ### Visual source of truth
 
-Match the supplied HEAVENLY reference screens — gameplay screen: `plans/look-and-feel.png` (`../look-and-feel.png` relative to this file) — for pixel density, palette, typography, framing, mountain scenery, snow treatment, characters, and cabinet-era presentation.
+Match the supplied HEAVENLY reference screens — gameplay screen: `plans/look-and-feel.png` (`./look-and-feel.png` relative to this file) — for pixel density, palette, typography, framing, mountain scenery, snow treatment, characters, and cabinet-era presentation.
 
 - Use native pixel-art sprites and backgrounds, not smooth vector or painted approximations.
 - Author at one low internal resolution and scale by integer multiples with nearest-neighbor filtering.
@@ -343,6 +343,9 @@ Match the supplied HEAVENLY reference screens — gameplay screen: `plans/look-a
 
 ### Sound
 
+- Ski hiss rises with speed; carving and braking have distinct snow sounds.
+- Tucking adds a subtle wind cue.
+- Light and heavy impacts sound clearly different.
 - Wind intensity follows physical speed.
 - Skis and snowboard have distinct but equally readable carve and brake sounds.
 - Compression, lip release, grab lock, landing compression, and crash each have clear cues.
@@ -441,7 +444,7 @@ Keep scoring based on simulation state, not sprite frames. Keep terrain and ride
 
 ### Reference rule for every generation
 
-Attach the supplied HEAVENLY game-screen reference image (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file) to every generation request.
+Attach the supplied HEAVENLY game-screen reference image (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file) to every generation request.
 
 > Match the attached game-screen reference exactly. The new asset must look native to that game, not like an interpretation of it. Do not add text, logos, watermarks, UI, or a background unless requested. Preserve true transparency for isolated assets. Do not bake scanlines or CRT effects into isolated sprites; the game applies those globally.
 
@@ -451,31 +454,31 @@ Generate one approval sample before each complete set. Keep approved rider desig
 
 **Asset: `heavenly_park_skier_pose_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create one side-view freestyle skier in gameplay poses: neutral glide, tuck, carve uphill, carve downhill, compression, takeoff extension, neutral air, grab, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep the same character, skis, scale, and body anchors in every pose. Deliver separate transparent pixel-art PNGs on a shared grid. No snow, shadow, text, UI, background, scanlines, or CRT effect.
+> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create one side-view freestyle skier in gameplay poses: neutral glide, tuck, carve uphill, carve downhill, compression, takeoff extension, neutral air, grab, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep the same character, skis, scale, and body anchors in every pose. Deliver separate transparent pixel-art PNGs on a shared grid. No snow, shadow, text, UI, background, scanlines, or CRT effect.
 
 **Asset: `heavenly_park_snowboarder_pose_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create one side-view freestyle snowboarder matching the skier set's scale and poses: neutral glide, tuck, heel/toe carve variants, compression, takeoff extension, neutral air, grab, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep board and body anchors consistent. Deliver separate transparent pixel-art PNGs on a shared grid. No snow, shadow, text, UI, background, scanlines, or CRT effect.
+> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create one side-view freestyle snowboarder matching the skier set's scale and poses: neutral glide, tuck, heel/toe carve variants, compression, takeoff extension, neutral air, grab, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep board and body anchors consistent. Deliver separate transparent pixel-art PNGs on a shared grid. No snow, shadow, text, UI, background, scanlines, or CRT effect.
 
 ### Priority 2 — park
 
 **Asset: `heavenly_big_air_course_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create modular side-view pixel-art snow terrain for three big-air features: a forgiving table jump, a long technical gap, and an Olympic-scale final kicker. Include separate approach, lip, knuckle, landing, and runout pieces with quiet snow texture and readable edges. Deliver tile-compatible PNG layers without riders, crowds, logos, text, UI, collision guides, scanlines, or CRT effect.
+> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create modular side-view pixel-art snow terrain for three big-air features: a forgiving table jump, a long technical gap, and an Olympic-scale final kicker. Include separate approach, lip, knuckle, landing, and runout pieces with quiet snow texture and readable edges. Deliver tile-compatible PNG layers without riders, crowds, logos, text, UI, collision guides, scanlines, or CRT effect.
 
 **Asset: `heavenly_park_dressing_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create side-view park flags, lane markers, pines, distant lift towers, safety fencing, a compact spectator group, and unbranded score structures. Deliver separate transparent pixel-art PNGs. Keep collision-critical terrain unobscured. No text, logos, riders, UI, scanlines, or CRT effect.
+> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create side-view park flags, lane markers, pines, distant lift towers, safety fencing, a compact spectator group, and unbranded score structures. Deliver separate transparent pixel-art PNGs. Keep collision-critical terrain unobscured. No text, logos, riders, UI, scanlines, or CRT effect.
 
 ### Priority 3 — effects and results
 
 **Asset: `heavenly_park_fx_set`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create short transparent pixel-art animation sequences for carve spray, hard braking spray, takeoff burst, perfect landing spray, sketchy landing spray, and crash plume. Keep every effect compact enough that rider orientation and equipment contact remain visible. No rider, terrain, text, background, scanlines, or CRT effect.
+> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create short transparent pixel-art animation sequences for carve spray, hard braking spray, takeoff burst, perfect landing spray, sketchy landing spray, and crash plume. Keep every effect compact enough that rider orientation and equipment contact remain visible. No rider, terrain, text, background, scanlines, or CRT effect.
 
 **Asset: `heavenly_park_results_scene`**
 
-> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `../look-and-feel.png` relative to this file), create a 16:9 pixel-art results background showing the final big-air landing area at Lake Tahoe with a skier and snowboarder celebrating together. Leave the center-right visually quiet for runtime scores. No baked-in text, numbers, logos, medals, UI panels, scanlines, or CRT effect.
+> Using the attached HEAVENLY game-screen reference (`plans/look-and-feel.png`, or `./look-and-feel.png` relative to this file), create a 16:9 pixel-art results background showing the final big-air landing area at Lake Tahoe with a skier and snowboarder celebrating together. Leave the center-right visually quiet for runtime scores. No baked-in text, numbers, logos, medals, UI panels, scanlines, or CRT effect.
 
 ### Asset acceptance
 
