@@ -12,9 +12,7 @@ This plan implements the first-playable portion of [GAME_PARK.md](GAME_PARK.md).
 The cabinet's physical mappings are documented in
 [`POLYCADE_SENTE_CONTROLS.md`](../POLYCADE_SENTE_CONTROLS.md).
 
-Where the older design's control table conflicts with this plan, this plan is
-authoritative. In particular, blue `X` replaces `Down + A` for compression and
-pop because joystick up/down now controls traversal across the slope.
+This plan implements Stage A of `GAME_PARK.md` §13 and conforms to its §5 control table: blue `X` handles compression and pop because joystick up/down controls traversal across the slope.
 
 The first playable is deliberately smaller than the complete event:
 
@@ -704,7 +702,7 @@ jump_score = round(base * landing_multiplier)
 - Landing multiplier is continuous.
 - A straight perfect landing cannot outscore a clean difficult trick.
 - The result exposes every component for debugging.
-- Variety scoring waits for the three-jump event.
+- Variety scoring waits for the three-jump event; this matches `GAME_PARK.md` with `variety_multiplier = 1` for a single jump.
 
 ## 14. Presentation integration
 

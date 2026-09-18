@@ -4,7 +4,7 @@
 
 **Build speed. Leave the lip clean. Spin big. Put it down.**
 
-`HEAVENLY PARK` is a 2D arcade ski and snowboard game built around Olympic-scale jumps. One or two players descend the same park line, launch from enormous kickers, perform spins and grabs, and try to land with control. Every run is judged on speed, airtime, rotation, style, and landing quality.
+`HEAVENLY PARK` is a 2.5D arcade ski and snowboard game built around Olympic-scale jumps: a side-view profile with a traversable lane coordinate projected into the side view. One or two players descend the same park line, launch from enormous kickers, perform spins and grabs, and try to land with control. Every run is judged on speed, airtime, rotation, style, and landing quality.
 
 Two players share one screen and one camera. This is a judged event, not a race: crossing the finish first has no value, players do not collide, and each rider receives an independent score. The course and camera are designed to keep both riders visible as they approach and hit each feature together.
 
@@ -63,9 +63,9 @@ Proposed numbers in this document are playtest starting points, not fixed balanc
 
 ## 4. Perspective and shared camera
 
-### 2D gameplay view
+### 2.5D gameplay view
 
-Use a side-on 2D profile of the slope. Terrain forms a readable line from the upper-left approach toward the lower-right landing. This view makes launch speed, jump arc, rider rotation, and landing alignment visible at a glance.
+Use a side-on profile of the slope with a hidden lane coordinate (2.5D). Terrain forms a readable line from the upper-left approach toward the lower-right landing. This view makes launch speed, jump arc, rider rotation, and landing alignment visible at a glance. The lane coordinate is projected modestly into screen Y (`screen_y = vertical_position + lane_position * lane_projection_scale`) so traversing across the slope is readable without detaching the rider from the snow; physics never reads back from the projection.
 
 The rider and equipment must have a clear long axis so players can judge whether the skis or board will meet the landing surface correctly. Shadows may help communicate height but must never substitute for a readable rider silhouette.
 
@@ -91,17 +91,19 @@ The two lanes use identical ramp and landing geometry. They are separated visual
 
 | Input | Ground action | Air action |
 | --- | --- | --- |
-| Joystick left / right | Carve and adjust approach speed | Rotate backward / forward |
-| Hold A | Tuck for speed | Grab and stabilize the current trick |
-| Hold B | Check speed / brake | Spot landing and reduce rotation |
-| Down + A near lip | Compress for a stronger pop | — |
-| Release Down at lip | Extend and pop | — |
+| Joystick (8-way) | Select desired ground heading: Right points downhill (fastest), Up / Down carve across the slope to shed speed, Left checks speed uphill | Left / Right apply backward / forward rotation torque; Down compacts (faster spin), Up extends (slower spin) |
+| Hold A | Tuck for speed | Signature grab (requires a fresh press after takeoff) |
+| Hold B | Check speed / brake (strongest intentional speed loss) | Spot landing: releases grab and damps rotation |
+| Hold blue X, release near lip | Compress; release timing sets pop impulse | Tweak the active grab (only while a grab is held) |
+| Y | Strong edge / carve modifier | Reserved for an alternate grab once matching art exists |
 | Start | Pause / resume the full session | Pause / resume the full session |
 | Existing cabinet exit inputs | Preserve Escape and two-second Start + Back hold | Same |
 
+Joystick up/down controls traversal across the slope, so compression/pop lives on blue `X`, not `Down + A`. Instruction copy must say `BLUE X` or `EXIT`, never bare `X`, because the cabinet also has a white `EXIT` button marked with an X-shaped symbol.
+
 The controls must work with a digital arcade stick. Analog support is optional and must not create a scoring advantage. Provide independent keyboard mappings for P1 and P2 during development.
 
-If A and B are held together in the air, landing preparation wins: the grab releases and rotation damping begins. Inputs are buffered for a short, visible window around takeoff so a player is not punished by one simulation tick.
+If A and B are held together in the air, landing preparation wins: the grab releases and rotation damping begins. Context-changing air actions (grab, tweak) require a fresh press after takeoff, so holding tuck or compression through the lip never auto-starts a trick. Pop release and first grab press are buffered for a short, visible window around takeoff so a player is not punished by one simulation tick; pausing clears pending one-tick edges.
 
 ### Control goals
 
@@ -210,6 +212,7 @@ Holding A while airborne initiates a grab when the rider is in a valid pose. The
 - Longer held grabs earn more style value up to a cap.
 - A grab must be established for a minimum duration to count.
 - Grabbing reduces rotation correction, making timing meaningful.
+- Holding `X` while a grab is active tweaks the pose for extra style at a further control cost (only scored when the pose stays readable).
 - Releasing before landing avoids a landing penalty.
 - The first release may use one clearly animated signature grab per rider type.
 - Additional named grabs can be added only when their silhouettes are readable at gameplay scale.
@@ -231,16 +234,19 @@ Scores should reward ambition only when the rider demonstrates control.
 | Airtime | time clearly airborne, capped per feature | celebrates jump scale |
 | Rotation | completed physical spins and direction | provides the main difficulty value |
 | Grab | valid grab duration and release timing | rewards style and commitment |
+| Tweak | valid tweak duration while a grab is active | rewards extra commitment at extra risk |
 | Landing | angle, velocity alignment, and angular control | determines whether the trick was completed |
 
-Use an additive trick value followed by a landing multiplier. A crash always reduces the final jump score to zero. Speed and airtime must be capped by the authored feature so exploits cannot dominate normal trick play.
+Use an additive trick value followed by a landing multiplier. A crash always reduces the final jump score to zero. Speed and airtime must be capped by the authored feature so exploits cannot dominate normal trick play. The variety multiplier applies to the three-jump event only, not to single-jump sandbox scoring.
 
 Suggested conceptual formula:
 
 ```text
-base = approach + takeoff + airtime + rotation + grab
-jump_score = base × landing_multiplier × variety_multiplier
+base = approach + takeoff + airtime + rotation + grab + tweak
+jump_score = round(base × landing_multiplier × variety_multiplier)
 ```
+
+For a single jump, `variety_multiplier = 1`.
 
 ### Scoring rules
 
@@ -377,18 +383,25 @@ Do not add rails, halfpipe, procedural jumps, equipment upgrades, or online comp
 
 **Goal: prove that accelerating, launching, rotating, and landing one large jump feels fair and worth repeating.**
 
-### Included
+The first playable is delivered in two stages. Stage A is the one-jump 1P physics sandbox defined by `IMPLEMENTATION_PLAN.md` Milestones 0–10. Stage B adds the second rider type and 2P shared-screen foundation (`IMPLEMENTATION_PLAN.md` Milestone 11). Do not start Stage B until the Stage A acceptance checks pass on the cabinet.
 
-- One skier and one snowboarder with reference-matched placeholder or approved pixel art.
-- One full approach, kicker, flight, and landing profile.
-- Tuck, carve, brake, timed pop, physical rotation, landing preparation, and crash recovery.
+### Stage A included (sandbox)
+
+- One skier first on reference-matched placeholder or approved pixel art; snowboarder art and parity tuning follow in Stage B.
+- One full approach, kicker, flight, and landing profile on one broad lane.
+- Tuck, carve, brake, timed pop on blue `X`, physical rotation, landing preparation, and crash recovery.
 - Fixed-timestep physics and high-speed collision protection.
-- One valid grab per rider type.
-- Speed, airtime, completed rotation, and landing-quality scoring.
-- Solo full-screen play and two-player shared-screen play on parallel lanes.
-- Shared camera framing with both riders airborne at different heights and speeds.
-- Immediate restart and a compact jump result.
+- One valid signature grab plus tweak, with fresh-press rules.
+- Speed, airtime, completed rotation, grab/tweak, and landing-quality scoring with `variety_multiplier = 1`.
+- Solo full-screen play with immediate restart and a compact jump result.
 - Physics debug overlay and repeatable input traces.
+- The existing two-player selection card stays visible but non-interactive; only 1P selection starts Stage A.
+
+### Stage B follow-up (2P foundation)
+
+- Snowboarder with equivalent top-level scoring potential.
+- Solo full-screen play plus two-player shared-screen play on parallel lanes.
+- Shared camera framing with both riders airborne at different heights and speeds.
 
 ### Deferred
 
@@ -398,14 +411,16 @@ The complete three-jump event, additional tricks, advanced stance rules, rails, 
 
 1. **Physics sandbox:** build smooth terrain, acceleration, carving, braking, takeoff, ballistic flight, rotation, and landing contact using debug shapes.
 2. **Landing truth:** classify perfect, clean, sketchy, and crash outcomes from measurable contact state; test boundary continuity.
-3. **Camera proof:** frame one and two riders across the complete jump without split-screen or unreadable zoom.
-4. **Control pass:** tune pop timing, torque, damping, grab commitment, and landing preparation for digital controls.
+3. **Camera proof (Stage A: single rider):** frame approach, lip, flight, and landing for one rider without unreadable zoom.
+4. **Control pass:** tune pop timing, torque, damping, grab/tweak commitment, and landing preparation for digital controls.
 5. **Scoring pass:** derive transparent scores from recorded physics and display a concise result breakdown.
-6. **Shared-screen session:** add staging, parallel lanes, independent outcomes, recovery, and session results.
+6. **Shared-screen session (Stage B):** add staging, parallel lanes, independent outcomes, recovery, session results, and two-rider camera containment.
 7. **Course expansion:** build and tune the three-jump line only after the prototype jump is consistently fun.
 8. **Presentation pass:** replace placeholders, add sound, crowd response, marquee states, and cabinet polish.
 
 ### Acceptance checks
+
+Stage A gates Stage B:
 
 - The same approach speed and takeoff input produce predictably similar trajectories.
 - A faster approach visibly travels farther and creates more airtime without hidden assistance.
@@ -415,14 +430,17 @@ The complete three-jump event, additional tricks, advanced stance rules, rails, 
 - Landing labels vary smoothly near their thresholds and do not flicker from collision seams.
 - A completed rotation is measured from physical orientation, not inferred from input.
 - A basic trick is accessible, while a high-rotation grab requires speed, timing, and early landing preparation.
+- Simulation outcomes remain materially consistent across supported frame rates.
+- Gameplay remains smooth at the existing 1080p / 75 Hz primary target while the marquee is active.
+- Every screen and asset looks native to the supplied HEAVENLY references.
+
+Stage B additionally requires:
+
 - Skier and snowboarder have equivalent top-level scoring potential.
 - Two riders can take off, trick, and land independently on one screen without collision.
 - The shared camera never makes either player's orientation unreadable during valid play.
 - A crashed player cannot interrupt or obscure the other player's scoring attempt.
 - No advantage is awarded for reaching the finish first.
-- Simulation outcomes remain materially consistent across supported frame rates.
-- Gameplay remains smooth at the existing 1080p / 75 Hz primary target while the marquee is active.
-- Every screen and asset looks native to the supplied HEAVENLY references.
 
 ## 14. Implementation boundaries
 
