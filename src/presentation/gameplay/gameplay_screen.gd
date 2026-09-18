@@ -4,20 +4,41 @@ extends Control
 signal return_to_title_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
+const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
+const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
-
+const SLOPE_PATH_RESOURCE := preload("res://src/game/slope_path.tres")
+const SLOPE_PATH_RESOURCE_PATH := "res://src/game/slope_path.tres"
+const SKIER_SPEED := 520.0
+const SKIER_FRAME_COUNT := 8
+const SKIER_FRAME_RATE := 10.0
+const SKIER_SCALE := 0.34
+const SKIER_FLIP_DURATION := 0.35
+const SURFACE_GRID_SIZE := 120.0
+const SURFACE_MARGIN := 20.0
+const SLOPE_HANDLE_RADIUS := 14.0
+const SLOPE_HANDLE_HIT_RADIUS := 28.0
 var player_count := 1
 var _ready_label: Label
 var _elapsed := 0.0
+var _has_started_moving := false
+var _skier_world_position := Vector2.ZERO
+var _skier: AnimatedSprite2D
+var _skier_flip_rotation := 0.0
+var _skier_flip_tween: Tween
 var _exit_confirmation: Control
 var _return_button: Button
 var _keep_playing_button: Button
 var _switch_sound: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
 var _focused_dialog_button: Button
+var _slope_path_resource: SlopePath = SLOPE_PATH_RESOURCE.duplicate()
+var _slope_path := _slope_path_resource.points
+var _slope_drag_point := -1
+var _slope_editor_enabled := OS.is_debug_build()
 
 
 func _ready() -> void:
@@ -26,12 +47,20 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_skier_world_position = _slope_position(SURFACE_MARGIN)
+	_build_skier()
 	_build_hud()
 	queue_redraw()
 
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, DESIGN_SIZE), Color.BLACK)
+	var source_rect := _background_source_rect()
+	draw_texture_rect_region(GAMEPLAY_BG, Rect2(Vector2.ZERO, DESIGN_SIZE), source_rect)
+	_draw_development_surface(source_rect)
+	if _slope_editor_enabled:
+		_draw_slope_handles(source_rect)
+	_draw_skier(source_rect)
 	draw_texture_rect(FRAME_OVERLAY, Rect2(Vector2.ZERO, DESIGN_SIZE), false)
 	for y in range(0, int(DESIGN_SIZE.y), 6):
 		draw_line(Vector2(0, y), Vector2(DESIGN_SIZE.x, y), Color(0.0, 0.08, 0.16, 0.18), 1.0)
@@ -41,7 +70,193 @@ func _process(delta: float) -> void:
 	if is_exit_confirmation_open():
 		return
 	_elapsed += delta
-	_ready_label.visible = fmod(_elapsed, 0.8) < 0.56
+	_update_skier_position(delta)
+	_update_skier_sprite()
+	_ready_label.visible = not _has_started_moving and fmod(_elapsed, 0.8) < 0.56
+	queue_redraw()
+
+
+func _background_source_rect() -> Rect2:
+	var texture_size := Vector2(GAMEPLAY_BG.get_size())
+	var source_size := _background_source_size()
+	var camera_x := clampf(
+		_skier_world_position.x - source_size.x * 0.5, 0.0, texture_size.x - source_size.x
+	)
+	return Rect2(Vector2(camera_x, 0), source_size)
+
+
+func _background_source_size() -> Vector2:
+	var texture_size := Vector2(GAMEPLAY_BG.get_size())
+	return Vector2(texture_size.y * DESIGN_SIZE.x / DESIGN_SIZE.y, texture_size.y)
+
+
+func _update_skier_position(delta: float) -> void:
+	var steering := Input.get_axis(&"ui_left", &"ui_right")
+	if is_zero_approx(steering):
+		return
+	if not _has_started_moving:
+		_has_started_moving = true
+		_skier.play()
+	var texture_width := float(GAMEPLAY_BG.get_width())
+	var skier_x := clampf(
+		_skier_world_position.x + steering * SKIER_SPEED * delta,
+		SURFACE_MARGIN,
+		texture_width - SURFACE_MARGIN
+	)
+	_skier_world_position = _slope_position(skier_x)
+
+
+func _slope_position(world_x: float) -> Vector2:
+	if world_x <= _slope_path[0].x:
+		return _slope_path[0]
+	for point_index in range(_slope_path.size() - 1):
+		var start := _slope_path[point_index]
+		var end := _slope_path[point_index + 1]
+		if world_x <= end.x:
+			return start.lerp(end, inverse_lerp(start.x, end.x, world_x))
+	return _slope_path[_slope_path.size() - 1]
+
+
+func _build_skier() -> void:
+	var frames := SpriteFrames.new()
+	frames.remove_animation("default")
+	frames.add_animation("sprint")
+	frames.set_animation_loop("sprint", true)
+	frames.set_animation_speed("sprint", SKIER_FRAME_RATE)
+	var sheet_width := SKIER_SHEET.get_width()
+	var sheet_height := SKIER_SHEET.get_height()
+	for frame_index in SKIER_FRAME_COUNT:
+		var frame_start := roundi(float(frame_index) * sheet_width / SKIER_FRAME_COUNT)
+		var frame_end := roundi(float(frame_index + 1) * sheet_width / SKIER_FRAME_COUNT)
+		var frame := AtlasTexture.new()
+		frame.atlas = SKIER_SHEET
+		frame.region = Rect2(frame_start, 0, frame_end - frame_start, sheet_height)
+		frames.add_frame("sprint", frame)
+
+	_skier = AnimatedSprite2D.new()
+	_skier.name = "Skier"
+	_skier.sprite_frames = frames
+	_skier.animation = "sprint"
+	_skier.scale = Vector2.ONE * SKIER_SCALE
+	_skier.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(_skier)
+	_update_skier_sprite()
+
+
+func _update_skier_sprite() -> void:
+	var source_rect := _background_source_rect()
+	var scale := DESIGN_SIZE / source_rect.size
+	_skier.position = (_skier_world_position - source_rect.position) * scale
+	var next_x := minf(_skier_world_position.x + 8.0, _slope_path[_slope_path.size() - 1].x)
+	var previous_x := maxf(_skier_world_position.x - 8.0, _slope_path[0].x)
+	_skier.rotation = (
+		(_slope_position(next_x) - _slope_position(previous_x)).angle() + _skier_flip_rotation
+	)
+
+
+func _flip_skier() -> void:
+	if is_instance_valid(_skier_flip_tween):
+		_skier_flip_tween.kill()
+	_skier_flip_tween = create_tween()
+	_skier_flip_tween.tween_property(self, "_skier_flip_rotation", TAU, SKIER_FLIP_DURATION).from(
+		0.0
+	)
+	_skier_flip_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	_skier_flip_tween.tween_callback(func() -> void: _skier_flip_rotation = 0.0)
+
+
+func _draw_development_surface(source_rect: Rect2) -> void:
+	var world_bounds := Rect2(Vector2.ZERO, Vector2(GAMEPLAY_BG.get_size()))
+	var visible_bounds := world_bounds.intersection(source_rect)
+	var scale := DESIGN_SIZE / source_rect.size
+	var screen_bounds := Rect2(
+		(visible_bounds.position - source_rect.position) * scale, visible_bounds.size * scale
+	)
+	draw_rect(screen_bounds, Color("ff3b3088"), false, 3.0)
+	for point_index in range(_slope_path.size() - 1):
+		var slope_start := (_slope_path[point_index] - source_rect.position) * scale
+		var slope_end := (_slope_path[point_index + 1] - source_rect.position) * scale
+		draw_line(slope_start, slope_end, Color("ff3b30bb"), 4.0)
+
+	var first_grid_x := floorf(visible_bounds.position.x / SURFACE_GRID_SIZE) * SURFACE_GRID_SIZE
+	for x in range(int(first_grid_x), int(visible_bounds.end.x) + 1, int(SURFACE_GRID_SIZE)):
+		var screen_x := (x - source_rect.position.x) * scale.x
+		draw_line(
+			Vector2(screen_x, screen_bounds.position.y),
+			Vector2(screen_x, screen_bounds.end.y),
+			Color("ff3b3044"),
+			1.0
+		)
+
+	var first_grid_y := floorf(visible_bounds.position.y / SURFACE_GRID_SIZE) * SURFACE_GRID_SIZE
+	for y in range(int(first_grid_y), int(visible_bounds.end.y) + 1, int(SURFACE_GRID_SIZE)):
+		var screen_y := (y - source_rect.position.y) * scale.y
+		draw_line(
+			Vector2(screen_bounds.position.x, screen_y),
+			Vector2(screen_bounds.end.x, screen_y),
+			Color("ff3b3044"),
+			1.0
+		)
+
+
+func _draw_slope_handles(source_rect: Rect2) -> void:
+	var scale := DESIGN_SIZE / source_rect.size
+	for point_index in _slope_path.size():
+		var screen_point := (_slope_path[point_index] - source_rect.position) * scale
+		var color := Color("fff16a") if point_index == _slope_drag_point else Color("ff3b30")
+		draw_circle(screen_point, SLOPE_HANDLE_RADIUS, color)
+		draw_circle(screen_point, SLOPE_HANDLE_RADIUS, Color("180400"), false, 3.0)
+
+
+func _gui_input(event: InputEvent) -> void:
+	if not _slope_editor_enabled:
+		return
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mouse_event.pressed:
+			_slope_drag_point = _slope_point_at(mouse_event.position, _background_source_rect())
+		else:
+			_save_slope_path()
+			_slope_drag_point = -1
+		queue_redraw()
+		return
+	if event is InputEventMouseMotion and _slope_drag_point >= 0:
+		var motion_event := event as InputEventMouseMotion
+		var source_rect := _background_source_rect()
+		var scale := DESIGN_SIZE / source_rect.size
+		_slope_path[_slope_drag_point] = motion_event.position / scale + source_rect.position
+		_skier_world_position = _slope_position(_skier_world_position.x)
+		queue_redraw()
+
+
+func _slope_point_at(screen_position: Vector2, source_rect: Rect2) -> int:
+	var scale := DESIGN_SIZE / source_rect.size
+	var closest_point := -1
+	var closest_distance := SLOPE_HANDLE_HIT_RADIUS
+	for point_index in _slope_path.size():
+		var point_position := (_slope_path[point_index] - source_rect.position) * scale
+		var distance := screen_position.distance_to(point_position)
+		if distance <= closest_distance:
+			closest_distance = distance
+			closest_point = point_index
+	return closest_point
+
+
+func _save_slope_path() -> void:
+	if _slope_drag_point < 0:
+		return
+	_slope_path_resource.points = _slope_path
+	var error := ResourceSaver.save(_slope_path_resource, SLOPE_PATH_RESOURCE_PATH)
+	if error != OK:
+		push_error("Could not save slope path: %s" % error_string(error))
+
+
+func _draw_skier(source_rect: Rect2) -> void:
+	var scale := DESIGN_SIZE / source_rect.size
+	var screen_position := (_skier_world_position - source_rect.position) * scale
+	draw_circle(screen_position, 52, Color("ff3b30aa"), false, 3.0)
 
 
 func _build_hud() -> void:
@@ -166,6 +381,16 @@ func _on_dialog_button_focused(button: Button) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _exit_confirmation:
+		if event is InputEventKey:
+			var key_event := event as InputEventKey
+			if (
+				key_event.keycode == KEY_SPACE
+				and key_event.is_pressed()
+				and not key_event.is_echo()
+			):
+				_flip_skier()
+				get_viewport().set_input_as_handled()
+				return
 		# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, X tap opens the dialog.
 		# X hold quits to AGS via main._process. Esc is the Mac dev equivalent.
 		if (
