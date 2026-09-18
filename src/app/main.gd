@@ -108,6 +108,7 @@ func _start_game(player_count: int) -> void:
 	if _transitioning or _primary_view == null:
 		return
 	_transitioning = true
+	_confirmation_sound.play()
 	var transition := CrtTransitionScene.new()
 	transition.midpoint_reached.connect(_show_gameplay.bind(player_count, transition))
 	transition.finished.connect(_finish_transition.bind(transition))

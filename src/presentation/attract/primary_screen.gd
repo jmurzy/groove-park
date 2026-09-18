@@ -272,7 +272,6 @@ func handle_escape() -> bool:
 func _on_player_select_confirmed(player_count: int) -> void:
 	if not player_select:
 		return
-	confirmation_sound.play()
 	player_select = null
 	start_game_requested.emit(player_count)
 
