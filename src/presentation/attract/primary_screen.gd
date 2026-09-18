@@ -2,7 +2,6 @@ class_name PrimaryScreen
 extends Control
 
 signal start_game_requested(player_count: int)
-signal return_to_main_requested
 signal exit_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
@@ -12,8 +11,6 @@ const GONDOLA_SHEET := preload("res://artwork/gondola_sprite.png")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
-const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
-const GameplayScreenScene := preload("res://src/presentation/gameplay/gameplay_screen.gd")
 const LOGO_RECT := Rect2(289, 20, 1387, 480)
 const LOGO_SUBTITLE_RECT := Rect2(276, 328, 1387, 62)
 const LOGO_SUBTITLE_GLYPH_SPACING := 12
@@ -47,8 +44,6 @@ var exit_button: Button
 var confirmation_sound: AudioStreamPlayer
 var switch_sound: AudioStreamPlayer
 var player_select: PlayerSelectScreen
-var gameplay_screen: GameplayScreen
-var _transitioning := false
 var _focused_menu_button: Button
 
 
@@ -271,56 +266,15 @@ func handle_escape() -> bool:
 	if player_select:
 		_close_player_select()
 		return true
-	if gameplay_screen:
-		if gameplay_screen.is_exit_confirmation_open():
-			gameplay_screen.close_exit_confirmation()
-			return true
-		gameplay_screen.request_exit_confirmation()
-		return true
 	return false
 
 
 func _on_player_select_confirmed(player_count: int) -> void:
-	if not player_select or _transitioning:
+	if not player_select:
 		return
 	confirmation_sound.play()
-	_transitioning = true
-	var selection := player_select
 	player_select = null
-	var transition := CrtTransitionScene.new()
-	transition.midpoint_reached.connect(_show_gameplay.bind(selection, player_count, transition))
-	transition.finished.connect(_finish_transition.bind(transition))
-	add_child(transition)
-
-
-func _show_gameplay(
-	selection: PlayerSelectScreen, player_count: int, transition: CrtTransition
-) -> void:
-	selection.queue_free()
-	gameplay_screen = GameplayScreenScene.new()
-	gameplay_screen.player_count = player_count
-	gameplay_screen.return_to_title_requested.connect(_return_to_main)
-	add_child(gameplay_screen)
-	move_child(gameplay_screen, transition.get_index())
 	start_game_requested.emit(player_count)
-
-
-func _finish_transition(transition: CrtTransition) -> void:
-	transition.queue_free()
-	_transitioning = false
-
-
-func _return_to_main() -> void:
-	if not gameplay_screen:
-		return
-	confirmation_sound.play()
-	get_tree().paused = false
-	gameplay_screen.queue_free()
-	gameplay_screen = null
-	start_button.show()
-	exit_button.show()
-	start_button.call_deferred("grab_focus")
-	return_to_main_requested.emit()
 
 
 func _on_player_select_cancelled() -> void:

@@ -7,18 +7,24 @@ const MARQUEE_DESIGN_SIZE := Vector2i(1920, 360)
 const EXIT_HOLD_SECONDS := 2.0
 
 const PrimaryScreenScene := preload("res://src/presentation/attract/primary_screen.gd")
+const GameplayScreenScene := preload("res://src/presentation/gameplay/gameplay_screen.gd")
 const MarqueeScreenScene := preload("res://src/presentation/marquee/marquee_screen.gd")
+const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
 const DevSente := preload("res://src/services/dev_sente.gd")
 const GameControllerScene := preload("res://src/game/game_controller.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
 const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
 const BackgroundMusic := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
+const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 
 var _exit_hold_time := 0.0
 var _background_music: AudioStreamPlayer
+var _confirmation_sound: AudioStreamPlayer
 var _game_controller: GameController
 var _liftie_state_service: LiftieStateService
 var _primary_view: PrimaryScreen
+var _gameplay_screen: GameplayScreen
+var _transitioning := false
 
 
 func _ready() -> void:
@@ -34,6 +40,9 @@ func _ready() -> void:
 	_background_music.stream = background_music_stream
 	add_child(_background_music)
 	_background_music.play()
+	_confirmation_sound = AudioStreamPlayer.new()
+	_confirmation_sound.stream = CONFIRMATION_SOUND
+	add_child(_confirmation_sound)
 
 	var screen_count := DisplayServer.get_screen_count()
 	_log_displays(screen_count)
@@ -59,14 +68,7 @@ func _ready() -> void:
 	else:
 		_configure_window(get_window(), primary_screen, PRIMARY_DESIGN_SIZE, "HEAVENLY - PRIMARY")
 
-	_primary_view = PrimaryScreenScene.new()
-	_primary_view.screen_index = primary_screen
-	_primary_view.liftie_state_service = _liftie_state_service
-	_primary_view.show_diagnostics = overrides.show_diagnostics
-	_primary_view.start_game_requested.connect(_start_game)
-	_primary_view.return_to_main_requested.connect(_return_to_attract)
-	_primary_view.exit_requested.connect(_quit)
-	add_child(_primary_view)
+	_show_attract(primary_screen, overrides.show_diagnostics)
 
 	var show_marquee: bool = screen_count >= 2 or overrides.force_marquee
 	if show_marquee:
@@ -103,13 +105,42 @@ func _process(delta: float) -> void:
 
 
 func _start_game(player_count: int) -> void:
+	if _transitioning or _primary_view == null:
+		return
+	_transitioning = true
+	var transition := CrtTransitionScene.new()
+	transition.midpoint_reached.connect(_show_gameplay.bind(player_count, transition))
+	transition.finished.connect(_finish_transition.bind(transition))
+	add_child(transition)
+
+
+func _show_gameplay(player_count: int, transition: CrtTransition) -> void:
+	_primary_view.queue_free()
+	_primary_view = null
+	_gameplay_screen = GameplayScreenScene.new()
+	_gameplay_screen.player_count = player_count
+	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
+	add_child(_gameplay_screen)
+	move_child(_gameplay_screen, transition.get_index())
 	_background_music.stop()
 	_game_controller.start_game(player_count)
 
 
+func _finish_transition(transition: CrtTransition) -> void:
+	transition.queue_free()
+	_transitioning = false
+
+
 func _return_to_attract() -> void:
+	if _gameplay_screen == null:
+		return
+	get_tree().paused = false
+	_gameplay_screen.queue_free()
+	_gameplay_screen = null
+	_confirmation_sound.play()
 	_background_music.play()
 	_game_controller.return_to_attract()
+	_show_attract(_primary_screen_index(), _show_diagnostics())
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -123,7 +154,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		and not event.is_action_pressed(&"cabinet_exit")
 	):
 		return
-	if _primary_view.handle_escape():
+	if _primary_view and _primary_view.handle_escape():
+		get_viewport().set_input_as_handled()
+		return
+	if _gameplay_screen:
+		if _gameplay_screen.is_exit_confirmation_open():
+			_gameplay_screen.close_exit_confirmation()
+		else:
+			_gameplay_screen.request_exit_confirmation()
 		get_viewport().set_input_as_handled()
 		return
 	# Esc is the desktop developer exit. Cabinet exit requires the hold handled in _process.
@@ -156,6 +194,24 @@ func _create_marquee(
 	marquee_view.show_diagnostics = show_diagnostics
 	marquee.add_child(marquee_view)
 	marquee.show()
+
+
+func _show_attract(screen_index: int, show_diagnostics: bool) -> void:
+	_primary_view = PrimaryScreenScene.new()
+	_primary_view.screen_index = screen_index
+	_primary_view.liftie_state_service = _liftie_state_service
+	_primary_view.show_diagnostics = show_diagnostics
+	_primary_view.start_game_requested.connect(_start_game)
+	_primary_view.exit_requested.connect(_quit)
+	add_child(_primary_view)
+
+
+func _primary_screen_index() -> int:
+	return PRIMARY_SCREEN_WITH_MARQUEE if DisplayServer.get_screen_count() >= 2 else 0
+
+
+func _show_diagnostics() -> bool:
+	return DevSente.parse_overrides(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE).show_diagnostics
 
 
 func _configure_window(
