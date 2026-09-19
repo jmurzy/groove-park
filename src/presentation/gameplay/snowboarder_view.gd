@@ -1,11 +1,7 @@
 class_name SnowboarderView
-extends Node2D
+extends RiderViewBase
 
-const CANVAS_SIZE := Vector2(1024, 1024)
 const BOARD_BASELINE := 820.0
-const SPRITE_SCALE := 0.14
-const LOOP_FPS := 9.0
-const TRANSITION_FPS := 12.0
 
 const CARVE_HEEL_FRAMES: Array[Texture2D] = [
 	preload("res://artwork/players/snowboarder/snowboarder_carve_heel_f0.png"),
@@ -75,19 +71,10 @@ const TUCK_FRAMES: Array[Texture2D] = [
 	preload("res://artwork/players/snowboarder/snowboarder_tuck_f1.png"),
 ]
 
-var _sprite: AnimatedSprite2D
-
 
 func _ready() -> void:
-	name = "SnowboarderView"
-	_sprite = AnimatedSprite2D.new()
-	_sprite.name = "Sprite"
+	_setup_sprite(BOARD_BASELINE, &"SnowboarderView")
 	_sprite.sprite_frames = _build_frames()
-	_sprite.centered = false
-	_sprite.position = Vector2(-CANVAS_SIZE.x * 0.5, -BOARD_BASELINE) * SPRITE_SCALE
-	_sprite.scale = Vector2.ONE * SPRITE_SCALE
-	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(_sprite)
 	_play(&"neutral_glide")
 
 
@@ -97,22 +84,12 @@ func update_from_state(state: RiderState, screen_position: Vector2, ground_rotat
 	_play(_ground_animation(state))
 
 
-func play_preview(animation_name: StringName) -> void:
-	_play(animation_name)
-
-
 func _ground_animation(state: RiderState) -> StringName:
 	if state.tuck_active:
 		return &"tuck"
 	if state.edge_active or state.brake_active:
 		return &"carve_heel" if state.heading.y < 0.0 else &"carve_toe"
 	return &"neutral_glide"
-
-
-func _play(animation_name: StringName) -> void:
-	if _sprite.animation == animation_name and _sprite.is_playing():
-		return
-	_sprite.play(animation_name)
 
 
 func _build_frames() -> SpriteFrames:
@@ -134,17 +111,3 @@ func _build_frames() -> SpriteFrames:
 	_add_animation(frames, &"crash", CRASH_FRAMES, TRANSITION_FPS, false)
 	_add_animation(frames, &"celebration", CELEBRATION_FRAMES, LOOP_FPS, true)
 	return frames
-
-
-func _add_animation(
-	frames: SpriteFrames,
-	animation_name: StringName,
-	animation_frames: Array[Texture2D],
-	fps: float,
-	loop: bool
-) -> void:
-	frames.add_animation(animation_name)
-	frames.set_animation_speed(animation_name, fps)
-	frames.set_animation_loop(animation_name, loop)
-	for frame in animation_frames:
-		frames.add_frame(animation_name, frame)

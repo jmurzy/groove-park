@@ -9,7 +9,7 @@ const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
-const ControlsScreenScene := preload("res://src/presentation/attract/controls_screen.gd")
+const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
@@ -37,7 +37,7 @@ var _controls_button: Button
 var _switch_sound: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
 var _focused_dialog_button: Button
-var _controls_screen: ControlsScreen
+var _controls_screen: HowToPlayScreen
 var _course: ParkCourse = PARK_COURSE_RESOURCE
 
 
@@ -531,7 +531,7 @@ func _open_controls() -> void:
 		return
 	if is_instance_valid(_confirmation_sound):
 		_confirmation_sound.play()
-	_controls_screen = ControlsScreenScene.new()
+	_controls_screen = HowToPlayScreenScene.new()
 	_controls_screen.closed.connect(_close_controls)
 	add_child(_controls_screen)
 

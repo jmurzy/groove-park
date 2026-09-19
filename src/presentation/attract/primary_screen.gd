@@ -11,7 +11,7 @@ const GONDOLA_SHEET := preload("res://artwork/attract/gondola_sprite.png")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
-const ControlsScreenScene := preload("res://src/presentation/attract/controls_screen.gd")
+const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const LOGO_RECT := Rect2(289, 20, 1387, 480)
 const LOGO_SUBTITLE_RECT := Rect2(276, 328, 1387, 62)
 const LOGO_SUBTITLE_GLYPH_SPACING := 12
@@ -46,7 +46,7 @@ var exit_button: Button
 var confirmation_sound: AudioStreamPlayer
 var switch_sound: AudioStreamPlayer
 var player_select: PlayerSelectScreen
-var controls_screen: ControlsScreen
+var controls_screen: HowToPlayScreen
 var _focused_menu_button: Button
 
 
@@ -364,7 +364,7 @@ func _open_controls() -> void:
 	if controls_screen or player_select:
 		return
 	confirmation_sound.play()
-	controls_screen = ControlsScreenScene.new()
+	controls_screen = HowToPlayScreenScene.new()
 	controls_screen.closed.connect(_close_controls)
 	add_child(controls_screen)
 
