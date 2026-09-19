@@ -10,6 +10,7 @@ const HEAVENLY_LOGO := preload("res://artwork/attract/heavenly_logo_no_tahoe.png
 const GONDOLA_SHEET := preload("res://artwork/attract/gondola_sprite.png")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
+const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const LOGO_RECT := Rect2(289, 20, 1387, 480)
@@ -45,6 +46,7 @@ var controls_button: Button
 var exit_button: Button
 var confirmation_sound: AudioStreamPlayer
 var switch_sound: AudioStreamPlayer
+var back_sound: AudioStreamPlayer
 var player_select: PlayerSelectScreen
 var controls_screen: HowToPlayScreen
 var _focused_menu_button: Button
@@ -67,6 +69,9 @@ func _ready() -> void:
 	switch_sound = AudioStreamPlayer.new()
 	switch_sound.stream = SWITCH_SOUND
 	add_child(switch_sound)
+	back_sound = AudioStreamPlayer.new()
+	back_sound.stream = BACK_SOUND
+	add_child(back_sound)
 	start_button = _build_start_button()
 	add_child(start_button)
 	controls_button = _build_controls_button()
@@ -374,6 +379,7 @@ func _close_controls() -> void:
 		return
 	controls_screen.queue_free()
 	controls_screen = null
+	back_sound.play()
 	controls_button.call_deferred("grab_focus")
 
 

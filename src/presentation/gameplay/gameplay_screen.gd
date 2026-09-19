@@ -8,6 +8,8 @@ const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
+const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
+const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
@@ -36,6 +38,8 @@ var _keep_playing_button: Button
 var _controls_button: Button
 var _switch_sound: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
+var _gameplay_music: AudioStreamPlayer
+var _back_sound: AudioStreamPlayer
 var _focused_dialog_button: Button
 var _controls_screen: HowToPlayScreen
 var _course: ParkCourse = PARK_COURSE_RESOURCE
@@ -55,6 +59,7 @@ func _ready() -> void:
 	_rider_state.vertical_position = _course.surface_y_at(_rider_state.course_progress)
 	_build_skier()
 	_build_hud()
+	_build_music()
 	queue_redraw()
 
 
@@ -301,6 +306,20 @@ func _build_hud() -> void:
 	add_child(_action_label)
 
 
+func _build_music() -> void:
+	var music_stream: AudioStreamMP3 = GAMEPLAY_MUSIC.duplicate()
+	music_stream.loop = true
+	_gameplay_music = AudioStreamPlayer.new()
+	_gameplay_music.name = "GameplayMusic"
+	_gameplay_music.stream = music_stream
+	add_child(_gameplay_music)
+	_gameplay_music.play()
+	_back_sound = AudioStreamPlayer.new()
+	_back_sound.name = "BackSound"
+	_back_sound.stream = BACK_SOUND
+	add_child(_back_sound)
+
+
 func request_exit_confirmation() -> void:
 	if _exit_confirmation:
 		return
@@ -541,4 +560,6 @@ func _close_controls() -> void:
 		return
 	_controls_screen.queue_free()
 	_controls_screen = null
+	if is_instance_valid(_back_sound):
+		_back_sound.play()
 	_controls_button.call_deferred("grab_focus")
