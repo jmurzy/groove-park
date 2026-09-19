@@ -1,7 +1,7 @@
 class_name RiderTuning
 extends Resource
 
-@export var rules_version := "takeoff-v1"
+@export var rules_version := "flight-v1"
 @export var fall_line_acceleration := 540.0
 @export var snow_resistance := 48.0
 @export var aerodynamic_drag := 0.00115
@@ -22,3 +22,11 @@ extends Resource
 @export var maximum_compression := 1.0
 @export var pop_release_window := 220.0
 @export var maximum_pop_impulse := 260.0
+@export var gravity := 980.0
+@export var air_drag := 0.05
+@export var air_torque := 18.0
+@export var maximum_angular_velocity := 12.0
+@export var air_angular_damping := 1.2
+@export var compact_inertia_multiplier := 0.62
+@export var extended_inertia_multiplier := 1.55
+@export var landing_prep_damping := 7.0

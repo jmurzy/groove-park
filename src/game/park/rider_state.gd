@@ -22,7 +22,6 @@ var tuck_active := false
 var brake_active := false
 var edge_active := false
 
-# Takeoff is captured once at the lip. Airborne translation is Milestone 5 work.
 var phase := Phase.GROUNDED
 var compression_active := false
 var compression_amount := 0.0
@@ -34,3 +33,11 @@ var takeoff_vertical_speed := 0.0
 var takeoff_pop_impulse := 0.0
 var takeoff_tangent := Vector2.RIGHT
 var takeoff_normal := Vector2.UP
+
+# Air orientation is unwrapped so completed rotations can be measured later.
+var orientation := 0.0
+var angular_velocity := 0.0
+var airtime := 0.0
+var body_compact := false
+var body_extended := false
+var landing_prep_active := false

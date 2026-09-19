@@ -122,8 +122,12 @@ func _update_action_label(input: RiderInputFrame) -> void:
 	var action_message := ""
 	if _rider_state.phase == RiderState.Phase.AIRBORNE:
 		action_message = (
-			"TAKEOFF %.0f  VY %.0f"
-			% [_rider_state.takeoff_course_speed, _rider_state.takeoff_vertical_speed]
+			"AIR %.1fs  ROT %+.0f  VY %.0f"
+			% [
+				_rider_state.airtime,
+				rad_to_deg(_rider_state.orientation),
+				_rider_state.vertical_speed
+			]
 		)
 	elif _rider_state.compression_active:
 		action_message = "BLUE X  COMPRESSING %.0f%%" % (_rider_state.compression_amount * 100.0)

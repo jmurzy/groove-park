@@ -9,6 +9,7 @@ var pop_pressed := false
 var pop_just_pressed := false
 var pop_just_released := false
 var edge_pressed := false
+var landing_prep_pressed := false
 
 
 static func from_actions() -> RiderInputFrame:
@@ -25,4 +26,5 @@ static func from_actions() -> RiderInputFrame:
 	frame.pop_just_pressed = Input.is_action_just_pressed(&"action_x")
 	frame.pop_just_released = Input.is_action_just_released(&"action_x")
 	frame.edge_pressed = Input.is_action_pressed(&"action_y")
+	frame.landing_prep_pressed = Input.is_action_pressed(&"action_b")
 	return frame

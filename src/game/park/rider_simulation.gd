@@ -5,6 +5,9 @@ extends RefCounted
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
+	if state.phase == RiderState.Phase.AIRBORNE:
+		_step_airborne(state, input, tuning, delta)
+		return
 	if state.phase != RiderState.Phase.GROUNDED:
 		return
 	if not input.heading.is_zero_approx():
@@ -118,10 +121,51 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	state.takeoff_pop_impulse = pop_impulse
 	state.takeoff_tangent = tangent
 	state.takeoff_normal = normal
+	state.orientation = tangent.angle()
+	state.angular_velocity = 0.0
+	state.airtime = 0.0
+	state.body_compact = false
+	state.body_extended = false
+	state.landing_prep_active = false
 	state.tuck_active = false
 	state.brake_active = false
 	state.edge_active = false
 	state.compression_active = false
+
+
+func _step_airborne(
+	state: RiderState, input: RiderInputFrame, tuning: RiderTuning, delta: float
+) -> void:
+	# Flight translation is ballistic. Air input is intentionally limited to body rotation.
+	state.vertical_speed += tuning.gravity * delta
+	var air_drag_factor := maxf(0.0, 1.0 - tuning.air_drag * delta)
+	state.course_speed *= air_drag_factor
+	state.lane_speed *= air_drag_factor
+	state.course_progress += state.course_speed * delta
+	state.lane_position += state.lane_speed * delta
+	state.vertical_position += state.vertical_speed * delta
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
+	state.airtime += delta
+
+	state.body_compact = input.heading.y > 0.0
+	state.body_extended = input.heading.y < 0.0
+	state.landing_prep_active = input.landing_prep_pressed
+	var inertia_multiplier := 1.0
+	if state.body_compact:
+		inertia_multiplier = tuning.compact_inertia_multiplier
+	elif state.body_extended:
+		inertia_multiplier = tuning.extended_inertia_multiplier
+	var torque := input.heading.x * tuning.air_torque / inertia_multiplier
+	state.angular_velocity += torque * delta
+	state.angular_velocity = clampf(
+		state.angular_velocity, -tuning.maximum_angular_velocity, tuning.maximum_angular_velocity
+	)
+	var damping := tuning.air_angular_damping
+	if state.landing_prep_active:
+		damping += tuning.landing_prep_damping
+	state.angular_velocity = move_toward(state.angular_velocity, 0.0, damping * delta)
+	state.orientation += state.angular_velocity * delta
 
 
 func _apply_drag(

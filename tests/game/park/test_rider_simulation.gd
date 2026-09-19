@@ -11,6 +11,8 @@ var _trace_paths: PackedStringArray = [
 	"res://tests/game/park/traces/straight_tuck.json",
 	"res://tests/game/park/traces/shallow_carve.json",
 	"res://tests/game/park/traces/hard_brake.json",
+	"res://tests/game/park/traces/forward_rotation.json",
+	"res://tests/game/park/traces/backward_rotation.json",
 ]
 
 var _failures := PackedStringArray()
@@ -38,8 +40,14 @@ func _init() -> void:
 	_test_lip_crossing_transitions_to_airborne()
 	_test_valid_pop_increases_upward_takeoff_speed()
 	_test_held_pop_does_not_add_an_impulse()
+	_test_air_input_does_not_change_translation()
+	_test_faster_takeoff_travels_farther()
+	_test_torque_changes_angular_velocity()
+	_test_reversing_torque_reduces_existing_spin()
+	_test_body_shape_changes_rotation_rate()
+	_test_landing_prep_damps_rotation()
 	if _failures.is_empty():
-		print("RiderSimulation ground checks passed.")
+		print("RiderSimulation checks passed.")
 		quit(0)
 		return
 	for failure in _failures:
@@ -129,7 +137,11 @@ func _test_baseline_traces_replay() -> void:
 		var trace := _load_trace(trace_path)
 		if trace.is_empty():
 			continue
-		var state := _new_state()
+		var state := (
+			_new_airborne_state()
+			if trace.get("initial_phase", "grounded") == "airborne"
+			else _new_state()
+		)
 		var frames: Array = trace.get("frames", [])
 		for frame_value: Variant in frames:
 			var frame: Dictionary = frame_value
@@ -142,12 +154,19 @@ func _test_baseline_traces_replay() -> void:
 				Vector2(float(heading_values[0]), float(heading_values[1])),
 				bool(frame.get("tuck_pressed", false)),
 				bool(frame.get("edge_pressed", false)),
-				bool(frame.get("brake_pressed", false))
+				bool(frame.get("brake_pressed", false)),
+				bool(frame.get("landing_prep_pressed", false))
 			)
 		_expect(
 			state.ground_position.is_finite() and state.ground_velocity.is_finite(),
-			"%s produced invalid ground state." % trace_path
+			"%s produced invalid simulation state." % trace_path
 		)
+		if trace.has("expected_rotation_direction"):
+			var direction: float = float(trace["expected_rotation_direction"])
+			_expect(
+				state.orientation * direction > 0.0,
+				"%s did not rotate in its expected direction." % trace_path
+			)
 
 
 func _test_lip_crossing_transitions_to_airborne() -> void:
@@ -199,6 +218,86 @@ func _test_held_pop_does_not_add_an_impulse() -> void:
 	)
 
 
+func _test_air_input_does_not_change_translation() -> void:
+	var neutral := _new_airborne_state()
+	var rotating := _new_airborne_state()
+	for _tick in 60:
+		_step(neutral, Vector2.ZERO, false, false, false)
+		_step(rotating, Vector2(1.0, 1.0), false, false, false)
+	_expect(
+		(
+			neutral.course_progress == rotating.course_progress
+			and neutral.lane_position == rotating.lane_position
+			and neutral.vertical_position == rotating.vertical_position
+		),
+		"Air input must not alter ballistic translation."
+	)
+
+
+func _test_faster_takeoff_travels_farther() -> void:
+	var slower := _new_airborne_state()
+	var faster := _new_airborne_state()
+	faster.course_speed *= 1.5
+	for _tick in 60:
+		_step(slower, Vector2.ZERO, false, false, false)
+		_step(faster, Vector2.ZERO, false, false, false)
+	_expect(
+		faster.course_progress > slower.course_progress,
+		"A faster takeoff should travel farther during the same flight time."
+	)
+
+
+func _test_torque_changes_angular_velocity() -> void:
+	var state := _new_airborne_state()
+	_step(state, Vector2.RIGHT, false, false, false)
+	_expect(state.angular_velocity > 0.0, "Right air input should add positive angular velocity.")
+	_expect(
+		state.orientation > 0.0,
+		"Orientation should integrate angular velocity instead of snapping."
+	)
+
+
+func _test_reversing_torque_reduces_existing_spin() -> void:
+	var state := _new_airborne_state()
+	for _tick in 20:
+		_step(state, Vector2.RIGHT, false, false, false)
+	var forward_spin := state.angular_velocity
+	_step(state, Vector2.LEFT, false, false, false)
+	_expect(
+		state.angular_velocity > 0.0 and state.angular_velocity < forward_spin,
+		"Reverse torque should first reduce existing angular momentum."
+	)
+
+
+func _test_body_shape_changes_rotation_rate() -> void:
+	var compact := _new_airborne_state()
+	var neutral := _new_airborne_state()
+	var extended := _new_airborne_state()
+	_step(compact, Vector2(1.0, 1.0), false, false, false)
+	_step(neutral, Vector2.RIGHT, false, false, false)
+	_step(extended, Vector2(1.0, -1.0), false, false, false)
+	_expect(
+		(
+			compact.angular_velocity > neutral.angular_velocity
+			and neutral.angular_velocity > extended.angular_velocity
+		),
+		"Compact and extended body positions should change rotation rate predictably."
+	)
+
+
+func _test_landing_prep_damps_rotation() -> void:
+	var unprepared := _new_airborne_state()
+	var prepared := _new_airborne_state()
+	unprepared.angular_velocity = 4.0
+	prepared.angular_velocity = 4.0
+	_step(unprepared, Vector2.ZERO, false, false, false)
+	_step(prepared, Vector2.ZERO, false, false, false, true)
+	_expect(
+		prepared.angular_velocity < unprepared.angular_velocity,
+		"Landing preparation should add bounded angular damping."
+	)
+
+
 func _load_trace(trace_path: String) -> Dictionary:
 	var json := JSON.new()
 	var parse_error := json.parse(FileAccess.get_file_as_string(trace_path))
@@ -228,12 +327,20 @@ func _turn_from_speed(edge: bool, brake: bool, tuck: bool = false) -> RiderState
 	return state
 
 
-func _step(state: RiderState, heading: Vector2, tuck: bool, edge: bool, brake: bool) -> void:
+func _step(
+	state: RiderState,
+	heading: Vector2,
+	tuck: bool,
+	edge: bool,
+	brake: bool,
+	landing_prep: bool = false
+) -> void:
 	var input := RiderInputFrameScene.new()
-	input.heading = heading
+	input.heading = heading.normalized() if not heading.is_zero_approx() else Vector2.ZERO
 	input.tuck_pressed = tuck
 	input.edge_pressed = edge
 	input.brake_pressed = brake
+	input.landing_prep_pressed = landing_prep
 	_simulation.step(state, input, _course, _tuning, DELTA)
 
 
@@ -263,6 +370,16 @@ func _new_state_for_course(course: ParkCourse) -> RiderState:
 	state.course_progress = course.start_progress
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	state.vertical_position = course.surface_y_at(state.course_progress)
+	return state
+
+
+func _new_airborne_state() -> RiderState:
+	var state := _new_state()
+	state.phase = RiderState.Phase.AIRBORNE
+	state.course_speed = 480.0
+	state.lane_speed = 75.0
+	state.vertical_speed = -320.0
+	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
 	return state
 
 

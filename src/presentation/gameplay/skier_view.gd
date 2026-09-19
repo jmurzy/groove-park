@@ -80,12 +80,14 @@ func _ready() -> void:
 
 func update_from_state(state: RiderState, screen_position: Vector2, ground_rotation: float) -> void:
 	position = screen_position
-	rotation = ground_rotation
+	rotation = state.orientation if state.phase == RiderState.Phase.AIRBORNE else ground_rotation
 	_play(_animation_for_state(state))
 
 
 func _animation_for_state(state: RiderState) -> StringName:
 	if state.phase == RiderState.Phase.AIRBORNE:
+		if state.landing_prep_active:
+			return &"landing_prep"
 		return &"neutral_air"
 	if state.compression_active:
 		return &"compression"
