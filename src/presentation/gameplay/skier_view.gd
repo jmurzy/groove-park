@@ -97,6 +97,10 @@ func update_from_state(state: RiderState, screen_position: Vector2, ground_rotat
 	_play(_animation_for_state(state))
 
 
+func play_preview(animation_name: StringName) -> void:
+	_play(animation_name)
+
+
 func _animation_for_state(state: RiderState) -> StringName:
 	if state.phase == RiderState.Phase.AIRBORNE:
 		return &"neutral_air"

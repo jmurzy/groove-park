@@ -97,6 +97,10 @@ func update_from_state(state: RiderState, screen_position: Vector2, ground_rotat
 	_play(_ground_animation(state))
 
 
+func play_preview(animation_name: StringName) -> void:
+	_play(animation_name)
+
+
 func _ground_animation(state: RiderState) -> StringName:
 	if state.tuck_active:
 		return &"tuck"
