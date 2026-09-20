@@ -5,6 +5,8 @@ const CONTROL_BUTTONS := preload("res://artwork/controls/sente_control_buttons.p
 const CONTROL_BUTTONS_DEPRESSED := preload(
 	"res://artwork/controls/sente_control_buttons_depressed.png"
 )
+const SWITCH_SOUND := preload("res://assets/audio/switch24.ogg")
+const JOYSTICK_SOUND := preload("res://assets/audio/switch38.ogg")
 const JOYSTICK_BASE := preload("res://artwork/controls/sente_controls_base.png")
 const JOYSTICK_SPRITES := preload("res://artwork/controls/sente_joystick_sprite.png")
 const CONTROL_LAYOUT_SIZE := Vector2(1487, 1058)
@@ -21,6 +23,9 @@ var _control_sprites: Dictionary[StringName, Sprite2D]
 var _control_textures: Dictionary[StringName, Array]
 var _joystick: Sprite2D
 var _joystick_textures: Array[Texture2D]
+var _joystick_direction := Vector2.ZERO
+var _switch_sound: AudioStreamPlayer
+var _joystick_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -31,6 +36,12 @@ func _ready() -> void:
 	_build_base()
 	_build_joystick()
 	_build_buttons()
+	_switch_sound = AudioStreamPlayer.new()
+	_switch_sound.stream = SWITCH_SOUND
+	add_child(_switch_sound)
+	_joystick_sound = AudioStreamPlayer.new()
+	_joystick_sound.stream = JOYSTICK_SOUND
+	add_child(_joystick_sound)
 
 
 func tick() -> void:
@@ -102,6 +113,10 @@ func _update_joystick() -> void:
 	var frame := row * JOYSTICK_SHEET_COLUMNS + column
 	_joystick.texture = _joystick_textures[frame]
 	_joystick.position = JOYSTICK_POSITION
+	var joystick_direction := Vector2(column - 1, row - 1)
+	if joystick_direction != Vector2.ZERO and joystick_direction != _joystick_direction:
+		_joystick_sound.play()
+	_joystick_direction = joystick_direction
 
 
 func _update_buttons() -> void:
@@ -109,6 +124,8 @@ func _update_buttons() -> void:
 		_control_sprites[action].texture = _control_textures[action][int(
 			Input.is_action_pressed(action)
 		)]
+		if Input.is_action_just_pressed(action):
+			_switch_sound.play()
 
 
 func _atlas_texture(
