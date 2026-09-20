@@ -8,6 +8,10 @@ const HUD_LOGO_SIZE := Vector2(280, 90)
 const HUD_SEPARATORS := [490.0, 764.0, 1038.0, 1312.0, 1586.0]
 
 var _speed_value: Label
+var _jump_value: Label
+var _score_value: Label
+var _rotation_value: Label
+var _result_value: Label
 
 
 func _ready() -> void:
@@ -183,13 +187,55 @@ func _closed_points(points: PackedVector2Array) -> PackedVector2Array:
 func _build_metrics() -> void:
 	_add_metric("P1  SKIER", "READY", 506, Color("ffe126"), Color("f3f6ff"))
 	_speed_value = _add_metric("SPEED", "0 KM/H", 780, Color("42eaff"), Color("f3f6ff"))
-	_add_metric("JUMP", "01 / 03", 1054, Color("42eaff"), Color("f3f6ff"))
-	_add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
-	_add_metric("ROTATION", "0", 1602, Color("42eaff"), Color("f3f6ff"))
+	_jump_value = _add_metric("JUMP", "01 / 01", 1054, Color("42eaff"), Color("f3f6ff"))
+	_score_value = _add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
+	_rotation_value = _add_metric("ROTATION", "0", 1602, Color("42eaff"), Color("f3f6ff"))
+	_result_value = ArcadeTheme.make_label("", 20, Color("fff7cf"))
+	_result_value.position = Vector2(0, 164)
+	_result_value.size = Vector2(1920, 36)
+	_result_value.hide()
+	add_child(_result_value)
 
 
 func set_speed(world_speed: float) -> void:
 	_speed_value.text = "%d KM/H" % roundi(maxf(world_speed, 0.0) * 0.12)
+
+
+func set_jump(jump_number: int, jump_count: int) -> void:
+	_jump_value.text = "%02d / %02d" % [jump_number, jump_count]
+
+
+func set_score(score: int) -> void:
+	_score_value.text = "%04d" % max(score, 0)
+
+
+func set_rotation_value(rotation_radians: float) -> void:
+	_rotation_value.text = "%+.0f" % rad_to_deg(rotation_radians)
+
+
+func show_result(label: String, breakdown: Dictionary) -> void:
+	if breakdown.is_empty():
+		_result_value.hide()
+		return
+	_result_value.text = (
+		"%s  +%d  A%d T%d F%d R%d G%d W%d  x%.2f"
+		% [
+			label,
+			int(breakdown["total"]),
+			int(breakdown["approach"]),
+			int(breakdown["takeoff"]),
+			int(breakdown["airtime"]),
+			int(breakdown["rotation"]),
+			int(breakdown["grab"]),
+			int(breakdown["tweak"]),
+			float(breakdown["landing_multiplier"]),
+		]
+	)
+	_result_value.show()
+
+
+func clear_result() -> void:
+	_result_value.hide()
 
 
 func _add_metric(

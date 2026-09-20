@@ -3,6 +3,7 @@ extends SceneTree
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
+const JumpScoreScene := preload("res://src/game/park/jump_score.gd")
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
@@ -57,6 +58,10 @@ func _init() -> void:
 	_test_tweak_requires_an_active_grab()
 	_test_held_pop_does_not_become_a_tweak()
 	_test_trick_tracker_measures_full_rotation()
+	_test_score_components_are_deterministic()
+	_test_landing_multiplier_is_continuous()
+	_test_clean_rotation_beats_perfect_straight_air()
+	_test_crash_scores_zero()
 	if _failures.is_empty():
 		print("RiderSimulation checks passed.")
 		quit(0)
@@ -458,6 +463,58 @@ func _test_trick_tracker_measures_full_rotation() -> void:
 	)
 
 
+func _test_score_components_are_deterministic() -> void:
+	var state := _new_scored_state("CLEAN", 0)
+	state.compression_amount = 0.8
+	state.compression_release_quality = 0.75
+	state.trick_tracker.valid_grab_duration = 0.4
+	state.trick_tracker.tweak_duration = 0.25
+	var first: Dictionary = JumpScoreScene.evaluate(state, 0.7, _tuning)
+	var second: Dictionary = JumpScoreScene.evaluate(state, 0.7, _tuning)
+	_expect(first == second, "Identical measured state should produce an identical score.")
+	_expect(
+		(
+			int(first["approach"]) > 0
+			and int(first["takeoff"]) > 0
+			and int(first["airtime"]) > 0
+			and int(first["grab"]) > 0
+			and int(first["tweak"]) > 0
+		),
+		"Score breakdown should expose every earned component."
+	)
+
+
+func _test_landing_multiplier_is_continuous() -> void:
+	var state := _new_scored_state("CLEAN", 0)
+	var below: Dictionary = JumpScoreScene.evaluate(state, 0.70, _tuning)
+	var above: Dictionary = JumpScoreScene.evaluate(state, 0.71, _tuning)
+	_expect(
+		absf(float(above["landing_multiplier"]) - float(below["landing_multiplier"])) < 0.01,
+		"Landing multiplier should change continuously near a landing-label boundary."
+	)
+	_expect(
+		abs(int(above["total"]) - int(below["total"])) < 5,
+		"A small landing-quality change should not cause a large score jump."
+	)
+
+
+func _test_clean_rotation_beats_perfect_straight_air() -> void:
+	var perfect_straight := _new_scored_state("PERFECT", 0)
+	var clean_rotation := _new_scored_state("CLEAN", 1)
+	var perfect_result: Dictionary = JumpScoreScene.evaluate(perfect_straight, 0.98, _tuning)
+	var clean_result: Dictionary = JumpScoreScene.evaluate(clean_rotation, 0.7, _tuning)
+	_expect(
+		int(clean_result["total"]) > int(perfect_result["total"]),
+		"A clean completed rotation should beat a perfect straight air."
+	)
+
+
+func _test_crash_scores_zero() -> void:
+	var state := _new_scored_state("CRASH", 1)
+	var result: Dictionary = JumpScoreScene.evaluate(state, 0.0, _tuning)
+	_expect(int(result["total"]) == 0, "A crash must score zero.")
+
+
 func _load_trace(trace_path: String) -> Dictionary:
 	var json := JSON.new()
 	var parse_error := json.parse(FileAccess.get_file_as_string(trace_path))
@@ -546,6 +603,17 @@ func _new_airborne_state() -> RiderState:
 	state.lane_speed = 75.0
 	state.vertical_speed = -320.0
 	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
+	return state
+
+
+func _new_scored_state(landing_label: String, completed_rotations: int) -> RiderState:
+	var state := RiderStateScene.new()
+	state.landing_label = landing_label
+	state.approach_speed = 600.0
+	state.compression_amount = 0.5
+	state.compression_release_quality = 0.5
+	state.airtime = 0.5
+	state.trick_tracker.completed_rotations = completed_rotations
 	return state
 
 

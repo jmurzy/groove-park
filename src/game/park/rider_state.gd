@@ -35,6 +35,8 @@ var takeoff_vertical_speed := 0.0
 var takeoff_pop_impulse := 0.0
 var takeoff_tangent := Vector2.RIGHT
 var takeoff_normal := Vector2.UP
+var approach_speed := 0.0
+var approach_speed_captured := false
 
 # Air orientation is unwrapped so completed rotations can be measured later.
 var orientation := 0.0
@@ -62,3 +64,5 @@ var landing_normal_impact := 0.0
 var landing_angular_speed := 0.0
 var landing_in_zone := false
 var recovery_time_remaining := 0.0
+var jump_score := 0
+var score_breakdown: Dictionary = {}

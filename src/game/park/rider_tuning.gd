@@ -1,7 +1,7 @@
 class_name RiderTuning
 extends Resource
 
-@export var rules_version := "tricks-v1"
+@export var rules_version := "scoring-v1"
 @export var fall_line_acceleration := 540.0
 @export var snow_resistance := 48.0
 @export var aerodynamic_drag := 0.00115
@@ -44,3 +44,14 @@ extends Resource
 @export var minimum_landing_alignment := 0.35
 @export var landing_recovery_duration := 0.45
 @export var sketchy_recovery_duration := 0.9
+@export var score_approach_speed_cap := 900.0
+@export var score_approach_max := 250
+@export var score_takeoff_max := 175
+@export var score_airtime_cap := 1.5
+@export var score_airtime_max := 175
+@export var score_rotation_per_rotation := 300
+@export var score_grab_duration_cap := 0.8
+@export var score_grab_per_second := 150
+@export var score_tweak_duration_cap := 0.6
+@export var score_tweak_per_second := 100
+@export var score_minimum_landing_multiplier := 0.45

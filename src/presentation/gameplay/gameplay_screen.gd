@@ -13,6 +13,7 @@ const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-6771
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
+const ParkRiderEffectsScene := preload("res://src/presentation/gameplay/park_rider_effects.gd")
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
@@ -21,6 +22,8 @@ const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
 const SURFACE_GRID_SIZE := 120.0
 const LANE_PROJECTION_SCALE := 0.18
+const CAMERA_ZOOM := Vector2(724.0 / DESIGN_SIZE.y, 724.0 / DESIGN_SIZE.y)
+const CAMERA_LEAD := 250.0
 var player_count := 1
 var _ready_label: Label
 var _action_label: Label
@@ -31,6 +34,7 @@ var _rider_state: RiderState = RiderStateScene.new()
 var _rider_simulation: RiderSimulation = RiderSimulationScene.new()
 var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
 var _skier: SkierView
+var _rider_effects: ParkRiderEffects
 var _hud: GameplayHud
 var _exit_confirmation: Control
 var _return_button: Button
@@ -40,9 +44,15 @@ var _switch_sound: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
 var _gameplay_music: AudioStreamPlayer
 var _back_sound: AudioStreamPlayer
+var _launch_sound: AudioStreamPlayer
+var _landing_sound: AudioStreamPlayer
 var _focused_dialog_button: Button
 var _controls_screen: HowToPlayScreen
 var _course: ParkCourse = PARK_COURSE_RESOURCE
+var _world: Node2D
+var _camera: Camera2D
+var _ui_layer: CanvasLayer
+var _previous_phase := RiderState.Phase.GROUNDED
 
 
 func _ready() -> void:
@@ -57,22 +67,11 @@ func _ready() -> void:
 	_rider_state.course_progress = _course.start_progress
 	_rider_state.ground_position = Vector2(_rider_state.course_progress, _rider_state.lane_position)
 	_rider_state.vertical_position = _course.surface_y_at(_rider_state.course_progress)
+	_build_world()
+	_build_screen_ui()
 	_build_skier()
 	_build_hud()
 	_build_music()
-	queue_redraw()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, DESIGN_SIZE), Color.BLACK)
-	var source_rect := _background_source_rect()
-	draw_texture_rect_region(GAMEPLAY_BG, Rect2(Vector2.ZERO, DESIGN_SIZE), source_rect)
-	if OS.is_debug_build():
-		_draw_course_debug(source_rect)
-	_draw_skier_debug_marker(source_rect)
-	draw_texture_rect(FRAME_OVERLAY, Rect2(Vector2.ZERO, DESIGN_SIZE), false)
-	for y in range(0, int(DESIGN_SIZE.y), 6):
-		draw_line(Vector2(0, y), Vector2(DESIGN_SIZE.x, y), Color(0.0, 0.08, 0.16, 0.18), 1.0)
 
 
 func _process(delta: float) -> void:
@@ -92,7 +91,6 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_rider_state(delta)
 	_update_skier_view()
-	queue_redraw()
 
 
 func _background_source_rect() -> Rect2:
@@ -115,7 +113,14 @@ func _update_rider_state(delta: float) -> void:
 	if not _has_started_moving and _rider_state.ground_velocity.length() > 1.0:
 		_has_started_moving = true
 	_hud.set_speed(_rider_state.ground_velocity.length())
+	_hud.set_jump(1, 1)
+	_hud.set_score(_rider_state.jump_score)
+	_hud.set_rotation_value(_rider_state.trick_tracker.cumulative_rotation)
+	if _rider_state.landing_resolved:
+		_hud.show_result(_rider_state.landing_label, _rider_state.score_breakdown)
 	_update_action_label(input)
+	_update_camera()
+	_update_presentation_cues()
 
 
 func _update_action_label(input: RiderInputFrame) -> void:
@@ -182,17 +187,81 @@ func _project_rider_position() -> Vector2:
 
 func _build_skier() -> void:
 	_skier = SkierViewScene.new()
-	add_child(_skier)
+	_skier.z_index = 2
+	_world.add_child(_skier)
 	_update_skier_view()
 
 
 func _update_skier_view() -> void:
-	var source_rect := _background_source_rect()
-	var screen_scale := DESIGN_SIZE / source_rect.size
-	var screen_position := (_project_rider_position() - source_rect.position) * screen_scale
 	_skier.update_from_state(
-		_rider_state, screen_position, _course.tangent_at(_rider_state.course_progress).angle()
+		_rider_state,
+		_project_rider_position(),
+		_course.tangent_at(_rider_state.course_progress).angle()
 	)
+	_rider_effects.update_from_state(_rider_state, _course, get_physics_process_delta_time())
+
+
+func _build_world() -> void:
+	_world = Node2D.new()
+	_world.name = "ParkWorld"
+	add_child(_world)
+	var background := Sprite2D.new()
+	background.name = "CourseBackground"
+	background.texture = GAMEPLAY_BG
+	background.centered = false
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_world.add_child(background)
+	_rider_effects = ParkRiderEffectsScene.new()
+	_rider_effects.name = "RiderEffects"
+	_rider_effects.z_index = 1
+	_world.add_child(_rider_effects)
+	_camera = Camera2D.new()
+	_camera.name = "ParkCamera"
+	_camera.zoom = CAMERA_ZOOM
+	_camera.position_smoothing_enabled = true
+	_camera.position_smoothing_speed = 7.0
+	_camera.limit_left = 0
+	_camera.limit_top = 0
+	_camera.limit_right = GAMEPLAY_BG.get_width()
+	_camera.limit_bottom = GAMEPLAY_BG.get_height()
+	_world.add_child(_camera)
+	_update_camera()
+
+
+func _build_screen_ui() -> void:
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.name = "ScreenUi"
+	_ui_layer.layer = 1
+	add_child(_ui_layer)
+	var frame := TextureRect.new()
+	frame.name = "FrameOverlay"
+	frame.texture = FRAME_OVERLAY
+	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	frame.stretch_mode = TextureRect.STRETCH_SCALE
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_ui_layer.add_child(frame)
+
+
+func _update_camera() -> void:
+	if _camera == null:
+		return
+	var half_view_width := DESIGN_SIZE.x * CAMERA_ZOOM.x * 0.5
+	var camera_min := half_view_width
+	var camera_max := GAMEPLAY_BG.get_width() - half_view_width
+	var target_x := clampf(_rider_state.course_progress + CAMERA_LEAD, camera_min, camera_max)
+	_camera.position = Vector2(target_x, GAMEPLAY_BG.get_height() * 0.5)
+
+
+func _update_presentation_cues() -> void:
+	if _previous_phase == _rider_state.phase:
+		return
+	if _rider_state.phase == RiderState.Phase.AIRBORNE:
+		_launch_sound.play()
+	elif _rider_state.landing_resolved:
+		_landing_sound.play()
+	_previous_phase = _rider_state.phase
 
 
 func _draw_course_debug(source_rect: Rect2) -> void:
@@ -319,20 +388,20 @@ func _draw_predicted_takeoff_trajectory(source_rect: Rect2) -> void:
 
 func _build_hud() -> void:
 	_hud = GameplayHudScene.new()
-	add_child(_hud)
+	_ui_layer.add_child(_hud)
 
 	_ready_label = ArcadeTheme.make_label(
 		"%d PLAYER%s READY" % [player_count, "" if player_count == 1 else "S"], 42, Color("fff7cf")
 	)
 	_ready_label.position = Vector2(0, 430)
 	_ready_label.size = Vector2(DESIGN_SIZE.x, 72)
-	add_child(_ready_label)
+	_ui_layer.add_child(_ready_label)
 
 	_action_label = ArcadeTheme.make_label("", 30, Color("68efff"))
 	_action_label.position = Vector2(0, 218)
 	_action_label.size = Vector2(DESIGN_SIZE.x, 52)
 	_action_label.hide()
-	add_child(_action_label)
+	_ui_layer.add_child(_action_label)
 
 
 func _build_music() -> void:
@@ -347,6 +416,14 @@ func _build_music() -> void:
 	_back_sound.name = "BackSound"
 	_back_sound.stream = BACK_SOUND
 	add_child(_back_sound)
+	_launch_sound = AudioStreamPlayer.new()
+	_launch_sound.name = "LaunchSound"
+	_launch_sound.stream = SWITCH_SOUND
+	add_child(_launch_sound)
+	_landing_sound = AudioStreamPlayer.new()
+	_landing_sound.name = "LandingSound"
+	_landing_sound.stream = CONFIRMATION_SOUND
+	add_child(_landing_sound)
 
 
 func request_exit_confirmation() -> void:
@@ -357,7 +434,7 @@ func request_exit_confirmation() -> void:
 	_exit_confirmation.name = "ExitConfirmation"
 	_exit_confirmation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_exit_confirmation.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_exit_confirmation)
+	_ui_layer.add_child(_exit_confirmation)
 
 	var shade := ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -572,6 +649,11 @@ func _restart_run() -> void:
 	_has_started_moving = false
 	_action_hint_time = 0.0
 	_action_label.hide()
+	_hud.set_speed(0.0)
+	_hud.set_score(0)
+	_hud.set_rotation_value(0.0)
+	_hud.clear_result()
+	_previous_phase = RiderState.Phase.GROUNDED
 	_update_skier_view()
 
 
@@ -606,7 +688,7 @@ func _open_controls() -> void:
 		_confirmation_sound.play()
 	_controls_screen = HowToPlayScreenScene.new()
 	_controls_screen.closed.connect(_close_controls)
-	add_child(_controls_screen)
+	_ui_layer.add_child(_controls_screen)
 
 
 func _close_controls() -> void:

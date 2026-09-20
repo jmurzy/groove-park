@@ -2,6 +2,7 @@ class_name RiderSimulation
 extends RefCounted
 
 const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
+const JumpScoreScene := preload("res://src/game/park/jump_score.gd")
 
 
 func step(
@@ -48,6 +49,9 @@ func step(
 
 	var previous_progress := state.course_progress
 	var next_progress := previous_progress + state.ground_velocity.x * delta
+	if course.crosses_progress(previous_progress, next_progress, course.compression_start):
+		state.approach_speed = state.ground_velocity.length()
+		state.approach_speed_captured = true
 	_update_compression(state, input, course, tuning, delta)
 	state.course_progress = next_progress
 	state.lane_position += state.ground_velocity.y * delta
@@ -105,6 +109,9 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	var pop_impulse := (
 		state.compression_amount * state.compression_release_quality * tuning.maximum_pop_impulse
 	)
+	if not state.approach_speed_captured:
+		state.approach_speed = state.ground_velocity.length()
+		state.approach_speed_captured = true
 
 	state.phase = RiderState.Phase.AIRBORNE
 	state.course_progress = lip_progress
@@ -140,6 +147,8 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	state.landing_resolved = false
 	state.landing_label = ""
 	state.landing_quality = 0.0
+	state.jump_score = 0
+	state.score_breakdown = {}
 	state.tuck_active = false
 	state.brake_active = false
 	state.edge_active = false
@@ -221,15 +230,15 @@ func _resolve_landing(
 	var contact_position: Vector2 = contact["position"]
 	var tangent: Vector2 = contact["tangent"]
 	var normal: Vector2 = contact["normal"]
-	var result: Dictionary = JumpJudgeScene.evaluate(
-		state, course, contact_position, tangent, normal, tuning
-	)
 	state.landing_resolved = true
 	state.grab_active_at_landing = state.trick_tracker.grab_active
 	state.trick_tracker.release_grab(state.airtime, tuning.minimum_grab_duration)
 	state.grab_reach_active = false
 	state.tweak_active = false
 	state.trick_call = state.trick_tracker.trick_call()
+	var result: Dictionary = JumpJudgeScene.evaluate(
+		state, course, contact_position, tangent, normal, tuning
+	)
 	state.landing_label = str(result["label"])
 	state.landing_quality = float(result["quality"])
 	state.landing_position = contact_position
@@ -240,6 +249,8 @@ func _resolve_landing(
 	state.landing_normal_impact = float(result["normal_impact"])
 	state.landing_angular_speed = float(result["angular_speed"])
 	state.landing_in_zone = bool(result["in_landing_zone"])
+	state.score_breakdown = JumpScoreScene.evaluate(state, state.landing_quality, tuning)
+	state.jump_score = int(state.score_breakdown["total"])
 	state.course_progress = contact_position.x
 	state.vertical_position = contact_position.y
 	state.ground_position = Vector2(state.course_progress, state.lane_position)

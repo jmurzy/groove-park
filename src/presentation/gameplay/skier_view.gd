@@ -78,8 +78,8 @@ func _ready() -> void:
 	_play(&"neutral_glide")
 
 
-func update_from_state(state: RiderState, screen_position: Vector2, ground_rotation: float) -> void:
-	position = screen_position
+func update_from_state(state: RiderState, world_position: Vector2, ground_rotation: float) -> void:
+	position = world_position
 	rotation = state.orientation if state.phase == RiderState.Phase.AIRBORNE else ground_rotation
 	_play(_animation_for_state(state))
 
@@ -93,7 +93,9 @@ func _animation_for_state(state: RiderState) -> StringName:
 	elif state.phase == RiderState.Phase.LANDED:
 		animation = &"deep_landing"
 	elif state.phase == RiderState.Phase.AIRBORNE:
-		if state.landing_prep_active:
+		if state.airtime < 0.12:
+			animation = &"takeoff_extension"
+		elif state.landing_prep_active:
 			animation = &"landing_prep"
 		elif state.grab_reach_active:
 			animation = &"grab_reach"

@@ -2,7 +2,8 @@ class_name RiderViewBase
 extends Node2D
 
 const CANVAS_SIZE := Vector2(1024, 1024)
-const SPRITE_SCALE := 0.14
+# The camera expands the 724px-tall course to the 1080px cabinet viewport.
+const SPRITE_SCALE := 0.094
 const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
 
