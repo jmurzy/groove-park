@@ -122,20 +122,26 @@ func _update_action_label(input: RiderInputFrame) -> void:
 	var action_message := ""
 	if _rider_state.phase == RiderState.Phase.CRASHED:
 		action_message = (
-			"CRASH  ANGLE %.0f  IMPACT %.0f  PRESS A OR R TO RESTART"
-			% [_rider_state.landing_angle_error_degrees, _rider_state.landing_normal_impact]
+			"CRASH  ANGLE %.0f  IMPACT %.0f  SPIN %.1f  PRESS START OR R TO RESTART"
+			% [
+				_rider_state.landing_angle_error_degrees,
+				_rider_state.landing_normal_impact,
+				_rider_state.landing_angular_speed,
+			]
 		)
 	elif (
 		_rider_state.phase == RiderState.Phase.LANDED
 		or _rider_state.phase == RiderState.Phase.RECOVERING
 	):
 		action_message = (
-			"%s  ANGLE %.0f  ALIGN %.0f%%  IMPACT %.0f"
+			"%s %.0f%%  ANGLE %.0f  ALIGN %.0f%%  IMPACT %.0f  SPIN %.1f"
 			% [
 				_rider_state.landing_label,
+				_rider_state.landing_quality * 100.0,
 				_rider_state.landing_angle_error_degrees,
 				_rider_state.landing_velocity_alignment * 100.0,
 				_rider_state.landing_normal_impact,
+				_rider_state.landing_angular_speed,
 			]
 		)
 	elif _rider_state.phase == RiderState.Phase.AIRBORNE:
@@ -503,7 +509,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if (
 			_rider_state.phase == RiderState.Phase.CRASHED
 			and (
-				event.is_action_pressed(&"action_a")
+				event.is_action_pressed(&"controller_start")
 				or (
 					event is InputEventKey
 					and (event as InputEventKey).pressed

@@ -48,6 +48,7 @@ func _init() -> void:
 	_test_body_shape_changes_rotation_rate()
 	_test_landing_prep_damps_rotation()
 	_test_swept_contact_resolves_once()
+	_test_landing_keeps_lane_velocity_separate_from_slope()
 	_test_landing_labels_and_continuous_quality()
 	_test_terrain_seam_returns_first_contact()
 	if _failures.is_empty():
@@ -326,6 +327,28 @@ func _test_swept_contact_resolves_once() -> void:
 	_expect(
 		state.landing_position == first_contact,
 		"Recovery must not resolve another landing after the first contact."
+	)
+
+
+func _test_landing_keeps_lane_velocity_separate_from_slope() -> void:
+	var course := _landing_course()
+	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(300, 120)])
+	var state := RiderStateScene.new()
+	state.phase = RiderState.Phase.AIRBORNE
+	state.course_progress = 60.0
+	state.vertical_position = -10.0
+	state.course_speed = 600.0
+	state.lane_speed = 60.0
+	state.vertical_speed = 300.0
+	state.orientation = course.tangent_at(150.0).angle()
+	for _tick in 30:
+		_step_with_course(state, course, Vector2.ZERO)
+		if state.landing_resolved:
+			break
+	_expect(state.landing_resolved, "A sloped landing should resolve contact.")
+	_expect(
+		absf(state.lane_speed) < 100.0,
+		"Landing should not convert the terrain's vertical slope into lane velocity."
 	)
 
 

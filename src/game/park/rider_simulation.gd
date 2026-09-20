@@ -217,7 +217,8 @@ func _resolve_landing(
 		state.vertical_speed = 0.0
 		return
 	var landing_speed := maxf(Vector2(state.course_speed, state.vertical_speed).dot(tangent), 0.0)
-	state.ground_velocity = tangent * landing_speed
+	# Terrain tangent is course/vertical space; lane speed is a separate simulation axis.
+	state.ground_velocity = Vector2(landing_speed * tangent.x, state.lane_speed)
 	state.course_speed = state.ground_velocity.x
 	state.lane_speed = state.ground_velocity.y
 	state.vertical_speed = 0.0
