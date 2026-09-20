@@ -1,7 +1,7 @@
 class_name RiderState
 extends RefCounted
 
-enum Phase { GROUNDED, AIRBORNE }
+enum Phase { GROUNDED, AIRBORNE, LANDED, CRASHED, RECOVERING }
 
 # World-space simulation coordinates. Presentation projects these into the side view.
 var course_progress := 0.0
@@ -41,3 +41,17 @@ var airtime := 0.0
 var body_compact := false
 var body_extended := false
 var landing_prep_active := false
+
+# First meaningful terrain contact is authoritative for the whole jump.
+var landing_resolved := false
+var landing_label := ""
+var landing_quality := 0.0
+var landing_position := Vector2.ZERO
+var landing_tangent := Vector2.RIGHT
+var landing_normal := Vector2.UP
+var landing_angle_error_degrees := 0.0
+var landing_velocity_alignment := 0.0
+var landing_normal_impact := 0.0
+var landing_angular_speed := 0.0
+var landing_in_zone := false
+var recovery_time_remaining := 0.0

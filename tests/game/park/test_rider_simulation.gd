@@ -2,6 +2,7 @@ extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
+const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
@@ -46,6 +47,9 @@ func _init() -> void:
 	_test_reversing_torque_reduces_existing_spin()
 	_test_body_shape_changes_rotation_rate()
 	_test_landing_prep_damps_rotation()
+	_test_swept_contact_resolves_once()
+	_test_landing_labels_and_continuous_quality()
+	_test_terrain_seam_returns_first_contact()
 	if _failures.is_empty():
 		print("RiderSimulation checks passed.")
 		quit(0)
@@ -298,6 +302,62 @@ func _test_landing_prep_damps_rotation() -> void:
 	)
 
 
+func _test_swept_contact_resolves_once() -> void:
+	var course := _landing_course()
+	var state := RiderStateScene.new()
+	state.phase = RiderState.Phase.AIRBORNE
+	state.course_progress = 60.0
+	state.vertical_position = -10.0
+	state.course_speed = 600.0
+	state.vertical_speed = 300.0
+	state.orientation = 0.0
+	for _tick in 30:
+		_step_with_course(state, course, Vector2.ZERO)
+		if state.landing_resolved:
+			break
+	_expect(
+		state.landing_resolved,
+		"A descending swept flight should resolve its first terrain contact."
+	)
+	_expect(state.phase == RiderState.Phase.LANDED, "A controlled in-zone contact should land.")
+	var first_contact := state.landing_position
+	for _tick in 10:
+		_step_with_course(state, course, Vector2.ZERO)
+	_expect(
+		state.landing_position == first_contact,
+		"Recovery must not resolve another landing after the first contact."
+	)
+
+
+func _test_landing_labels_and_continuous_quality() -> void:
+	var course := _landing_course()
+	var perfect := _landing_result(course, 7.0)
+	var clean := _landing_result(course, 15.0)
+	var sketchy := _landing_result(course, 30.0)
+	var crash := _landing_result(course, 36.0)
+	_expect(perfect["label"] == "PERFECT", "A low-angle controlled contact should be perfect.")
+	_expect(clean["label"] == "CLEAN", "A 15 degree contact should be clean.")
+	_expect(sketchy["label"] == "SKETCHY", "A 30 degree contact should be sketchy.")
+	_expect(crash["label"] == "CRASH", "A contact beyond the crash angle should crash.")
+	var below_boundary := _landing_result(course, 19.0)
+	var above_boundary := _landing_result(course, 20.0)
+	_expect(
+		absf(float(below_boundary["quality"]) - float(above_boundary["quality"])) < 0.05,
+		"Landing quality should remain continuous at the clean/sketchy label boundary."
+	)
+
+
+func _test_terrain_seam_returns_first_contact() -> void:
+	var course := _landing_course()
+	var contact := course.swept_terrain_intersection(Vector2(140.0, -10.0), Vector2(160.0, 10.0))
+	_expect(not contact.is_empty(), "A sweep through a terrain seam should find contact.")
+	if not contact.is_empty():
+		var position: Vector2 = contact["position"]
+		_expect(
+			is_equal_approx(position.x, 150.0), "Terrain-seam contact should resolve at the seam."
+		)
+
+
 func _load_trace(trace_path: String) -> Dictionary:
 	var json := JSON.new()
 	var parse_error := json.parse(FileAccess.get_file_as_string(trace_path))
@@ -359,6 +419,12 @@ func _step_with_pop(
 	_simulation.step(state, input, course, _tuning, DELTA)
 
 
+func _step_with_course(state: RiderState, course: ParkCourse, heading: Vector2) -> void:
+	var input := RiderInputFrameScene.new()
+	input.heading = heading
+	_simulation.step(state, input, course, _tuning, DELTA)
+
+
 func _new_state() -> RiderState:
 	var state := RiderStateScene.new()
 	state.vertical_position = _course.surface_y_at(state.course_progress)
@@ -399,6 +465,33 @@ func _takeoff_course() -> ParkCourse:
 	course.camera_start = 0.0
 	course.camera_end = 400.0
 	return course
+
+
+func _landing_course() -> ParkCourse:
+	var course := ParkCourseScene.new()
+	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(150, 0), Vector2(300, 0)])
+	course.start_progress = 0.0
+	course.approach_start = 0.0
+	course.compression_start = 0.0
+	course.compression_end = 0.0
+	course.lip_progress = 20.0
+	course.landing_start = 50.0
+	course.landing_end = 280.0
+	course.recovery_progress = 300.0
+	course.camera_start = 0.0
+	course.camera_end = 300.0
+	return course
+
+
+func _landing_result(course: ParkCourse, angle_degrees: float) -> Dictionary:
+	var state := RiderStateScene.new()
+	state.orientation = deg_to_rad(angle_degrees)
+	state.course_speed = 400.0
+	state.vertical_speed = 40.0
+	state.angular_velocity = 0.2
+	return JumpJudgeScene.evaluate(
+		state, course, Vector2(150, 0), Vector2.RIGHT, Vector2.UP, _tuning
+	)
 
 
 func _launch_from_course(with_pop: bool) -> RiderState:

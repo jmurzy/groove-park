@@ -120,7 +120,25 @@ func _update_rider_state(delta: float) -> void:
 
 func _update_action_label(input: RiderInputFrame) -> void:
 	var action_message := ""
-	if _rider_state.phase == RiderState.Phase.AIRBORNE:
+	if _rider_state.phase == RiderState.Phase.CRASHED:
+		action_message = (
+			"CRASH  ANGLE %.0f  IMPACT %.0f  PRESS A OR R TO RESTART"
+			% [_rider_state.landing_angle_error_degrees, _rider_state.landing_normal_impact]
+		)
+	elif (
+		_rider_state.phase == RiderState.Phase.LANDED
+		or _rider_state.phase == RiderState.Phase.RECOVERING
+	):
+		action_message = (
+			"%s  ANGLE %.0f  ALIGN %.0f%%  IMPACT %.0f"
+			% [
+				_rider_state.landing_label,
+				_rider_state.landing_angle_error_degrees,
+				_rider_state.landing_velocity_alignment * 100.0,
+				_rider_state.landing_normal_impact,
+			]
+		)
+	elif _rider_state.phase == RiderState.Phase.AIRBORNE:
 		action_message = (
 			"AIR %.1fs  ROT %+.0f  VY %.0f"
 			% [
@@ -482,6 +500,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _controls_screen:
 		return
 	if not _exit_confirmation:
+		if (
+			_rider_state.phase == RiderState.Phase.CRASHED
+			and (
+				event.is_action_pressed(&"action_a")
+				or (
+					event is InputEventKey
+					and (event as InputEventKey).pressed
+					and (event as InputEventKey).keycode == KEY_R
+				)
+			)
+		):
+			_restart_run()
+			get_viewport().set_input_as_handled()
+			return
 		# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, white EXIT opens the dialog.
 		# Holding white EXIT quits to AGS via main._process. Esc is the Mac dev equivalent.
 		if (
@@ -523,6 +555,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	):
 		close_exit_confirmation()
 		get_viewport().set_input_as_handled()
+
+
+func _restart_run() -> void:
+	_rider_state = RiderStateScene.new()
+	_rider_state.course_progress = _course.start_progress
+	_rider_state.ground_position = Vector2(_rider_state.course_progress, _rider_state.lane_position)
+	_rider_state.vertical_position = _course.surface_y_at(_rider_state.course_progress)
+	_has_started_moving = false
+	_action_hint_time = 0.0
+	_action_label.hide()
+	_update_skier_view()
 
 
 func _confirm_return_to_title() -> void:

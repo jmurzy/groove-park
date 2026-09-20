@@ -85,17 +85,25 @@ func update_from_state(state: RiderState, screen_position: Vector2, ground_rotat
 
 
 func _animation_for_state(state: RiderState) -> StringName:
-	if state.phase == RiderState.Phase.AIRBORNE:
+	var animation: StringName = &"neutral_glide"
+	if state.phase == RiderState.Phase.CRASHED:
+		animation = &"crash"
+	elif state.phase == RiderState.Phase.RECOVERING:
+		animation = &"sketchy_recovery"
+	elif state.phase == RiderState.Phase.LANDED:
+		animation = &"deep_landing"
+	elif state.phase == RiderState.Phase.AIRBORNE:
 		if state.landing_prep_active:
-			return &"landing_prep"
-		return &"neutral_air"
-	if state.compression_active:
-		return &"compression"
-	if state.tuck_active:
-		return &"tuck"
-	if state.edge_active or state.brake_active:
-		return &"carve_uphill" if state.heading.y < 0.0 else &"carve_downhill"
-	return &"neutral_glide"
+			animation = &"landing_prep"
+		else:
+			animation = &"neutral_air"
+	elif state.compression_active:
+		animation = &"compression"
+	elif state.tuck_active:
+		animation = &"tuck"
+	elif state.edge_active or state.brake_active:
+		animation = &"carve_uphill" if state.heading.y < 0.0 else &"carve_downhill"
+	return animation
 
 
 func _build_frames() -> SpriteFrames:

@@ -1,12 +1,17 @@
 class_name RiderSimulation
 extends RefCounted
 
+const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
+
 
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
 	if state.phase == RiderState.Phase.AIRBORNE:
-		_step_airborne(state, input, tuning, delta)
+		_step_airborne(state, input, course, tuning, delta)
+		return
+	if state.phase == RiderState.Phase.LANDED or state.phase == RiderState.Phase.RECOVERING:
+		_step_recovery(state, course, tuning, delta)
 		return
 	if state.phase != RiderState.Phase.GROUNDED:
 		return
@@ -127,6 +132,9 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	state.body_compact = false
 	state.body_extended = false
 	state.landing_prep_active = false
+	state.landing_resolved = false
+	state.landing_label = ""
+	state.landing_quality = 0.0
 	state.tuck_active = false
 	state.brake_active = false
 	state.edge_active = false
@@ -134,9 +142,10 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 
 
 func _step_airborne(
-	state: RiderState, input: RiderInputFrame, tuning: RiderTuning, delta: float
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
 	# Flight translation is ballistic. Air input is intentionally limited to body rotation.
+	var previous_position := Vector2(state.course_progress, state.vertical_position)
 	state.vertical_speed += tuning.gravity * delta
 	var air_drag_factor := maxf(0.0, 1.0 - tuning.air_drag * delta)
 	state.course_speed *= air_drag_factor
@@ -166,6 +175,83 @@ func _step_airborne(
 		damping += tuning.landing_prep_damping
 	state.angular_velocity = move_toward(state.angular_velocity, 0.0, damping * delta)
 	state.orientation += state.angular_velocity * delta
+	if state.vertical_speed <= 0.0:
+		return
+	var contact := course.swept_terrain_intersection(
+		previous_position, Vector2(state.course_progress, state.vertical_position)
+	)
+	if not contact.is_empty():
+		_resolve_landing(state, course, tuning, contact)
+
+
+func _resolve_landing(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, contact: Dictionary
+) -> void:
+	if state.landing_resolved:
+		return
+	var contact_position: Vector2 = contact["position"]
+	var tangent: Vector2 = contact["tangent"]
+	var normal: Vector2 = contact["normal"]
+	var result: Dictionary = JumpJudgeScene.evaluate(
+		state, course, contact_position, tangent, normal, tuning
+	)
+	state.landing_resolved = true
+	state.landing_label = str(result["label"])
+	state.landing_quality = float(result["quality"])
+	state.landing_position = contact_position
+	state.landing_tangent = tangent
+	state.landing_normal = normal
+	state.landing_angle_error_degrees = float(result["equipment_error_degrees"])
+	state.landing_velocity_alignment = float(result["velocity_alignment"])
+	state.landing_normal_impact = float(result["normal_impact"])
+	state.landing_angular_speed = float(result["angular_speed"])
+	state.landing_in_zone = bool(result["in_landing_zone"])
+	state.course_progress = contact_position.x
+	state.vertical_position = contact_position.y
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	if bool(result["crash"]):
+		state.phase = RiderState.Phase.CRASHED
+		state.ground_velocity = Vector2.ZERO
+		state.course_speed = 0.0
+		state.lane_speed = 0.0
+		state.vertical_speed = 0.0
+		return
+	var landing_speed := maxf(Vector2(state.course_speed, state.vertical_speed).dot(tangent), 0.0)
+	state.ground_velocity = tangent * landing_speed
+	state.course_speed = state.ground_velocity.x
+	state.lane_speed = state.ground_velocity.y
+	state.vertical_speed = 0.0
+	state.angular_velocity = 0.0
+	state.orientation = tangent.angle()
+	state.phase = (
+		RiderState.Phase.RECOVERING if state.landing_label == "SKETCHY" else RiderState.Phase.LANDED
+	)
+	state.recovery_time_remaining = (
+		tuning.sketchy_recovery_duration
+		if state.phase == RiderState.Phase.RECOVERING
+		else tuning.landing_recovery_duration
+	)
+
+
+func _step_recovery(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	state.course_progress = minf(
+		state.course_progress + state.ground_velocity.x * delta, course.recovery_progress
+	)
+	state.lane_position += state.ground_velocity.y * delta
+	var lane_bounds := course.lane_bounds_at(state.course_progress)
+	state.lane_position = clampf(state.lane_position, lane_bounds.x, lane_bounds.y)
+	state.vertical_position = course.surface_y_at(state.course_progress)
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.ground_velocity = state.ground_velocity.move_toward(
+		Vector2.ZERO, tuning.snow_resistance * delta
+	)
+	state.course_speed = state.ground_velocity.x
+	state.lane_speed = state.ground_velocity.y
+	state.recovery_time_remaining = maxf(state.recovery_time_remaining - delta, 0.0)
+	if is_zero_approx(state.recovery_time_remaining):
+		state.phase = RiderState.Phase.GROUNDED
 
 
 func _apply_drag(
