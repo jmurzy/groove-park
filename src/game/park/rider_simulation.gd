@@ -224,6 +224,7 @@ func _landing_progress_for_speed(
 	tuning: RiderTuning,
 	delta: float
 ) -> float:
+	delta *= tuning.air_time_scale
 	var previous_position := course.surface_position_at(course.lip_progress)
 	var course_speed := initial_course_speed
 	var vertical_speed := initial_vertical_speed
@@ -247,6 +248,8 @@ func _step_airborne(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
 	# Flight translation is ballistic. Air input is intentionally limited to body rotation.
+	# Slow the simulation while airborne so players have time to read and act on landing cues.
+	delta *= tuning.air_time_scale
 	var previous_position := Vector2(state.course_progress, state.vertical_position)
 	state.vertical_speed += tuning.gravity * delta
 	var air_drag_factor := maxf(0.0, 1.0 - tuning.air_drag * delta)
@@ -356,6 +359,13 @@ func _resolve_landing(
 	state.grab_reach_active = false
 	state.tweak_active = false
 	state.trick_call = state.trick_tracker.trick_call()
+	if state.landing_prep_active:
+		# Landing prep gives beginners a small correction without rescuing an uncontrolled trick.
+		state.orientation += clampf(
+			angle_difference(state.orientation, tangent.angle()),
+			-deg_to_rad(tuning.landing_prep_alignment_assist_degrees),
+			deg_to_rad(tuning.landing_prep_alignment_assist_degrees)
+		)
 	var result: Dictionary = JumpJudgeScene.evaluate(
 		state, course, contact_position, tangent, normal, tuning
 	)

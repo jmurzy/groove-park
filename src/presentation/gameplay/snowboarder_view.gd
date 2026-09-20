@@ -81,7 +81,18 @@ func _ready() -> void:
 func update_from_state(state: RiderState, screen_position: Vector2, ground_rotation: float) -> void:
 	position = screen_position
 	rotation = ground_rotation
+	if state.landing_resolved or is_playing_landing_animation():
+		play_landing_animation(_landing_animation_for_state(state))
+		return
 	_play(_ground_animation(state))
+
+
+func _landing_animation_for_state(state: RiderState) -> StringName:
+	if state.phase == RiderState.Phase.CRASHED:
+		return &"crash"
+	if state.phase == RiderState.Phase.RECOVERING:
+		return &"sketchy_recovery"
+	return &"celebration"
 
 
 func _ground_animation(state: RiderState) -> StringName:
@@ -107,7 +118,7 @@ func _build_frames() -> SpriteFrames:
 	_add_animation(frames, &"grab_tweak", GRAB_TWEAK_FRAMES, TRANSITION_FPS, false)
 	_add_animation(frames, &"landing_prep", LANDING_PREP_FRAMES, TRANSITION_FPS, false)
 	_add_animation(frames, &"deep_landing", DEEP_LANDING_FRAMES, TRANSITION_FPS, false)
-	_add_animation(frames, &"sketchy_recovery", SKETCHY_RECOVERY_FRAMES, LOOP_FPS, true)
+	_add_animation(frames, &"sketchy_recovery", SKETCHY_RECOVERY_FRAMES, LOOP_FPS, false)
 	_add_animation(frames, &"crash", CRASH_FRAMES, TRANSITION_FPS, false)
-	_add_animation(frames, &"celebration", CELEBRATION_FRAMES, LOOP_FPS, true)
+	_add_animation(frames, &"celebration", CELEBRATION_FRAMES, LOOP_FPS, false)
 	return frames

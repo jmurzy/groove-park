@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="RiderTuning" format=3]
+[gd_resource type="Resource" script_class="RiderTuning" format=3 uid="uid://dn5mbjfn5xbpj"]
 
-[ext_resource type="Script" path="res://src/game/park/rider_tuning.gd" id="1_rider_tuning"]
+[ext_resource type="Script" uid="uid://dnu6s8ihvi3yl" path="res://src/game/park/rider_tuning.gd" id="1_rider_tuning"]
 
 [resource]
 script = ExtResource("1_rider_tuning")

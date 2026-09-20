@@ -3,16 +3,38 @@ extends Node2D
 
 const CANVAS_SIZE := Vector2(1024, 1024)
 # The camera expands the 724px-tall course to the 1080px cabinet viewport.
-const SPRITE_SCALE := 0.094
+const SPRITE_SCALE := 0.0846
 const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
 
 var _sprite: AnimatedSprite2D
 var _repeat_crash := false
+var _landing_animation_active := false
+var _landing_animation: StringName
+var _landing_animation_cycles := 0
 
 
 func play_preview(animation_name: StringName) -> void:
 	_play(animation_name)
+
+
+func play_landing_animation(animation_name: StringName) -> void:
+	if _sprite == null or _landing_animation_active:
+		return
+	_landing_animation_active = true
+	_landing_animation = animation_name
+	_landing_animation_cycles = 0
+	_sprite.play(animation_name)
+
+
+func is_playing_landing_animation() -> bool:
+	return _landing_animation_active
+
+
+func reset_presentation() -> void:
+	_landing_animation_active = false
+	_landing_animation = &""
+	_landing_animation_cycles = 0
 
 
 func _setup_sprite(baseline: float, view_name: StringName) -> void:
@@ -37,6 +59,14 @@ func _play(animation_name: StringName) -> void:
 
 
 func _on_sprite_animation_finished() -> void:
+	if _sprite.animation == _landing_animation and _landing_animation_active:
+		_landing_animation_cycles += 1
+		if _landing_animation_cycles < 2:
+			_sprite.frame = 0
+			_sprite.play()
+		else:
+			_sprite.pause()
+		return
 	if _sprite.animation != &"crash" or not _repeat_crash:
 		return
 	_repeat_crash = false

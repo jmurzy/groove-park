@@ -76,8 +76,8 @@ The possible results are:
 - **Crash:** Bad angle, excessive impact, body-first contact, or landing outside
   the valid area.
 
-There is no automatic angle correction or guaranteed landing. You must manage
-the rotation yourself.
+Holding **B** for landing prep applies a small angle correction. It is enough
+to help a controlled attempt, but it will not rescue a badly mistimed trick.
 
 ## 5. Score the Jump
 

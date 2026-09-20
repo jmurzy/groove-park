@@ -8,6 +8,7 @@ extends RefCounted
 #   --primary-size=WIDTHxHEIGHT override primary window size (e.g. 1280x720)
 #   --marquee-size=WIDTHxHEIGHT override marquee size, forces marquee visible
 #   --marquee                  force marquee visible at 1920x360
+#   --terrain-editor           enable the gameplay terrain editor in debug builds
 # Without overrides the cabinet behavior is unchanged (borderless fullscreen-cover).
 static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) -> Dictionary:
 	var overrides := {
@@ -15,6 +16,7 @@ static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) 
 		"marquee_size": Vector2i(-1, -1),
 		"force_marquee": false,
 		"show_diagnostics": false,
+		"terrain_editor_enabled": false,
 	}
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--sente":
@@ -30,6 +32,8 @@ static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) 
 			overrides.force_marquee = true
 		elif arg == "--diagnostics":
 			overrides.show_diagnostics = true
+		elif arg == "--terrain-editor" and OS.is_debug_build():
+			overrides.terrain_editor_enabled = true
 	if overrides.force_marquee and overrides.marquee_size.x < 0:
 		overrides.marquee_size = marquee_design
 	if overrides.primary_size.x > 0 or overrides.force_marquee:

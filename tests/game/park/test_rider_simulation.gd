@@ -394,6 +394,7 @@ func _test_shipped_course_is_valid() -> void:
 func _test_shipped_course_has_a_reachable_clean_landing() -> void:
 	var state := RiderStateScene.new()
 	var simulation := RiderSimulationScene.new()
+	var forward_rotation_ticks := roundi(15.0 / _tuning.air_time_scale)
 	state.course_progress = ShippedParkCourse.start_progress
 	state.vertical_position = ShippedParkCourse.surface_y_at(state.course_progress)
 	for _tick in 600:
@@ -407,8 +408,8 @@ func _test_shipped_course_has_a_reachable_clean_landing() -> void:
 		if state.phase != RiderState.Phase.AIRBORNE:
 			break
 		var air := RiderInputFrameScene.new()
-		air.heading = Vector2.RIGHT if air_tick < 15 else Vector2.ZERO
-		air.landing_prep_pressed = air_tick >= 15
+		air.heading = Vector2.RIGHT if air_tick < forward_rotation_ticks else Vector2.ZERO
+		air.landing_prep_pressed = air_tick >= forward_rotation_ticks
 		simulation.step(state, air, ShippedParkCourse, _tuning, DELTA)
 	_expect(
 		state.phase == RiderState.Phase.LANDED,
