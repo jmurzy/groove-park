@@ -1,6 +1,7 @@
 class_name ParkCourse
 extends Resource
 
+@export var course_version := "park-course-v1"
 @export var terrain_points := PackedVector2Array()
 @export var lane_min := -360.0
 @export var lane_max := 360.0

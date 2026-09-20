@@ -1,6 +1,6 @@
 {
   "course_version": "park-course-v1",
-  "tuning_version": "flight-v1",
+  "tuning_version": "scoring-v1",
   "physics_delta": 0.016666667,
   "initial_phase": "airborne",
   "expected_rotation_direction": -1,

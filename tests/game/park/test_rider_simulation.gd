@@ -153,6 +153,24 @@ func _test_baseline_traces_replay() -> void:
 		var trace := _load_trace(trace_path)
 		if trace.is_empty():
 			continue
+		_expect(
+			str(trace.get("course_version", "")) == _course.course_version,
+			(
+				"%s targets course %s, expected %s."
+				% [trace_path, trace.get("course_version", "missing"), _course.course_version]
+			)
+		)
+		_expect(
+			str(trace.get("tuning_version", "")) == _tuning.rules_version,
+			(
+				"%s targets tuning %s, expected %s."
+				% [trace_path, trace.get("tuning_version", "missing"), _tuning.rules_version]
+			)
+		)
+		_expect(
+			is_equal_approx(float(trace.get("physics_delta", 0.0)), DELTA),
+			"%s targets a different physics timestep." % trace_path
+		)
 		var state := (
 			_new_airborne_state()
 			if trace.get("initial_phase", "grounded") == "airborne"

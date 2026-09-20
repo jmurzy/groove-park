@@ -28,6 +28,22 @@ run *args: version
 sente *args: version
     "{{ godot_bin }}" --path . -- --sente {{ quote(args) }}
 
+[doc("Run Sente-sized windows at a capped render rate. Physics remains at the project's fixed rate.")]
+sente-rate rate: version
+    "{{ godot_bin }}" --disable-vsync --max-fps "{{ rate }}" --path . -- --sente
+
+[doc("Run the low (30 FPS) cabinet render-rate check with Sente-sized dev windows.")]
+sente-low: version
+    "{{ godot_bin }}" --disable-vsync --max-fps 30 --path . -- --sente
+
+[doc("Run the target (60 FPS) cabinet render-rate check with Sente-sized dev windows.")]
+sente-target: version
+    "{{ godot_bin }}" --disable-vsync --max-fps 60 --path . -- --sente
+
+[doc("Run the high (120 FPS) cabinet render-rate check with Sente-sized dev windows.")]
+sente-high: version
+    "{{ godot_bin }}" --disable-vsync --max-fps 120 --path . -- --sente
+
 [doc("Import resources headlessly, matching the CI pre-export check.")]
 import: version
     "{{ godot_bin }}" --headless --path . --import
