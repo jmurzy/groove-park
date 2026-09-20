@@ -38,7 +38,7 @@ extends Resource
 @export var clean_angle_degrees := 20.0
 @export var crash_angle_degrees := 35.0
 @export var perfect_normal_impact := 110.0
-@export var crash_normal_impact := 420.0
+@export var crash_normal_impact := 625.0
 @export var perfect_angular_velocity := 1.2
 @export var crash_angular_velocity := 7.5
 @export var minimum_landing_alignment := 0.35

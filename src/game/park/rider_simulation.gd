@@ -56,7 +56,7 @@ func step(
 	state.course_progress = next_progress
 	state.lane_position += state.ground_velocity.y * delta
 	if course.crosses_lip(previous_progress, next_progress):
-		_transition_to_takeoff(state, course, tuning)
+		_transition_to_takeoff(state, course, tuning, delta)
 		return
 	if state.course_progress >= course.recovery_progress:
 		state.course_progress = course.recovery_progress
@@ -102,7 +102,9 @@ func _release_quality(release_progress: float, course: ParkCourse, tuning: Rider
 	)
 
 
-func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> void:
+func _transition_to_takeoff(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
 	var lip_progress := course.lip_progress
 	var tangent := course.tangent_at(lip_progress)
 	var normal := course.normal_at(lip_progress)
@@ -122,10 +124,16 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	)
 	state.vertical_position = course.surface_y_at(lip_progress)
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
-	state.course_speed = state.ground_velocity.x + normal.x * pop_impulse
+	var launch_ground_speed := minf(
+		state.ground_velocity.x,
+		_maximum_landing_ground_speed(
+			state.ground_velocity.x, tangent, normal, pop_impulse, course, tuning, delta
+		)
+	)
+	state.course_speed = launch_ground_speed + normal.x * pop_impulse
 	state.lane_speed = state.ground_velocity.y
 	state.vertical_speed = (
-		state.ground_velocity.x * tangent.y / maxf(tangent.x, 0.001) + normal.y * pop_impulse
+		launch_ground_speed * tangent.y / maxf(tangent.x, 0.001) + normal.y * pop_impulse
 	)
 	state.takeoff_course_speed = state.course_speed
 	state.takeoff_lane_speed = state.lane_speed
@@ -153,6 +161,86 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	state.brake_active = false
 	state.edge_active = false
 	state.compression_active = false
+
+
+func _maximum_landing_ground_speed(
+	requested_speed: float,
+	tangent: Vector2,
+	normal: Vector2,
+	pop_impulse: float,
+	course: ParkCourse,
+	tuning: RiderTuning,
+	delta: float
+) -> float:
+	var highest_safe_speed := 0.0
+	for sample_index in range(1, 33):
+		var sample_speed := requested_speed * float(sample_index) / 32.0
+		if (
+			_landing_progress_for_ground_speed(
+				sample_speed, tangent, normal, pop_impulse, course, tuning, delta
+			)
+			<= course.landing_end
+		):
+			highest_safe_speed = sample_speed
+	if is_zero_approx(highest_safe_speed):
+		return requested_speed
+	var unsafe_speed := minf(highest_safe_speed + requested_speed / 32.0, requested_speed)
+	for _iteration in 12:
+		var candidate_speed := (highest_safe_speed + unsafe_speed) * 0.5
+		if (
+			_landing_progress_for_ground_speed(
+				candidate_speed, tangent, normal, pop_impulse, course, tuning, delta
+			)
+			<= course.landing_end
+		):
+			highest_safe_speed = candidate_speed
+		else:
+			unsafe_speed = candidate_speed
+	return highest_safe_speed
+
+
+func _landing_progress_for_ground_speed(
+	ground_speed: float,
+	tangent: Vector2,
+	normal: Vector2,
+	pop_impulse: float,
+	course: ParkCourse,
+	tuning: RiderTuning,
+	delta: float
+) -> float:
+	return _landing_progress_for_speed(
+		ground_speed + normal.x * pop_impulse,
+		ground_speed * tangent.y / maxf(tangent.x, 0.001) + normal.y * pop_impulse,
+		course,
+		tuning,
+		delta
+	)
+
+
+func _landing_progress_for_speed(
+	initial_course_speed: float,
+	initial_vertical_speed: float,
+	course: ParkCourse,
+	tuning: RiderTuning,
+	delta: float
+) -> float:
+	var previous_position := course.surface_position_at(course.lip_progress)
+	var course_speed := initial_course_speed
+	var vertical_speed := initial_vertical_speed
+	var position := previous_position
+	for _tick in 600:
+		vertical_speed += tuning.gravity * delta
+		course_speed *= maxf(0.0, 1.0 - tuning.air_drag * delta)
+		position += Vector2(course_speed, vertical_speed) * delta
+		if vertical_speed > 0.0:
+			var contact := course.swept_terrain_intersection(previous_position, position)
+			if not contact.is_empty():
+				var contact_position: Vector2 = contact["position"]
+				return contact_position.x
+		if position.x > course.landing_end:
+			return INF
+		previous_position = position
+	return INF
 
 
 func _step_airborne(

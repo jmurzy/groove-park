@@ -77,7 +77,10 @@ func _process(delta: float) -> void:
 	if is_exit_confirmation_open():
 		return
 	_elapsed += delta
-	_ready_label.visible = not _has_started_moving and fmod(_elapsed, 0.8) < 0.56
+	_ready_label.visible = (
+		(not _has_started_moving or _rider_state.phase == RiderState.Phase.CRASHED)
+		and fmod(_elapsed, 0.8) < 0.56
+	)
 	if _action_hint_time > 0.0:
 		_action_hint_time = maxf(_action_hint_time - delta, 0.0)
 		_action_label.visible = true
@@ -111,6 +114,11 @@ func _update_rider_state(delta: float) -> void:
 	_rider_simulation.step(_rider_state, input, _course, _rider_tuning, delta)
 	if not _has_started_moving and _rider_state.ground_velocity.length() > 1.0:
 		_has_started_moving = true
+	_ready_label.text = (
+		"PRESS START OR R TO RESTART"
+		if _rider_state.phase == RiderState.Phase.CRASHED
+		else "%d PLAYER%s READY" % [player_count, "" if player_count == 1 else "S"]
+	)
 	_hud.set_speed(_rider_state.ground_velocity.length())
 	_hud.set_jump(1, 1)
 	_hud.set_score(_rider_state.jump_score)
@@ -126,7 +134,7 @@ func _update_action_label(input: RiderInputFrame) -> void:
 	var action_message := ""
 	if _rider_state.phase == RiderState.Phase.CRASHED:
 		action_message = (
-			"CRASH  ANGLE %.0f  IMPACT %.0f  SPIN %.1f  PRESS START OR R TO RESTART"
+			"CRASH  ANGLE %.0f  IMPACT %.0f  SPIN %.1f"
 			% [
 				_rider_state.landing_angle_error_degrees,
 				_rider_state.landing_normal_impact,

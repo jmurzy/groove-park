@@ -38,7 +38,12 @@ func validation_errors() -> PackedStringArray:
 		errors.append("ParkCourse lane_min must be less than lane_max.")
 	if not _markers_are_ordered():
 		errors.append("ParkCourse feature markers must be ordered from start through camera end.")
-	if camera_start < terrain_points[0].x or camera_end > terrain_points[-1].x:
+	var terrain_start := terrain_points[0].x
+	var terrain_end := terrain_points[-1].x
+	if (
+		(camera_start < terrain_start and not is_equal_approx(camera_start, terrain_start))
+		or (camera_end > terrain_end and not is_equal_approx(camera_end, terrain_end))
+	):
 		errors.append("ParkCourse camera and feature markers must lie within the terrain range.")
 	return errors
 

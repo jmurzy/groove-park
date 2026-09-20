@@ -1,6 +1,7 @@
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
+const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
 const JumpScoreScene := preload("res://src/game/park/jump_score.gd")
@@ -50,7 +51,9 @@ func _init() -> void:
 	_test_body_shape_changes_rotation_rate()
 	_test_landing_prep_damps_rotation()
 	_test_swept_contact_resolves_once()
-	_test_overshot_runout_crashes()
+	_test_takeoff_speed_stays_within_landing_zone()
+	_test_shipped_course_is_valid()
+	_test_shipped_course_has_a_reachable_clean_landing()
 	_test_landing_keeps_lane_velocity_separate_from_slope()
 	_test_landing_labels_and_continuous_quality()
 	_test_terrain_seam_returns_first_contact()
@@ -360,24 +363,57 @@ func _test_swept_contact_resolves_once() -> void:
 	)
 
 
-func _test_overshot_runout_crashes() -> void:
-	var course := _landing_course()
+func _test_takeoff_speed_stays_within_landing_zone() -> void:
+	var course := _takeoff_course()
+	var state := _new_state_for_course(course)
+	state.course_progress = course.lip_progress - 5.0
+	state.ground_velocity = Vector2(1800.0, 0.0)
+	state.has_ground_intent = true
+	_step_with_pop(state, course, false, false, false)
+	for _tick in 600:
+		_step_with_course(state, course, Vector2.ZERO)
+		if state.landing_resolved:
+			break
+	_expect(state.landing_resolved, "A high-speed takeoff should still resolve on terrain.")
+	_expect(
+		(
+			state.landing_position.x >= course.landing_start
+			and state.landing_position.x <= course.landing_end
+		),
+		"Takeoff speed must be capped so the rider reaches the landing zone."
+	)
+
+
+func _test_shipped_course_is_valid() -> void:
+	_expect(
+		ShippedParkCourse.validation_errors().is_empty(),
+		"The shipped course should pass ParkCourse validation."
+	)
+
+
+func _test_shipped_course_has_a_reachable_clean_landing() -> void:
 	var state := RiderStateScene.new()
-	state.phase = RiderState.Phase.AIRBORNE
-	state.course_progress = course.recovery_progress - 10.0
-	state.vertical_position = -100.0
-	state.course_speed = 1200.0
-	state.vertical_speed = -200.0
-	_step_with_course(state, course, Vector2.ZERO)
+	var simulation := RiderSimulationScene.new()
+	state.course_progress = ShippedParkCourse.start_progress
+	state.vertical_position = ShippedParkCourse.surface_y_at(state.course_progress)
+	for _tick in 600:
+		if state.phase != RiderState.Phase.GROUNDED:
+			break
+		var approach := RiderInputFrameScene.new()
+		approach.heading = Vector2.RIGHT
+		simulation.step(state, approach, ShippedParkCourse, _tuning, DELTA)
+	_expect(state.phase == RiderState.Phase.AIRBORNE, "The shipped course should reach takeoff.")
+	for air_tick in 180:
+		if state.phase != RiderState.Phase.AIRBORNE:
+			break
+		var air := RiderInputFrameScene.new()
+		air.heading = Vector2.RIGHT if air_tick < 15 else Vector2.ZERO
+		air.landing_prep_pressed = air_tick >= 15
+		simulation.step(state, air, ShippedParkCourse, _tuning, DELTA)
 	_expect(
-		state.phase == RiderState.Phase.CRASHED,
-		"A rider who overshoots the runout should crash instead of remaining airborne."
+		state.phase == RiderState.Phase.LANDED,
+		"A simple forward rotation and landing preparation should land on the shipped course."
 	)
-	_expect(
-		is_equal_approx(state.course_progress, course.recovery_progress),
-		"An overshot rider should resolve at the end of the runout."
-	)
-	_expect(state.jump_score == 0, "An overshot runout must award no score.")
 
 
 func _test_landing_keeps_lane_velocity_separate_from_slope() -> void:

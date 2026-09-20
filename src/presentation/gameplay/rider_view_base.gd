@@ -40,6 +40,7 @@ func _on_sprite_animation_finished() -> void:
 	if _sprite.animation != &"crash" or not _repeat_crash:
 		return
 	_repeat_crash = false
+	_sprite.frame = 0
 	_sprite.play()
 
 
