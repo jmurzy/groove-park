@@ -22,8 +22,7 @@ const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
 const SURFACE_GRID_SIZE := 120.0
 const LANE_PROJECTION_SCALE := 0.18
-const CAMERA_ZOOM := Vector2(724.0 / DESIGN_SIZE.y, 724.0 / DESIGN_SIZE.y)
-const CAMERA_LEAD := 250.0
+const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 var player_count := 1
 var _ready_label: Label
 var _action_label: Label
@@ -247,10 +246,10 @@ func _build_screen_ui() -> void:
 func _update_camera() -> void:
 	if _camera == null:
 		return
-	var half_view_width := DESIGN_SIZE.x * CAMERA_ZOOM.x * 0.5
+	var half_view_width := DESIGN_SIZE.x / CAMERA_ZOOM.x * 0.5
 	var camera_min := half_view_width
 	var camera_max := GAMEPLAY_BG.get_width() - half_view_width
-	var target_x := clampf(_rider_state.course_progress + CAMERA_LEAD, camera_min, camera_max)
+	var target_x := clampf(_rider_state.course_progress, camera_min, camera_max)
 	_camera.position = Vector2(target_x, GAMEPLAY_BG.get_height() * 0.5)
 
 
