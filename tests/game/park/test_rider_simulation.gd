@@ -50,6 +50,7 @@ func _init() -> void:
 	_test_body_shape_changes_rotation_rate()
 	_test_landing_prep_damps_rotation()
 	_test_swept_contact_resolves_once()
+	_test_overshot_runout_crashes()
 	_test_landing_keeps_lane_velocity_separate_from_slope()
 	_test_landing_labels_and_continuous_quality()
 	_test_terrain_seam_returns_first_contact()
@@ -357,6 +358,26 @@ func _test_swept_contact_resolves_once() -> void:
 		state.landing_position == first_contact,
 		"Recovery must not resolve another landing after the first contact."
 	)
+
+
+func _test_overshot_runout_crashes() -> void:
+	var course := _landing_course()
+	var state := RiderStateScene.new()
+	state.phase = RiderState.Phase.AIRBORNE
+	state.course_progress = course.recovery_progress - 10.0
+	state.vertical_position = -100.0
+	state.course_speed = 1200.0
+	state.vertical_speed = -200.0
+	_step_with_course(state, course, Vector2.ZERO)
+	_expect(
+		state.phase == RiderState.Phase.CRASHED,
+		"A rider who overshoots the runout should crash instead of remaining airborne."
+	)
+	_expect(
+		is_equal_approx(state.course_progress, course.recovery_progress),
+		"An overshot rider should resolve at the end of the runout."
+	)
+	_expect(state.jump_score == 0, "An overshot runout must award no score.")
 
 
 func _test_landing_keeps_lane_velocity_separate_from_slope() -> void:

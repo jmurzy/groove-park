@@ -170,6 +170,9 @@ func _step_airborne(
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
 	state.airtime += delta
+	if state.course_progress >= course.recovery_progress:
+		_resolve_missed_landing(state, course, tuning)
+		return
 
 	state.body_compact = input.heading.y > 0.0
 	state.body_extended = input.heading.y < 0.0
@@ -220,6 +223,35 @@ func _step_airborne(
 	)
 	if not contact.is_empty():
 		_resolve_landing(state, course, tuning, contact)
+
+
+func _resolve_missed_landing(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> void:
+	# Flight past the runout cannot intersect authored terrain, so make the miss terminal.
+	state.landing_resolved = true
+	state.trick_tracker.release_grab(state.airtime, tuning.minimum_grab_duration)
+	state.grab_reach_active = false
+	state.tweak_active = false
+	state.trick_call = state.trick_tracker.trick_call()
+	state.landing_label = "CRASH"
+	state.landing_quality = 0.0
+	state.landing_position = course.surface_position_at(course.recovery_progress)
+	state.landing_tangent = course.tangent_at(course.recovery_progress)
+	state.landing_normal = course.normal_at(course.recovery_progress)
+	state.landing_angle_error_degrees = 180.0
+	state.landing_velocity_alignment = 0.0
+	state.landing_normal_impact = 0.0
+	state.landing_angular_speed = state.angular_velocity
+	state.landing_in_zone = false
+	state.score_breakdown = JumpScoreScene.evaluate(state, state.landing_quality, tuning)
+	state.jump_score = int(state.score_breakdown["total"])
+	state.course_progress = course.recovery_progress
+	state.vertical_position = state.landing_position.y
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.phase = RiderState.Phase.CRASHED
+	state.ground_velocity = Vector2.ZERO
+	state.course_speed = 0.0
+	state.lane_speed = 0.0
+	state.vertical_speed = 0.0
 
 
 func _resolve_landing(

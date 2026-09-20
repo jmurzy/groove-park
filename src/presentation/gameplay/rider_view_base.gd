@@ -8,6 +8,7 @@ const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
 
 var _sprite: AnimatedSprite2D
+var _repeat_crash := false
 
 
 func play_preview(animation_name: StringName) -> void:
@@ -22,15 +23,24 @@ func _setup_sprite(baseline: float, view_name: StringName) -> void:
 	_sprite.position = Vector2(-CANVAS_SIZE.x * 0.5, -baseline) * SPRITE_SCALE
 	_sprite.scale = Vector2.ONE * SPRITE_SCALE
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.animation_finished.connect(_on_sprite_animation_finished)
 	add_child(_sprite)
 
 
 func _play(animation_name: StringName) -> void:
 	if _sprite == null:
 		return
-	if _sprite.animation == animation_name and _sprite.is_playing():
+	if _sprite.animation == animation_name:
 		return
+	_repeat_crash = animation_name == &"crash"
 	_sprite.play(animation_name)
+
+
+func _on_sprite_animation_finished() -> void:
+	if _sprite.animation != &"crash" or not _repeat_crash:
+		return
+	_repeat_crash = false
+	_sprite.play()
 
 
 func _add_animation(
