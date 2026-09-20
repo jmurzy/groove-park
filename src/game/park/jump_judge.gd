@@ -36,6 +36,8 @@ static func evaluate(
 	var quality := minf(
 		minf(angle_quality, velocity_quality), minf(impact_quality, angular_quality)
 	)
+	if state.grab_active_at_landing:
+		quality *= 0.65
 	var crash := (
 		not in_landing_zone
 		or equipment_error > tuning.crash_angle_degrees
@@ -48,6 +50,7 @@ static func evaluate(
 			equipment_error <= tuning.perfect_angle_degrees
 			and normal_impact <= tuning.perfect_normal_impact
 			and angular_speed <= tuning.perfect_angular_velocity
+			and not state.grab_active_at_landing
 		):
 			label = "PERFECT"
 		elif equipment_error <= tuning.clean_angle_degrees:
@@ -63,4 +66,5 @@ static func evaluate(
 		"angular_speed": angular_speed,
 		"in_landing_zone": in_landing_zone,
 		"crash": crash,
+		"grab_held_at_contact": state.grab_active_at_landing,
 	}

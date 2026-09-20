@@ -9,6 +9,10 @@ var pop_pressed := false
 var pop_just_pressed := false
 var pop_just_released := false
 var edge_pressed := false
+var grab_pressed := false
+var grab_just_pressed := false
+var tweak_pressed := false
+var tweak_just_pressed := false
 var landing_prep_pressed := false
 
 
@@ -21,10 +25,14 @@ static func from_actions() -> RiderInputFrame:
 		# The cabinet stick is digital. Normalizing makes every diagonal one of eight headings.
 		frame.heading = frame.heading.normalized()
 	frame.tuck_pressed = Input.is_action_pressed(&"action_a")
+	frame.grab_pressed = frame.tuck_pressed
+	frame.grab_just_pressed = Input.is_action_just_pressed(&"action_a")
 	frame.brake_pressed = Input.is_action_pressed(&"action_b")
 	frame.pop_pressed = Input.is_action_pressed(&"action_x")
 	frame.pop_just_pressed = Input.is_action_just_pressed(&"action_x")
 	frame.pop_just_released = Input.is_action_just_released(&"action_x")
 	frame.edge_pressed = Input.is_action_pressed(&"action_y")
+	frame.tweak_pressed = Input.is_action_pressed(&"action_x")
+	frame.tweak_just_pressed = Input.is_action_just_pressed(&"action_x")
 	frame.landing_prep_pressed = Input.is_action_pressed(&"action_b")
 	return frame

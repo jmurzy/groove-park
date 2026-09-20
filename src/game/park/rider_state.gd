@@ -3,6 +3,8 @@ extends RefCounted
 
 enum Phase { GROUNDED, AIRBORNE, LANDED, CRASHED, RECOVERING }
 
+const TrickTrackerScene := preload("res://src/game/park/trick_tracker.gd")
+
 # World-space simulation coordinates. Presentation projects these into the side view.
 var course_progress := 0.0
 var lane_position := 0.0
@@ -41,6 +43,11 @@ var airtime := 0.0
 var body_compact := false
 var body_extended := false
 var landing_prep_active := false
+var grab_reach_active := false
+var tweak_active := false
+var grab_active_at_landing := false
+var trick_tracker: TrickTracker = TrickTrackerScene.new()
+var trick_call := ""
 
 # First meaningful terrain contact is authoritative for the whole jump.
 var landing_resolved := false

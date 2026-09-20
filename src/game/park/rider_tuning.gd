@@ -1,7 +1,7 @@
 class_name RiderTuning
 extends Resource
 
-@export var rules_version := "landing-v1"
+@export var rules_version := "tricks-v1"
 @export var fall_line_acceleration := 540.0
 @export var snow_resistance := 48.0
 @export var aerodynamic_drag := 0.00115
@@ -30,6 +30,10 @@ extends Resource
 @export var compact_inertia_multiplier := 0.62
 @export var extended_inertia_multiplier := 1.55
 @export var landing_prep_damping := 7.0
+@export var grab_rotation_control_multiplier := 0.55
+@export var tweak_rotation_control_multiplier := 0.35
+@export var grab_reach_duration := 0.12
+@export var minimum_grab_duration := 0.2
 @export var perfect_angle_degrees := 8.0
 @export var clean_angle_degrees := 20.0
 @export var crash_angle_degrees := 35.0

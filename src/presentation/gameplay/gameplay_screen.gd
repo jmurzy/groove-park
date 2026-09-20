@@ -134,9 +134,10 @@ func _update_action_label(input: RiderInputFrame) -> void:
 		or _rider_state.phase == RiderState.Phase.RECOVERING
 	):
 		action_message = (
-			"%s %.0f%%  ANGLE %.0f  ALIGN %.0f%%  IMPACT %.0f  SPIN %.1f"
+			"%s  %s  %.0f%%  ANGLE %.0f  ALIGN %.0f%%  IMPACT %.0f  SPIN %.1f"
 			% [
 				_rider_state.landing_label,
+				_rider_state.trick_call,
 				_rider_state.landing_quality * 100.0,
 				_rider_state.landing_angle_error_degrees,
 				_rider_state.landing_velocity_alignment * 100.0,
@@ -146,11 +147,11 @@ func _update_action_label(input: RiderInputFrame) -> void:
 		)
 	elif _rider_state.phase == RiderState.Phase.AIRBORNE:
 		action_message = (
-			"AIR %.1fs  ROT %+.0f  VY %.0f"
+			"AIR %.1fs  ROT %+.0f  %s"
 			% [
 				_rider_state.airtime,
-				rad_to_deg(_rider_state.orientation),
-				_rider_state.vertical_speed
+				rad_to_deg(_rider_state.trick_tracker.cumulative_rotation),
+				"A GRAB" if _rider_state.trick_tracker.grab_active else "B SPOT LANDING"
 			]
 		)
 	elif _rider_state.compression_active:

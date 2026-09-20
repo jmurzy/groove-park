@@ -6,6 +6,7 @@ const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
+const TrickTrackerScene := preload("res://src/game/park/trick_tracker.gd")
 
 const DELTA := 1.0 / 60.0
 var _trace_paths: PackedStringArray = [
@@ -51,6 +52,11 @@ func _init() -> void:
 	_test_landing_keeps_lane_velocity_separate_from_slope()
 	_test_landing_labels_and_continuous_quality()
 	_test_terrain_seam_returns_first_contact()
+	_test_held_ground_action_does_not_start_grab()
+	_test_fresh_air_press_starts_and_releases_grab()
+	_test_tweak_requires_an_active_grab()
+	_test_held_pop_does_not_become_a_tweak()
+	_test_trick_tracker_measures_full_rotation()
 	if _failures.is_empty():
 		print("RiderSimulation checks passed.")
 		quit(0)
@@ -379,6 +385,77 @@ func _test_terrain_seam_returns_first_contact() -> void:
 		_expect(
 			is_equal_approx(position.x, 150.0), "Terrain-seam contact should resolve at the seam."
 		)
+
+
+func _test_held_ground_action_does_not_start_grab() -> void:
+	var state := _new_airborne_state()
+	var input := RiderInputFrameScene.new()
+	input.grab_pressed = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(
+		not state.trick_tracker.grab_active,
+		"Holding A through takeoff must not automatically start a grab."
+	)
+
+
+func _test_fresh_air_press_starts_and_releases_grab() -> void:
+	var state := _new_airborne_state()
+	var press := RiderInputFrameScene.new()
+	press.grab_pressed = true
+	press.grab_just_pressed = true
+	_simulation.step(state, press, _course, _tuning, DELTA)
+	_expect(state.trick_tracker.grab_active, "A fresh airborne A press should start a grab.")
+	for _tick in 20:
+		var held := RiderInputFrameScene.new()
+		held.grab_pressed = true
+		_simulation.step(state, held, _course, _tuning, DELTA)
+	var release := RiderInputFrameScene.new()
+	_simulation.step(state, release, _course, _tuning, DELTA)
+	_expect(
+		state.trick_tracker.valid_grab_duration >= _tuning.minimum_grab_duration,
+		"A released grab held past the minimum duration should be valid."
+	)
+
+
+func _test_tweak_requires_an_active_grab() -> void:
+	var state := _new_airborne_state()
+	var input := RiderInputFrameScene.new()
+	input.tweak_pressed = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(not state.tweak_active, "X must not tweak without an active grab.")
+	_expect(
+		is_zero_approx(state.trick_tracker.tweak_duration),
+		"X without a grab must not accumulate tweak duration."
+	)
+
+
+func _test_held_pop_does_not_become_a_tweak() -> void:
+	var state := _new_airborne_state()
+	var input := RiderInputFrameScene.new()
+	input.grab_pressed = true
+	input.grab_just_pressed = true
+	input.tweak_pressed = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(
+		not state.tweak_active,
+		"Holding X through takeoff must not automatically start a tweak after grabbing."
+	)
+
+
+func _test_trick_tracker_measures_full_rotation() -> void:
+	var tracker: TrickTracker = TrickTrackerScene.new()
+	tracker.reset(0.0)
+	tracker.track_rotation(PI * 0.5)
+	tracker.track_rotation(PI)
+	tracker.track_rotation(PI * 1.5)
+	tracker.track_rotation(TAU)
+	_expect(
+		tracker.completed_rotations == 1, "One accumulated TAU should count exactly one rotation."
+	)
+	_expect(
+		tracker.trick_call().contains("360 FORWARD"),
+		"Rotation calls must come from measured state."
+	)
 
 
 func _load_trace(trace_path: String) -> Dictionary:

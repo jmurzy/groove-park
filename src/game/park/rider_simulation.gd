@@ -132,6 +132,11 @@ func _transition_to_takeoff(state: RiderState, course: ParkCourse, tuning: Rider
 	state.body_compact = false
 	state.body_extended = false
 	state.landing_prep_active = false
+	state.grab_reach_active = false
+	state.tweak_active = false
+	state.grab_active_at_landing = false
+	state.trick_tracker.reset(state.orientation)
+	state.trick_call = ""
 	state.landing_resolved = false
 	state.landing_label = ""
 	state.landing_quality = 0.0
@@ -160,12 +165,35 @@ func _step_airborne(
 	state.body_compact = input.heading.y > 0.0
 	state.body_extended = input.heading.y < 0.0
 	state.landing_prep_active = input.landing_prep_pressed
+	if state.landing_prep_active:
+		state.trick_tracker.release_grab(state.airtime, tuning.minimum_grab_duration)
+		state.grab_reach_active = false
+	elif input.grab_just_pressed:
+		# A must be released after takeoff, then pressed again, to become a grab.
+		state.trick_tracker.start_grab()
+		state.grab_reach_active = true
+	elif state.trick_tracker.grab_active and not input.grab_pressed:
+		state.trick_tracker.release_grab(state.airtime, tuning.minimum_grab_duration)
+		state.grab_reach_active = false
+	if not state.trick_tracker.grab_active or not input.tweak_pressed:
+		state.tweak_active = false
+	elif input.tweak_just_pressed:
+		# X also needs a fresh airborne press; holding compression through the lip is inert.
+		state.tweak_active = true
+	state.trick_tracker.step_grab(delta, state.tweak_active)
+	if state.grab_reach_active and state.trick_tracker.grab_duration >= tuning.grab_reach_duration:
+		state.grab_reach_active = false
 	var inertia_multiplier := 1.0
 	if state.body_compact:
 		inertia_multiplier = tuning.compact_inertia_multiplier
 	elif state.body_extended:
 		inertia_multiplier = tuning.extended_inertia_multiplier
-	var torque := input.heading.x * tuning.air_torque / inertia_multiplier
+	var control_multiplier := 1.0
+	if state.trick_tracker.grab_active:
+		control_multiplier = tuning.grab_rotation_control_multiplier
+		if input.tweak_pressed:
+			control_multiplier = tuning.tweak_rotation_control_multiplier
+	var torque := input.heading.x * tuning.air_torque * control_multiplier / inertia_multiplier
 	state.angular_velocity += torque * delta
 	state.angular_velocity = clampf(
 		state.angular_velocity, -tuning.maximum_angular_velocity, tuning.maximum_angular_velocity
@@ -175,6 +203,7 @@ func _step_airborne(
 		damping += tuning.landing_prep_damping
 	state.angular_velocity = move_toward(state.angular_velocity, 0.0, damping * delta)
 	state.orientation += state.angular_velocity * delta
+	state.trick_tracker.track_rotation(state.orientation)
 	if state.vertical_speed <= 0.0:
 		return
 	var contact := course.swept_terrain_intersection(
@@ -196,6 +225,11 @@ func _resolve_landing(
 		state, course, contact_position, tangent, normal, tuning
 	)
 	state.landing_resolved = true
+	state.grab_active_at_landing = state.trick_tracker.grab_active
+	state.trick_tracker.release_grab(state.airtime, tuning.minimum_grab_duration)
+	state.grab_reach_active = false
+	state.tweak_active = false
+	state.trick_call = state.trick_tracker.trick_call()
 	state.landing_label = str(result["label"])
 	state.landing_quality = float(result["quality"])
 	state.landing_position = contact_position

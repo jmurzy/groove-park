@@ -95,6 +95,12 @@ func _animation_for_state(state: RiderState) -> StringName:
 	elif state.phase == RiderState.Phase.AIRBORNE:
 		if state.landing_prep_active:
 			animation = &"landing_prep"
+		elif state.grab_reach_active:
+			animation = &"grab_reach"
+		elif state.tweak_active:
+			animation = &"grab_tweak"
+		elif state.trick_tracker.grab_active:
+			animation = &"grab_hold"
 		else:
 			animation = &"neutral_air"
 	elif state.compression_active:
