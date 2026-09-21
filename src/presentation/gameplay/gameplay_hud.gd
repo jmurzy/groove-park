@@ -8,6 +8,7 @@ const HUD_RECT := Rect2(60, 24, 1800, 126)
 const HUD_INSET := 11.0
 const HUD_LOGO_SIZE := Vector2(280, 90)
 const HUD_SEPARATORS := [490.0, 764.0, 1038.0, 1312.0, 1586.0]
+const KMH_TO_MPH := 0.621371
 
 var _speed_value: Label
 var _jump_value: Label
@@ -188,7 +189,7 @@ func _closed_points(points: PackedVector2Array) -> PackedVector2Array:
 
 func _build_metrics() -> void:
 	_add_metric("P1  SKIER", "READY", 506, Color("ffe126"), Color("f3f6ff"))
-	_speed_value = _add_metric("SPEED", "0 KM/H", 780, Color("42eaff"), Color("f3f6ff"))
+	_speed_value = _add_metric("SPEED", "0 MPH", 780, Color("42eaff"), Color("f3f6ff"))
 	_jump_value = _add_metric("JUMP", "01 / 01", 1054, Color("42eaff"), Color("f3f6ff"))
 	_score_value = _add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
 	_rotation_value = _add_metric("ROTATION", "0", 1602, Color("42eaff"), Color("f3f6ff"))
@@ -200,7 +201,7 @@ func _build_metrics() -> void:
 
 
 func set_speed(world_speed: float) -> void:
-	_speed_value.text = "%d KM/H" % roundi(maxf(world_speed, 0.0) * 0.12)
+	_speed_value.text = "%d MPH" % roundi(maxf(world_speed, 0.0) * 0.12 * KMH_TO_MPH)
 
 
 func set_jump(jump_number: int, jump_count: int) -> void:
