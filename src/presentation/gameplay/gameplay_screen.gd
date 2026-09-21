@@ -18,6 +18,7 @@ const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const ParkRiderEffectsScene := preload("res://src/presentation/gameplay/park_rider_effects.gd")
+const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const PARK_COURSE_RESOURCE_PATH := "res://src/game/park/park_course.tres"
@@ -36,6 +37,8 @@ const END_LOGOMARK_POSITION := Vector2(1922, 600)
 const LOGOMARK_SCALE := 0.105
 const LOGOTYPE_POSITION := Vector2(250, 260)
 const LOGOTYPE_SCALE := 0.12096
+const KMH_TO_MPH := 0.621371
+const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
 var player_count := 1
 var terrain_editor_enabled := OS.is_debug_build()
 var _ready_label: Label
@@ -47,6 +50,7 @@ var _rider_state: RiderState = RiderStateScene.new()
 var _rider_simulation: RiderSimulation = RiderSimulationScene.new()
 var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
 var _skier: SkierView
+var _rider_marker: RiderMarker
 var _rider_effects: ParkRiderEffects
 var _hud: GameplayHud
 var _exit_confirmation: Control
@@ -233,13 +237,42 @@ func _build_skier() -> void:
 	_skier = SkierViewScene.new()
 	_skier.z_index = 2
 	_world.add_child(_skier)
+	_rider_marker = RiderMarkerScene.new()
+	_world.add_child(_rider_marker)
 	_update_skier_view()
 
 
 func _update_skier_view() -> void:
 	var ground_rotation := _course.tangent_at(_rider_state.course_progress).angle()
 	_skier.update_from_state(_rider_state, _project_rider_position(), ground_rotation)
+	_update_rider_marker()
 	_rider_effects.update_from_state(_rider_state, _course, get_physics_process_delta_time())
+
+
+func _update_rider_marker() -> void:
+	if _rider_marker == null:
+		return
+	var speed_mph := roundi(_rider_state.ground_velocity.length() * 0.12 * KMH_TO_MPH)
+	if speed_mph == 0:
+		_rider_marker.hide()
+		return
+	_rider_marker.update_from_rider(
+		_project_rider_position() + RIDER_MARKER_TOP_OFFSET, "%d MPH" % speed_mph
+	)
+	_rider_marker.visible = not _rider_marker_overlaps_hud()
+
+
+func _rider_marker_overlaps_hud() -> bool:
+	if _hud == null:
+		return false
+	var marker_transform := _rider_marker.get_global_transform_with_canvas()
+	var marker_bounds := _rider_marker.local_bounds()
+	var marker_top_left := marker_transform * marker_bounds.position
+	var marker_bottom_right := marker_transform * marker_bounds.end
+	var marker_rect := Rect2(marker_top_left, marker_bottom_right - marker_top_left).abs()
+	var hud_rect := GameplayHud.HUD_RECT
+	hud_rect.position += _hud.position
+	return marker_rect.intersects(hud_rect)
 
 
 func _build_world() -> void:
