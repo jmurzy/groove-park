@@ -8,8 +8,8 @@ signal return_to_title_requested
 const DESIGN_SIZE := Vector2(1920, 1080)
 const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
-const HEAVENLY_LOGOTYPE_SPRITE := preload("res://artwork/features/heavenly_logotype_sprite.png")
 const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
+const HeavenlyLogotypeScene := preload("res://src/presentation/features/heavenly_logotype.gd")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
@@ -34,10 +34,6 @@ const START_LOGOMARK_POSITION := Vector2(640, 390)
 const MIDDLE_LOGOMARK_POSITION := Vector2(1572, 544)
 const END_LOGOMARK_POSITION := Vector2(1922, 600)
 const LOGOMARK_SCALE := 0.105
-const LOGOTYPE_FRAME_COLUMNS := 2
-const LOGOTYPE_FRAME_ROWS := 2
-const LOGOTYPE_FRAME_RATE := 2.5
-const LOGOTYPE_TOP_ROW_OFFSET := 27.0
 const LOGOTYPE_POSITION := Vector2(250, 260)
 const LOGOTYPE_SCALE := 0.12096
 var player_count := 1
@@ -287,34 +283,9 @@ func _build_logomark(logomark_name: String, logomark_position: Vector2) -> Anima
 
 
 func _build_start_logotype() -> AnimatedSprite2D:
-	var frames := SpriteFrames.new()
-	frames.remove_animation("default")
-	frames.add_animation("wave")
-	frames.set_animation_loop("wave", true)
-	frames.set_animation_speed("wave", LOGOTYPE_FRAME_RATE)
-	var frame_size := Vector2(
-		HEAVENLY_LOGOTYPE_SPRITE.get_width() / float(LOGOTYPE_FRAME_COLUMNS),
-		HEAVENLY_LOGOTYPE_SPRITE.get_height() / float(LOGOTYPE_FRAME_ROWS)
-	)
-	for row in LOGOTYPE_FRAME_ROWS:
-		for column in LOGOTYPE_FRAME_COLUMNS:
-			var frame := AtlasTexture.new()
-			frame.atlas = HEAVENLY_LOGOTYPE_SPRITE
-			frame.region = Rect2(Vector2(column, row) * frame_size, frame_size)
-			var frame_offset := Vector2.ZERO
-			if row == 0:
-				frame_offset.y = -LOGOTYPE_TOP_ROW_OFFSET
-			frame.margin = Rect2(frame_offset, Vector2.ZERO)
-			frames.add_frame("wave", frame)
-
-	var logotype := AnimatedSprite2D.new()
+	var logotype := HeavenlyLogotypeScene.create(LOGOTYPE_SCALE)
 	logotype.name = "StartLogotype"
-	logotype.sprite_frames = frames
-	logotype.animation = "wave"
 	logotype.position = LOGOTYPE_POSITION
-	logotype.scale = Vector2.ONE * LOGOTYPE_SCALE
-	logotype.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	logotype.play()
 	return logotype
 
 
