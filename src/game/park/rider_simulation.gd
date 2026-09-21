@@ -1,3 +1,6 @@
+## Advances a RiderState one physics tick: carving and compression on ground,
+## ballistic flight with rotation control in air, then landing resolve.
+## Example: `step(state, input, course, tuning, delta)` mutates `state` in place.
 class_name RiderSimulation
 extends RefCounted
 

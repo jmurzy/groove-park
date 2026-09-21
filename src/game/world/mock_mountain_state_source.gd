@@ -1,3 +1,5 @@
+## Fake mountain feed for dev and offline cabinets: emits a fixed 5-lift
+## Heavenly lineup once on ready.
 class_name MockMountainStateSource
 extends MountainStateSource
 

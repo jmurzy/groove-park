@@ -1,3 +1,5 @@
+## HOW TO PLAY overlay: cabinet diagram, approach/air control cards, live demo,
+## and footer hints. Emits `closed` on back; ticked to animate demo and controls.
 class_name HowToPlayScreen
 extends Control
 

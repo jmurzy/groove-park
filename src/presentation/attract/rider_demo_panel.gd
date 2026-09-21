@@ -1,3 +1,5 @@
+## How-to-play live demo: two rider lanes mirroring current inputs with a caption
+## like "A GRAB / TUCK". Ticked every frame by its parent.
 class_name RiderDemoPanel
 extends Control
 

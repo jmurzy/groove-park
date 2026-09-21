@@ -1,3 +1,5 @@
+## Label that counts up from a start time as MM:SS.CS.
+## Example: `AnimatedTimeLabel.new(0.0)`.
 class_name AnimatedTimeLabel
 extends Label
 

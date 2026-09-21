@@ -1,3 +1,5 @@
+## Dev-only window overrides for single-display testing (sizes, forced marquee,
+## diagnostics, terrain editor). Example: launch with `--sente` for 1080p + marquee windows.
 class_name DevSente
 extends RefCounted
 

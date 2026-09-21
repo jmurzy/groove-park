@@ -1,3 +1,5 @@
+## Reads `heavenly.cfg` settings (exe dir first, then res://) without logging values.
+## Example: `Config.resolve_value("liftie_api", "user_agent")`.
 class_name Config
 extends RefCounted
 

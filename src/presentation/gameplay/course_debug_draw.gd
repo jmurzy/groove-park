@@ -1,3 +1,5 @@
+## Debug-only course overlay: terrain line, surface fills, drag handles, and the
+## predicted flight vector. Called from GameplayScreen when the terrain editor is on.
 class_name CourseDebugDraw
 extends RefCounted
 

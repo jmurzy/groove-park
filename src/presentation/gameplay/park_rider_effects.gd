@@ -1,3 +1,4 @@
+## Procedural rider effects: altitude-faded shadow blob plus carve/brake snow spray.
 class_name ParkRiderEffects
 extends Node2D
 

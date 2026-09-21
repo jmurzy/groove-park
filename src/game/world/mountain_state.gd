@@ -1,3 +1,5 @@
+## Snapshot of lift statuses for the whole mountain.
+## Example: `count_with_status(LiftState.Status.OPEN)`.
 class_name MountainState
 extends Resource
 

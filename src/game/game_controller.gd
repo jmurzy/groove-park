@@ -1,3 +1,5 @@
+## Tracks high-level flow (attract / playing / results) and forwards mountain
+## lift state to presentation. Example: `start_game(1)` moves ATTRACT to PLAYING.
 class_name GameController
 extends Node
 

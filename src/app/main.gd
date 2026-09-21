@@ -1,3 +1,5 @@
+## Application entry point: builds the primary + marquee windows, wires services,
+## and swaps between attract and gameplay. Runs automatically as the main scene.
 extends Node
 
 const PRIMARY_SCREEN_WITH_MARQUEE := 1

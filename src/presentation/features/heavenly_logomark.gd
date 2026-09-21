@@ -1,3 +1,5 @@
+## Looping waving Heavenly logomark sprite.
+## Example: `HeavenlyLogomark.create(0.15)` then position it.
 class_name HeavenlyLogomark
 extends AnimatedSprite2D
 

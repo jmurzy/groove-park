@@ -1,3 +1,5 @@
+## Animated snowboarder sprite: picks carve/tuck/air/grab/landing clips from
+## RiderState each frame.
 class_name SnowboarderView
 extends RiderViewBase
 

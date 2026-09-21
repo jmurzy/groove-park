@@ -1,3 +1,5 @@
+## Runs the park run: steps RiderSimulation, drives camera/HUD/audio, handles
+## pause/exit dialogs, and hosts the debug terrain editor.
 class_name GameplayScreen
 extends Control
 

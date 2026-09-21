@@ -1,3 +1,5 @@
+## One lift's identity and status (open / hold / closed / unknown).
+## Example: `LiftState.create("sky-express", "Sky Express", LiftState.Status.HOLD)`.
 class_name LiftState
 extends Resource
 

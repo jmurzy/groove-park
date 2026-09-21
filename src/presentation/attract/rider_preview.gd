@@ -1,3 +1,5 @@
+## Small looping rider sprite for menus (attract / marquee cards).
+## Example: `RiderPreview.create("SoloSkier", sheet, Vector2(280, 208))`.
 class_name RiderPreview
 extends AnimatedSprite2D
 

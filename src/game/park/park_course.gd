@@ -1,3 +1,6 @@
+## Authored jump course: terrain polyline, feature markers, travel surfaces, and
+## control zones, plus takeoff/landing intersection queries.
+## Example: `crosses_launch_edge(prev, next)` returns the lip contact or `{}`.
 class_name ParkCourse
 extends Resource
 

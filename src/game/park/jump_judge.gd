@@ -1,3 +1,5 @@
+## Grades first terrain contact as PERFECT / CLEAN / SKETCHY / CRASH with a
+## continuous 0-1 quality. Example: a misaligned or hard impact returns CRASH.
 class_name JumpJudge
 extends RefCounted
 

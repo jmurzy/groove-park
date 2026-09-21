@@ -1,3 +1,5 @@
+## Mutable snapshot of one rider's run: ground pose, air orientation, trick
+## measurements, and the resolved landing + score. Owns a TrickTracker.
 class_name RiderState
 extends RefCounted
 

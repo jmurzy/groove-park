@@ -1,3 +1,5 @@
+## Shared rider-sprite base: scaled AnimatedSprite2D setup, clip switching, and
+## one-shot landing animations. Used via SkierView / SnowboarderView.
 class_name RiderViewBase
 extends Node2D
 

@@ -1,3 +1,5 @@
+## 1P / 2P chooser overlay with rider-card previews. Emits `confirmed(count)` or
+## `cancelled`; the 2P card is currently display-only.
 class_name PlayerSelectScreen
 extends Control
 

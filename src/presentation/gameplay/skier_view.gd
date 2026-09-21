@@ -1,3 +1,5 @@
+## Animated skier sprite: maps ground/air/grab/landing state to clips and rotates
+## to `orientation` while airborne.
 class_name SkierView
 extends RiderViewBase
 

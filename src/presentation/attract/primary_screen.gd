@@ -1,3 +1,5 @@
+## Main attract screen: logo, gondola, snowfall, and START / HOW TO PLAY / EXIT
+## menu. Emits `start_game_requested` and `exit_requested`.
 class_name PrimaryScreen
 extends Control
 

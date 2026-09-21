@@ -1,3 +1,6 @@
+## Converts a resolved jump into a score breakdown (approach, takeoff, airtime,
+## rotation, grab, tweak) scaled by landing quality. Crashes score zero.
+## Example: `JumpScore.evaluate(state, state.landing_quality, tuning)["total"]`.
 class_name JumpScore
 extends RefCounted
 

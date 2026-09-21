@@ -1,3 +1,5 @@
+## Polls liftie.info for Heavenly lift counts every minute and publishes a
+## normalized `{status, open/hold/closed/total}` dict. Falls back to unknown offline.
 class_name LiftieStateService
 extends Node
 

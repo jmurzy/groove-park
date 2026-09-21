@@ -1,3 +1,5 @@
+## In-run HUD frame: speed, jump count, score, rotation, and the transient
+## post-landing breakdown line. Updated via `set_*()` / `show_result()`.
 class_name GameplayHud
 extends Control
 

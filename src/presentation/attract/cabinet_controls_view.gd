@@ -1,3 +1,5 @@
+## Live Sente cabinet diagram: joystick sprite follows the stick and buttons show
+## pressed states with click sounds. Call `tick()` each frame.
 class_name CabinetControlsView
 extends Node2D
 

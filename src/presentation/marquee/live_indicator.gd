@@ -1,3 +1,4 @@
+## Blinking "LIVE / MOUNTAIN OPS" badge used in the marquee header.
 class_name LiveIndicator
 extends Control
 

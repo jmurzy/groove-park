@@ -1,3 +1,5 @@
+## Polygonal region that selects a RiderState.ControlMode by priority.
+## Example: entering the "compression" zone enables pop charging.
 class_name ParkControlZone
 extends Resource
 

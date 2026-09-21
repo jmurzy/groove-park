@@ -1,3 +1,5 @@
+## One physics tick of phase-neutral player intent (stick heading, tuck/brake/edge,
+## pop, grab/tweak, landing prep). Example: `RiderInputFrame.from_actions()`.
 class_name RiderInputFrame
 extends RefCounted
 

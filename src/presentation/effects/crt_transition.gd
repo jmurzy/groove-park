@@ -1,3 +1,5 @@
+## CRT power-off/on wipe between attract and gameplay. Emits `midpoint_reached`
+## to swap screens, then `finished` to free itself.
 class_name CrtTransition
 extends Control
 

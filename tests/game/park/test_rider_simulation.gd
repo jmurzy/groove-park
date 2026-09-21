@@ -1,3 +1,5 @@
+## Headless physics checks for RiderSimulation: ground feel, takeoff/pop, flight,
+## landing, grabs, scoring, and trace replays. Run headless with this script as the entry.
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")

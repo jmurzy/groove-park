@@ -1,3 +1,5 @@
+## Wide 1920x360 cabinet topper: lift ticker, animated riders, logomark, and
+## snowfall. Purely decorative; ignores mouse.
 class_name MarqueeScreen
 extends Control
 

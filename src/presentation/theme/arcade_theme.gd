@@ -1,3 +1,5 @@
+## Shared arcade styling helpers: pixel-font labels and chunky button panels.
+## Example: `ArcadeTheme.make_label("READY", 42, Color("fff7cf"))`.
 class_name ArcadeTheme
 extends RefCounted
 

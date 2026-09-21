@@ -1,3 +1,5 @@
+## Deterministic drifting-snow overlay.
+## Example: `SnowfallLayer.create(Vector2(1920, 1080), 84)`.
 class_name SnowfallLayer
 extends Node2D
 

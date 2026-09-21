@@ -1,3 +1,5 @@
+## Flight-only trick measurements: unwrapped rotation, grab/tweak timers, and the
+## display string. Example: `track_rotation(orientation)`, then `trick_call()`.
 class_name TrickTracker
 extends RefCounted
 

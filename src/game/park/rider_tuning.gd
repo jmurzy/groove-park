@@ -1,3 +1,5 @@
+## Editable balance numbers for rider physics, rotation, landing strictness, and
+## scoring. Example: raise `maximum_pop_impulse` for bigger air off the lip.
 class_name RiderTuning
 extends Resource
 
