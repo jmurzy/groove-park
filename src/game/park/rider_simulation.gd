@@ -175,11 +175,8 @@ func _maximum_landing_ground_speed(
 	var highest_safe_speed := 0.0
 	for sample_index in range(1, 33):
 		var sample_speed := requested_speed * float(sample_index) / 32.0
-		if (
-			_landing_progress_for_ground_speed(
-				sample_speed, tangent, normal, pop_impulse, course, tuning, delta
-			)
-			<= course.landing_end
+		if _has_safe_landing_for_ground_speed(
+			sample_speed, tangent, normal, pop_impulse, course, tuning, delta
 		):
 			highest_safe_speed = sample_speed
 	if is_zero_approx(highest_safe_speed):
@@ -187,11 +184,8 @@ func _maximum_landing_ground_speed(
 	var unsafe_speed := minf(highest_safe_speed + requested_speed / 32.0, requested_speed)
 	for _iteration in 12:
 		var candidate_speed := (highest_safe_speed + unsafe_speed) * 0.5
-		if (
-			_landing_progress_for_ground_speed(
-				candidate_speed, tangent, normal, pop_impulse, course, tuning, delta
-			)
-			<= course.landing_end
+		if _has_safe_landing_for_ground_speed(
+			candidate_speed, tangent, normal, pop_impulse, course, tuning, delta
 		):
 			highest_safe_speed = candidate_speed
 		else:
@@ -199,7 +193,7 @@ func _maximum_landing_ground_speed(
 	return highest_safe_speed
 
 
-func _landing_progress_for_ground_speed(
+func _has_safe_landing_for_ground_speed(
 	ground_speed: float,
 	tangent: Vector2,
 	normal: Vector2,
@@ -207,23 +201,32 @@ func _landing_progress_for_ground_speed(
 	course: ParkCourse,
 	tuning: RiderTuning,
 	delta: float
-) -> float:
-	return _landing_progress_for_speed(
+) -> bool:
+	var landing: Dictionary = _landing_for_speed(
 		ground_speed + normal.x * pop_impulse,
 		ground_speed * tangent.y / maxf(tangent.x, 0.001) + normal.y * pop_impulse,
 		course,
 		tuning,
 		delta
 	)
+	if landing.is_empty():
+		return false
+	var contact_position: Vector2 = landing["position"]
+	var contact_normal: Vector2 = landing["normal"]
+	var contact_velocity: Vector2 = landing["velocity"]
+	return (
+		contact_position.x <= course.landing_end
+		and absf(contact_velocity.dot(contact_normal)) <= tuning.crash_normal_impact
+	)
 
 
-func _landing_progress_for_speed(
+func _landing_for_speed(
 	initial_course_speed: float,
 	initial_vertical_speed: float,
 	course: ParkCourse,
 	tuning: RiderTuning,
 	delta: float
-) -> float:
+) -> Dictionary:
 	delta *= tuning.air_time_scale
 	var previous_position := course.surface_position_at(course.lip_progress)
 	var course_speed := initial_course_speed
@@ -236,12 +239,15 @@ func _landing_progress_for_speed(
 		if vertical_speed > 0.0:
 			var contact := course.swept_terrain_intersection(previous_position, position)
 			if not contact.is_empty():
-				var contact_position: Vector2 = contact["position"]
-				return contact_position.x
+				return {
+					"position": contact["position"],
+					"normal": contact["normal"],
+					"velocity": Vector2(course_speed, vertical_speed),
+				}
 		if position.x > course.landing_end:
-			return INF
+			return {}
 		previous_position = position
-	return INF
+	return {}
 
 
 func _step_airborne(

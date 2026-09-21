@@ -51,6 +51,7 @@ const LOGOTYPE_TOP_ROW_OFFSET := 27.0
 const LOGOTYPE_POSITION := Vector2(250, 260)
 const LOGOTYPE_SCALE := 0.12096
 var player_count := 1
+var terrain_editor_enabled := OS.is_debug_build()
 var _ready_label: Label
 var _action_label: Label
 var _action_hint_time := 0.0
@@ -82,7 +83,6 @@ var _previous_phase := RiderState.Phase.GROUNDED
 var _terrain_drag_point := -1
 var _marker_drag_property := &""
 var _rider_dragging := false
-var terrain_editor_enabled := OS.is_debug_build()
 
 
 func _ready() -> void:
@@ -331,7 +331,7 @@ func _build_start_logotype() -> AnimatedSprite2D:
 			frame.region = Rect2(Vector2(column, row) * frame_size, frame_size)
 			var frame_offset := Vector2.ZERO
 			if row == 0:
-				frame_offset.y = - LOGOTYPE_TOP_ROW_OFFSET
+				frame_offset.y = -LOGOTYPE_TOP_ROW_OFFSET
 			frame.margin = Rect2(frame_offset, Vector2.ZERO)
 			frames.add_frame("wave", frame)
 
