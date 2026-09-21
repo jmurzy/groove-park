@@ -7,7 +7,7 @@ const DESIGN_SIZE := Vector2(1920, 1080)
 const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const HEAVENLY_LOGOTYPE_SPRITE := preload("res://artwork/features/heavenly_logotype_sprite.png")
-const HEAVENLY_LOGOMARK_SPRITE := preload("res://artwork/features/heavenly_logomark_sprite.png")
+const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
@@ -38,8 +38,6 @@ const EDITABLE_MARKERS: Array[StringName] = [
 ]
 const LANE_PROJECTION_SCALE := 0.18
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
-const LOGOMARK_FRAME_COUNT := 4
-const LOGOMARK_FRAME_RATE := 2.5
 const START_LOGOMARK_POSITION := Vector2(640, 390)
 const MIDDLE_LOGOMARK_POSITION := Vector2(1572, 544)
 const END_LOGOMARK_POSITION := Vector2(1922, 600)
@@ -289,28 +287,9 @@ func _build_world() -> void:
 
 
 func _build_logomark(logomark_name: String, logomark_position: Vector2) -> AnimatedSprite2D:
-	var frames := SpriteFrames.new()
-	frames.remove_animation("default")
-	frames.add_animation("wave")
-	frames.set_animation_loop("wave", true)
-	frames.set_animation_speed("wave", LOGOMARK_FRAME_RATE)
-	var frame_width := HEAVENLY_LOGOMARK_SPRITE.get_width() / LOGOMARK_FRAME_COUNT
-	for frame_index in LOGOMARK_FRAME_COUNT:
-		var frame := AtlasTexture.new()
-		frame.atlas = HEAVENLY_LOGOMARK_SPRITE
-		frame.region = Rect2(
-			frame_index * frame_width, 0, frame_width, HEAVENLY_LOGOMARK_SPRITE.get_height()
-		)
-		frames.add_frame("wave", frame)
-
-	var logomark := AnimatedSprite2D.new()
+	var logomark := HeavenlyLogomarkScene.create(LOGOMARK_SCALE)
 	logomark.name = logomark_name
-	logomark.sprite_frames = frames
-	logomark.animation = "wave"
 	logomark.position = logomark_position
-	logomark.scale = Vector2.ONE * LOGOMARK_SCALE
-	logomark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	logomark.play()
 	return logomark
 
 

@@ -6,6 +6,7 @@ const MARQUEE_BACKGROUND := preload("res://artwork/marquee/marquee_bg.png")
 const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_layer.gd")
 const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
 const SNOWBOARDER_SHEET := preload("res://artwork/marquee/snowboarder_sprite.png")
+const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
 const MARQUEE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const LiveIndicatorScene := preload("res://src/presentation/marquee/live_indicator.gd")
 const TICKER_SPEED := 85.0
@@ -16,6 +17,8 @@ const SKIER_SPEED := 150.0
 const SKIER_SCALE := 0.34
 const SKIER_OFFSCREEN_MARGIN := 160.0
 const SNOWBOARDER_LEAD_DISTANCE := 280.0
+const LOGOMARK_SCALE := 0.15
+const LOGOMARK_POSITION := Vector2(374.0, 308.0)
 const SEPARATOR_COLOR_STEP_DURATION := 0.4
 const SEPARATOR_COLORS: Array[Color] = [
 	Color("ffd166"),
@@ -45,6 +48,7 @@ var _ticker_tracks: Array[HBoxContainer] = []
 var _animated_separators: Array[Label] = []
 var _skier: AnimatedSprite2D
 var _snowboarder: AnimatedSprite2D
+var _logomark: AnimatedSprite2D
 
 
 func _ready() -> void:
@@ -52,11 +56,13 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28))
 	_build_header()
 	_build_ticker()
 	_build_skier()
 	_build_footer()
+	_build_logomark()
+	# Snowfall last (before diagnostics) so flakes drift in front of the logomark.
+	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28))
 	if show_diagnostics:
 		add_child(_build_diagnostics())
 	queue_redraw()
@@ -123,11 +129,17 @@ func _update_skier() -> void:
 	if not _skier:
 		return
 	var travel_width := DESIGN_SIZE.x + SKIER_OFFSCREEN_MARGIN * 2.0
-	_skier.position.x = -SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
+	_skier.position.x = - SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
 	_snowboarder.position.x = (
-		-SKIER_OFFSCREEN_MARGIN
+		- SKIER_OFFSCREEN_MARGIN
 		+ fposmod(_elapsed * SKIER_SPEED + SNOWBOARDER_LEAD_DISTANCE, travel_width)
 	)
+
+
+func _build_logomark() -> void:
+	_logomark = HeavenlyLogomarkScene.create(LOGOMARK_SCALE)
+	_logomark.position = LOGOMARK_POSITION
+	add_child(_logomark)
 
 
 func _build_header() -> void:
