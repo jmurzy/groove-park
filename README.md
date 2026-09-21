@@ -1,55 +1,13 @@
-# Gunbarrel Haus
+# Groove Park at Heavenly
 
-Gunbarrel Haus is a side-view, 2.5D terrain-park skiing game for the Polycade Sente arcade cabinet. Pick a route down the slope, manage speed, time the pop at the lip, perform a trick, and land cleanly for the best score.
 
-<table>
-  <tr>
-    <td width="320" valign="top">
-      <img src="artwork/ags/sente_demo.png" alt="HEAVENLY running with its primary display and digital marquee" width="320">
-    </td>
-    <td valign="top">
-      <h2>Polycade Sente Compatibility</h2>
-      <p>The game targets the Polycade Sente's two-display arcade setup.</p>
-      <table>
-        <thead>
-          <tr><th>Display</th><th>Design resolution</th><th>Purpose</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Primary</td><td>1920x1080</td><td>Attract mode, player selection, instructions, and gameplay</td></tr>
-          <tr><td>Digital marquee</td><td>1920x360</td><td>Always-on mountain-operations ticker and animated skier/snowboarder display</td></tr>
-        </tbody>
-      </table>
-      <p>The Sente uses Polycade Neo-Arcade Controller Boards in XInput mode. The game maps the cabinet's digital eight-way joystick and action controls to standard XInput inputs, with keyboard equivalents for development.</p>
-      <table>
-        <thead>
-          <tr><th>Game action</th><th>Sente control</th><th>Keyboard</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Move / carve / rotate</td><td>Joystick</td><td><code>W</code>, <code>A</code>, <code>S</code>, <code>D</code></td></tr>
-          <tr><td>Tuck / grab</td><td>A</td><td><code>J</code></td></tr>
-          <tr><td>Brake / release</td><td>B</td><td><code>K</code> or <code>B</code></td></tr>
-          <tr><td>Compress / pop / tweak</td><td>X</td><td><code>L</code></td></tr>
-          <tr><td>Sharp carve</td><td>Y</td><td><code>I</code></td></tr>
-          <tr><td>Exit to AGS</td><td>Hold EXIT, or Start + Select</td><td><code>Esc</code> opens the in-game exit flow</td></tr>
-        </tbody>
-      </table>
-    </td>
-  </tr>
-</table>
+Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing game for the Polycade Sente arcade cabinet. Pick a route down the slope, manage speed, time the pop at the lip, perform a trick, and land cleanly for the best score.
 
-The cabinet panel provides matching control sets for Players 1 and 2. See [POLYCADE_SENTE_CONTROLS.md](POLYCADE_SENTE_CONTROLS.md) for the complete panel and XInput mapping.
-
-On a cabinet with two displays, the primary window opens on the main display and the marquee opens on the other display. On a single display, The game runs primary-only unless marquee development overrides are enabled.
-
-### Polycade AGS
-
-Polycade AGS is the cabinet's game-selection and launch environment. It discovers locally installed games, presents their artwork in the cabinet interface, launches the selected executable, and returns to the game selector when the game exits.
-
-The game is designed to run inside AGS as a DRM-free Windows game. The packaged installer places the executable and its `.pck` data in AGS's `games/drm-free/HEAVENLY` directory, and places the library tile, hero, logo, marquee, and instructions artwork in AGS's matching `assets/drm-free/HEAVENLY` directory. This keeps the game, its cabinet presentation, and its two-display behavior integrated with the Sente.
-
-AGS is the cabinet distribution target, not a runtime requirement. The exported Windows build is also a standalone executable that can run outside AGS. Without a second detected display it uses the primary game window; use `just sente` during development to preview both windows on one desktop.
+<img src="artwork/ags/game.gif">
 
 ## Marquee And Live Lift Status
+
+<img src="artwork/ags/marquee.gif">
 
 The digital marquee is a dedicated 1920x360 Godot window. It shows an animated skier and snowboarder, a scrolling lift-status ticker, an operations footer, snowfall, and a `LIVE MOUNTAIN OPS` treatment designed for the Sente's overhead display.
 
@@ -58,6 +16,43 @@ The game includes a Liftie client for live Heavenly Mountain Resort lift informa
 Copy [heavenly.cfg.example](heavenly.cfg.example) to `heavenly.cfg` in the repository for development. The packaged game receives this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
 
 The Liftie service is initialized and passed to both display views. At present, the marquee's visible lift names and statuses are demo content, so live Liftie responses are not yet rendered in its ticker. The API polling and configuration are in place for that connection; when it is wired in, the marquee will refresh from Liftie's Heavenly data once per minute. Liftie data is informational only; observe all posted resort signage and operations guidance.
+
+## Polycade AGS
+
+<img src="artwork/ags/sente_demo.png" align="left" width="280px">
+
+Polycade AGS is the cabinet's game-selection and launch environment. It discovers locally installed games, presents their artwork in the cabinet interface, launches the selected executable, and returns to the game selector when the game exits.
+
+The game is designed to run inside AGS as a DRM-free Windows game. The packaged installer places the executable and its `.pck` data in AGS's `games/drm-free/HEAVENLY` directory, and places the library tile, hero, logo, marquee, and instructions artwork in AGS's matching `assets/drm-free/HEAVENLY` directory. This keeps the game, its cabinet presentation, and its two-display behavior integrated with the Sente.
+
+AGS is the cabinet distribution target, not a runtime requirement. The exported Windows build is also a standalone executable that can run outside AGS. Without a second detected display it uses the primary game window; use `just sente` during development to preview both windows on one desktop.
+
+<br clear="left" />
+
+### Polycade Sente Compatibility
+
+The game targets the Polycade Sente's two-display arcade setup.
+
+| Display | Design resolution | Purpose |
+| --- | --- | --- |
+| Primary | 1920x1080 | Attract mode and gameplay |
+| Marquee | 1920x360 | Always-on mountain-operations ticker |
+
+The Sente uses Polycade Neo-Arcade Controller Boards in XInput mode. The game maps the cabinet's digital eight-way joystick and action controls to standard XInput inputs, with keyboard equivalents for development.
+
+
+| Game action | Sente control | Keyboard |
+| --- | --- | --- |
+| Move / carve / rotate | Joystick | `W`, `A`, `S`, `D` |
+| Tuck / grab | A | `J` |
+| Brake / release | B | `K` or `B` |
+| Compress / pop / tweak | X | `L` |
+| Sharp carve | Y | `I` |
+| Exit to AGS | Hold EXIT, or Start + Select | `Esc` opens the in-game exit flow |
+
+The cabinet panel provides matching control sets for Players 1 and 2. See [POLYCADE_SENTE_CONTROLS.md](POLYCADE_SENTE_CONTROLS.md) for the complete panel and XInput mapping.
+
+On a cabinet with two displays, the primary window opens on the main display and the marquee opens on the other display. On a single display, The game runs primary-only unless marquee development overrides are enabled.
 
 ## Development
 
