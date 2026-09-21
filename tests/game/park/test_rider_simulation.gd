@@ -1,6 +1,7 @@
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
+const ParkSurfaceScene := preload("res://src/game/park/park_surface.gd")
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
@@ -40,8 +41,12 @@ func _init() -> void:
 	_test_neutral_input_preserves_momentum()
 	_test_neutral_input_does_not_start_a_run()
 	_test_lane_boundary_does_not_reflect_velocity()
+	_test_bounded_surface_contains_lateral_motion()
+	_test_surface_supports_more_than_four_corners()
+	_test_surface_sweep_ignores_air_gap()
 	_test_baseline_traces_replay()
 	_test_lip_crossing_transitions_to_airborne()
+	_test_polygon_launch_edge_controls_takeoff()
 	_test_valid_pop_increases_upward_takeoff_speed()
 	_test_held_pop_does_not_add_an_impulse()
 	_test_air_input_does_not_change_translation()
@@ -53,6 +58,8 @@ func _init() -> void:
 	_test_swept_contact_resolves_once()
 	_test_takeoff_speed_stays_within_landing_zone()
 	_test_shipped_course_is_valid()
+	_test_shipped_course_declares_separate_surfaces()
+	_test_control_zone_selects_compression_mode()
 	_test_shipped_course_has_a_reachable_clean_landing()
 	_test_landing_keeps_lane_velocity_separate_from_slope()
 	_test_landing_labels_and_continuous_quality()
@@ -228,6 +235,104 @@ func _test_lip_crossing_transitions_to_airborne() -> void:
 	)
 
 
+func _test_polygon_launch_edge_controls_takeoff() -> void:
+	var course := _takeoff_course()
+	var takeoff := ParkSurfaceScene.new()
+	takeoff.id = &"takeoff"
+	takeoff.role = ParkSurfaceScene.Role.TAKEOFF
+	takeoff.footprint = PackedVector2Array(
+		[Vector2(150, -360), Vector2(190, -360), Vector2(190, 360), Vector2(150, 360)]
+	)
+	takeoff.launch_edge_index = 1
+	course.surfaces = [takeoff]
+	var state := _new_state_for_course(course)
+	state.course_progress = 185.0
+	state.ground_velocity = Vector2(600.0, 0.0)
+	state.has_ground_intent = true
+	_step_with_pop(state, course, false, false, false)
+	_expect(
+		state.phase == RiderState.Phase.AIRBORNE, "Crossing a polygon launch edge should take off."
+	)
+	_expect(
+		is_equal_approx(state.course_progress, 190.0),
+		"The polygon launch edge should override the legacy lip marker."
+	)
+
+
+func _test_bounded_surface_contains_lateral_motion() -> void:
+	var course := ParkCourseScene.new()
+	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(300, 0)])
+	course.start_progress = 50.0
+	course.compression_start = 200.0
+	course.compression_end = 220.0
+	course.lip_progress = 240.0
+	course.landing_start = 250.0
+	course.landing_end = 275.0
+	course.recovery_progress = 300.0
+	course.camera_start = 0.0
+	course.camera_end = 300.0
+	var surface := ParkSurfaceScene.new()
+	surface.id = &"narrow_approach"
+	surface.footprint = PackedVector2Array(
+		[Vector2(0, -10), Vector2(199, -10), Vector2(199, 10), Vector2(0, 10)]
+	)
+	course.surfaces = [surface]
+	var state := _new_state_for_course(course)
+	state.lane_position = 9.0
+	state.ground_velocity = Vector2(0.0, 600.0)
+	state.has_ground_intent = true
+	_step_with_course(state, course, Vector2.RIGHT)
+	_expect(
+		state.lane_position <= 10.0,
+		"A bounded surface should contain lateral ground motion at its own edge."
+	)
+	_expect(
+		state.ground_velocity.y > 0.0,
+		"Soft containment should damp outward motion instead of reflecting it."
+	)
+
+
+func _test_surface_supports_more_than_four_corners() -> void:
+	var surface := ParkSurfaceScene.new()
+	surface.id = &"five_corner_surface"
+	surface.footprint = PackedVector2Array(
+		[
+			Vector2(0, -20),
+			Vector2(120, -20),
+			Vector2(120, 20),
+			Vector2(60, 40),
+			Vector2(0, 20),
+		]
+	)
+	_expect(
+		surface.validation_errors().is_empty(),
+		"A surface footprint should support more than four corners."
+	)
+	_expect(
+		surface.contains(Vector2(60, 0)),
+		"A rider should be able to travel inside an authored five-corner surface."
+	)
+
+
+func _test_surface_sweep_ignores_air_gap() -> void:
+	var course := ParkCourseScene.new()
+	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(300, 0)])
+	var approach := ParkSurfaceScene.new()
+	approach.id = &"approach"
+	approach.footprint = PackedVector2Array(
+		[Vector2(0, -10), Vector2(100, -10), Vector2(100, 10), Vector2(0, 10)]
+	)
+	var landing := ParkSurfaceScene.new()
+	landing.id = &"landing"
+	landing.role = ParkSurfaceScene.Role.LANDING
+	landing.footprint = PackedVector2Array(
+		[Vector2(200, -10), Vector2(300, -10), Vector2(300, 10), Vector2(200, 10)]
+	)
+	course.surfaces = [approach, landing]
+	var contact := course.swept_terrain_intersection(Vector2(140.0, -10.0), Vector2(160.0, 10.0))
+	_expect(contact.is_empty(), "A terrain profile in an authored air gap must not collide.")
+
+
 func _test_valid_pop_increases_upward_takeoff_speed() -> void:
 	var unpopped := _launch_from_course(false)
 	var popped := _launch_from_course(true)
@@ -388,6 +493,35 @@ func _test_shipped_course_is_valid() -> void:
 	_expect(
 		ShippedParkCourse.validation_errors().is_empty(),
 		"The shipped course should pass ParkCourse validation."
+	)
+
+
+func _test_shipped_course_declares_separate_surfaces() -> void:
+	var approach := ShippedParkCourse.surface_at(Vector2(500.0, 0.0))
+	var landing: Variant = null
+	for surface in ShippedParkCourse.surfaces:
+		if surface.role == ParkSurfaceScene.Role.LANDING:
+			landing = surface
+	_expect(
+		approach != null and approach.role == ParkSurfaceScene.Role.APPROACH,
+		"The approach must be an authored travel surface."
+	)
+	_expect(
+		landing != null, "The landing must remain an authored surface separate from the approach."
+	)
+
+
+func _test_control_zone_selects_compression_mode() -> void:
+	var state := RiderStateScene.new()
+	state.course_progress = 900.0
+	state.vertical_position = ShippedParkCourse.surface_y_at(state.course_progress)
+	_simulation.step(state, RiderInputFrameScene.new(), ShippedParkCourse, _tuning, DELTA)
+	_expect(
+		(
+			state.control_mode == RiderState.ControlMode.COMPRESSION
+			and state.current_control_zone_id == &"compression"
+		),
+		"The compression area should explicitly select compression controls before takeoff."
 	)
 
 

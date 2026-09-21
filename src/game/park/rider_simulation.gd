@@ -16,6 +16,7 @@ func step(
 		return
 	if state.phase != RiderState.Phase.GROUNDED:
 		return
+	_update_ground_area(state, course)
 	if not input.heading.is_zero_approx():
 		state.desired_heading = input.heading
 		state.has_ground_intent = true
@@ -55,8 +56,12 @@ func step(
 	_update_compression(state, input, course, tuning, delta)
 	state.course_progress = next_progress
 	state.lane_position += state.ground_velocity.y * delta
-	if course.crosses_lip(previous_progress, next_progress):
-		_transition_to_takeoff(state, course, tuning, delta)
+	var launch := course.crosses_launch_edge(
+		Vector2(previous_progress, state.lane_position), Vector2(next_progress, state.lane_position)
+	)
+	if not launch.is_empty():
+		var launch_position: Vector2 = launch["position"]
+		_transition_to_takeoff(state, course, tuning, delta, launch_position.x)
 		return
 	if state.course_progress >= course.recovery_progress:
 		state.course_progress = course.recovery_progress
@@ -70,15 +75,13 @@ func step(
 	state.tuck_active = input.tuck_pressed
 	state.brake_active = input.brake_pressed
 	state.edge_active = input.edge_pressed
+	_update_ground_area(state, course)
 
 
 func _update_compression(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	var is_in_compression_zone := (
-		state.course_progress >= course.compression_start
-		and state.course_progress <= course.compression_end
-	)
+	var is_in_compression_zone := state.control_mode == RiderState.ControlMode.COMPRESSION
 	if input.pop_just_pressed and is_in_compression_zone and not input.tuck_pressed:
 		state.compression_active = true
 		state.compression_amount = 0.0
@@ -90,22 +93,26 @@ func _update_compression(
 		)
 	if state.compression_active and input.pop_just_released:
 		state.compression_release_progress = state.course_progress
-		state.compression_release_quality = _release_quality(state.course_progress, course, tuning)
+		var surface := course.surface_at(Vector2(state.course_progress, state.lane_position))
+		var launch_progress := surface.launch_progress() if surface != null else course.lip_progress
+		state.compression_release_quality = _release_quality(
+			state.course_progress, launch_progress, tuning
+		)
 		state.compression_active = false
 
 
-func _release_quality(release_progress: float, course: ParkCourse, tuning: RiderTuning) -> float:
-	if release_progress > course.lip_progress:
+func _release_quality(
+	release_progress: float, launch_progress: float, tuning: RiderTuning
+) -> float:
+	if release_progress > launch_progress:
 		return 0.0
-	return clampf(
-		1.0 - (course.lip_progress - release_progress) / tuning.pop_release_window, 0.0, 1.0
-	)
+	return clampf(1.0 - (launch_progress - release_progress) / tuning.pop_release_window, 0.0, 1.0)
 
 
 func _transition_to_takeoff(
-	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float, launch_progress: float
 ) -> void:
-	var lip_progress := course.lip_progress
+	var lip_progress := launch_progress
 	var tangent := course.tangent_at(lip_progress)
 	var normal := course.normal_at(lip_progress)
 	var pop_impulse := (
@@ -116,6 +123,9 @@ func _transition_to_takeoff(
 		state.approach_speed_captured = true
 
 	state.phase = RiderState.Phase.AIRBORNE
+	state.current_surface_id = StringName()
+	state.current_control_zone_id = &"flight"
+	state.control_mode = RiderState.ControlMode.FLIGHT
 	state.course_progress = lip_progress
 	state.lane_position = clampf(
 		state.lane_position,
@@ -127,7 +137,14 @@ func _transition_to_takeoff(
 	var launch_ground_speed := minf(
 		state.ground_velocity.x,
 		_maximum_landing_ground_speed(
-			state.ground_velocity.x, tangent, normal, pop_impulse, course, tuning, delta
+			state.ground_velocity.x,
+			tangent,
+			normal,
+			pop_impulse,
+			lip_progress,
+			course,
+			tuning,
+			delta
 		)
 	)
 	state.course_speed = launch_ground_speed + normal.x * pop_impulse
@@ -168,6 +185,7 @@ func _maximum_landing_ground_speed(
 	tangent: Vector2,
 	normal: Vector2,
 	pop_impulse: float,
+	launch_progress: float,
 	course: ParkCourse,
 	tuning: RiderTuning,
 	delta: float
@@ -176,7 +194,7 @@ func _maximum_landing_ground_speed(
 	for sample_index in range(1, 33):
 		var sample_speed := requested_speed * float(sample_index) / 32.0
 		if _has_safe_landing_for_ground_speed(
-			sample_speed, tangent, normal, pop_impulse, course, tuning, delta
+			sample_speed, tangent, normal, pop_impulse, launch_progress, course, tuning, delta
 		):
 			highest_safe_speed = sample_speed
 	if is_zero_approx(highest_safe_speed):
@@ -185,7 +203,7 @@ func _maximum_landing_ground_speed(
 	for _iteration in 12:
 		var candidate_speed := (highest_safe_speed + unsafe_speed) * 0.5
 		if _has_safe_landing_for_ground_speed(
-			candidate_speed, tangent, normal, pop_impulse, course, tuning, delta
+			candidate_speed, tangent, normal, pop_impulse, launch_progress, course, tuning, delta
 		):
 			highest_safe_speed = candidate_speed
 		else:
@@ -198,6 +216,7 @@ func _has_safe_landing_for_ground_speed(
 	tangent: Vector2,
 	normal: Vector2,
 	pop_impulse: float,
+	launch_progress: float,
 	course: ParkCourse,
 	tuning: RiderTuning,
 	delta: float
@@ -205,6 +224,7 @@ func _has_safe_landing_for_ground_speed(
 	var landing: Dictionary = _landing_for_speed(
 		ground_speed + normal.x * pop_impulse,
 		ground_speed * tangent.y / maxf(tangent.x, 0.001) + normal.y * pop_impulse,
+		launch_progress,
 		course,
 		tuning,
 		delta
@@ -223,12 +243,13 @@ func _has_safe_landing_for_ground_speed(
 func _landing_for_speed(
 	initial_course_speed: float,
 	initial_vertical_speed: float,
+	launch_progress: float,
 	course: ParkCourse,
 	tuning: RiderTuning,
 	delta: float
 ) -> Dictionary:
 	delta *= tuning.air_time_scale
-	var previous_position := course.surface_position_at(course.lip_progress)
+	var previous_position := course.surface_position_at(launch_progress)
 	var course_speed := initial_course_speed
 	var vertical_speed := initial_vertical_speed
 	var position := previous_position
@@ -257,6 +278,7 @@ func _step_airborne(
 	# Slow the simulation while airborne so players have time to read and act on landing cues.
 	delta *= tuning.air_time_scale
 	var previous_position := Vector2(state.course_progress, state.vertical_position)
+	var previous_lane_position := state.lane_position
 	state.vertical_speed += tuning.gravity * delta
 	var air_drag_factor := maxf(0.0, 1.0 - tuning.air_drag * delta)
 	state.course_speed *= air_drag_factor
@@ -316,7 +338,10 @@ func _step_airborne(
 	if state.vertical_speed <= 0.0:
 		return
 	var contact := course.swept_terrain_intersection(
-		previous_position, Vector2(state.course_progress, state.vertical_position)
+		previous_position,
+		Vector2(state.course_progress, state.vertical_position),
+		previous_lane_position,
+		state.lane_position
 	)
 	if not contact.is_empty():
 		_resolve_landing(state, course, tuning, contact)
@@ -345,6 +370,7 @@ func _resolve_missed_landing(state: RiderState, course: ParkCourse, tuning: Ride
 	state.vertical_position = state.landing_position.y
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	state.phase = RiderState.Phase.CRASHED
+	state.control_mode = RiderState.ControlMode.RUNOUT
 	state.ground_velocity = Vector2.ZERO
 	state.course_speed = 0.0
 	state.lane_speed = 0.0
@@ -392,6 +418,7 @@ func _resolve_landing(
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	if bool(result["crash"]):
 		state.phase = RiderState.Phase.CRASHED
+		state.control_mode = RiderState.ControlMode.RUNOUT
 		state.ground_velocity = Vector2.ZERO
 		state.course_speed = 0.0
 		state.lane_speed = 0.0
@@ -408,6 +435,7 @@ func _resolve_landing(
 	state.phase = (
 		RiderState.Phase.RECOVERING if state.landing_label == "SKETCHY" else RiderState.Phase.LANDED
 	)
+	_update_ground_area(state, course)
 	state.recovery_time_remaining = (
 		tuning.sketchy_recovery_duration
 		if state.phase == RiderState.Phase.RECOVERING
@@ -434,6 +462,20 @@ func _step_recovery(
 	state.recovery_time_remaining = maxf(state.recovery_time_remaining - delta, 0.0)
 	if is_zero_approx(state.recovery_time_remaining):
 		state.phase = RiderState.Phase.GROUNDED
+		_update_ground_area(state, course)
+
+
+func _update_ground_area(state: RiderState, course: ParkCourse) -> void:
+	var ground_position := Vector2(state.course_progress, state.lane_position)
+	var surface := course.surface_at(ground_position)
+	state.current_surface_id = surface.id if surface != null else StringName()
+	var zone := course.control_zone_at(ground_position)
+	if zone == null:
+		state.current_control_zone_id = StringName()
+		state.control_mode = RiderState.ControlMode.RUNOUT
+		return
+	state.current_control_zone_id = zone.id
+	state.control_mode = zone.control_mode
 
 
 func _apply_drag(

@@ -129,9 +129,9 @@ func _update_skier() -> void:
 	if not _skier:
 		return
 	var travel_width := DESIGN_SIZE.x + SKIER_OFFSCREEN_MARGIN * 2.0
-	_skier.position.x = - SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
+	_skier.position.x = -SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
 	_snowboarder.position.x = (
-		- SKIER_OFFSCREEN_MARGIN
+		-SKIER_OFFSCREEN_MARGIN
 		+ fposmod(_elapsed * SKIER_SPEED + SNOWBOARDER_LEAD_DISTANCE, travel_width)
 	)
 

@@ -17,10 +17,9 @@ static func evaluate(
 	)
 	var normal_impact := absf(velocity.dot(normal))
 	var angular_speed := absf(state.angular_velocity)
+	var contact_surface := course.surface_at(Vector2(contact_position.x, state.lane_position))
 	var in_landing_zone := (
-		contact_position.x >= course.landing_start
-		and contact_position.x <= course.landing_end
-		and course.is_within_lane(contact_position.x, state.lane_position)
+		contact_surface != null and contact_surface.role == ParkSurface.Role.LANDING
 	)
 	var angle_quality := clampf(1.0 - equipment_error / tuning.crash_angle_degrees, 0.0, 1.0)
 	var velocity_quality := clampf(

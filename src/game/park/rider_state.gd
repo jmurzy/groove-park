@@ -2,6 +2,7 @@ class_name RiderState
 extends RefCounted
 
 enum Phase { GROUNDED, AIRBORNE, LANDED, CRASHED, RECOVERING }
+enum ControlMode { APPROACH, COMPRESSION, TAKEOFF, FLIGHT, LANDING, RUNOUT }
 
 const TrickTrackerScene := preload("res://src/game/park/trick_tracker.gd")
 
@@ -25,6 +26,9 @@ var brake_active := false
 var edge_active := false
 
 var phase := Phase.GROUNDED
+var current_surface_id: StringName
+var current_control_zone_id: StringName
+var control_mode := ControlMode.APPROACH
 var compression_active := false
 var compression_amount := 0.0
 var compression_release_progress := -1.0

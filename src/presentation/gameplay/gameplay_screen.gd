@@ -22,20 +22,10 @@ const PARK_COURSE_RESOURCE_PATH := "res://src/game/park/park_course.tres"
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
+const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_debug_draw.gd")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
-const SURFACE_GRID_SIZE := 120.0
-const TERRAIN_HANDLE_RADIUS := 14.0
 const TERRAIN_HANDLE_HIT_RADIUS := 28.0
-const MARKER_HANDLE_RADIUS := 12.0
-const MARKER_HANDLE_HIT_RADIUS := 24.0
 const RIDER_DRAG_HIT_RADIUS := 56.0
-const EDITABLE_MARKERS: Array[StringName] = [
-	&"compression_start",
-	&"compression_end",
-	&"lip_progress",
-	&"landing_start",
-	&"landing_end",
-]
 const LANE_PROJECTION_SCALE := 0.18
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const START_LOGOMARK_POSITION := Vector2(640, 390)
@@ -79,7 +69,8 @@ var _camera: Camera2D
 var _ui_layer: CanvasLayer
 var _previous_phase := RiderState.Phase.GROUNDED
 var _terrain_drag_point := -1
-var _marker_drag_property := &""
+var _surface_drag_id: StringName
+var _surface_drag_vertex := -1
 var _rider_dragging := false
 
 
@@ -362,133 +353,26 @@ func _update_presentation_cues() -> void:
 
 
 func _draw_course_debug() -> void:
-	var world_bounds := Rect2(Vector2.ZERO, Vector2(GAMEPLAY_BG.get_size()))
-	draw_rect(world_bounds, Color("010713dd"), false, 7.0)
-	draw_rect(world_bounds, Color("ff5d52"), false, 3.0)
-	for point_index in range(_course.terrain_points.size() - 1):
-		var slope_start := _course.terrain_points[point_index]
-		var slope_end := _course.terrain_points[point_index + 1]
-		draw_line(slope_start, slope_end, Color("010713ee"), 10.0)
-		draw_line(slope_start, slope_end, Color("ff5d52"), 5.0)
-	_draw_lane_guide(_course.lane_min, Color("64ffb2"))
-	_draw_lane_guide(_course.lane_max, Color("64ffb2"))
-	_draw_course_marker(&"compression_start", "COMPRESS", Color("fff16a"))
-	_draw_course_marker(&"compression_end", "RELEASE", Color("fff16a"))
-	_draw_course_marker(&"lip_progress", "LIP", Color("68efff"))
-	_draw_course_marker(&"landing_start", "LAND", Color("73ff91"))
-	_draw_course_marker(&"landing_end", "RUNOUT", Color("73ff91"))
-	_draw_predicted_takeoff_trajectory()
-
-	for x in range(0, int(world_bounds.end.x) + 1, int(SURFACE_GRID_SIZE)):
-		draw_line(
-			Vector2(x, world_bounds.position.y),
-			Vector2(x, world_bounds.end.y),
-			Color("071326bb"),
-			3.0
-		)
-		draw_line(
-			Vector2(x, world_bounds.position.y),
-			Vector2(x, world_bounds.end.y),
-			Color("68efff88"),
-			1.0
-		)
-
-	for y in range(0, int(world_bounds.end.y) + 1, int(SURFACE_GRID_SIZE)):
-		draw_line(
-			Vector2(world_bounds.position.x, y),
-			Vector2(world_bounds.end.x, y),
-			Color("071326bb"),
-			3.0
-		)
-		draw_line(
-			Vector2(world_bounds.position.x, y),
-			Vector2(world_bounds.end.x, y),
-			Color("68efff88"),
-			1.0
-		)
+	CourseDebugDrawScene.draw_course_debug(
+		self,
+		_course,
+		Vector2(GAMEPLAY_BG.get_size()),
+		_surface_drag_id,
+		_surface_drag_vertex,
+		_rider_state
+	)
 
 
 func _draw_terrain_handles() -> void:
-	for point_index in _course.terrain_points.size():
-		var screen_point := _course.terrain_points[point_index]
-		var color := Color("fff16a") if point_index == _terrain_drag_point else Color("ff5d52")
-		draw_circle(screen_point, TERRAIN_HANDLE_RADIUS, Color("010713ee"))
-		draw_circle(screen_point, TERRAIN_HANDLE_RADIUS - 3.0, color)
-		draw_circle(screen_point, TERRAIN_HANDLE_RADIUS, Color("010713"), false, 2.0)
-		var label := "POINT %d" % point_index
-		draw_string(
-			ThemeDB.fallback_font,
-			screen_point + Vector2(18, 6),
-			label,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			14.0,
-			color
-		)
+	CourseDebugDrawScene.draw_terrain_handles(self, _course, _terrain_drag_point)
 
 
-func _draw_lane_guide(lane_position: float, color: Color) -> void:
-	var projected_offset := Vector2(0, lane_position * LANE_PROJECTION_SCALE)
-	for point_index in range(_course.terrain_points.size() - 1):
-		var guide_start := _course.terrain_points[point_index] + projected_offset
-		var guide_end := _course.terrain_points[point_index + 1] + projected_offset
-		draw_line(guide_start, guide_end, Color("010713ee"), 7.0)
-		draw_line(guide_start, guide_end, color, 3.0)
+func _ground_to_screen(ground_position: Vector2) -> Vector2:
+	return CourseDebugDrawScene.ground_to_screen(_course, ground_position)
 
 
-func _draw_course_marker(marker_property: StringName, marker_name: String, color: Color) -> void:
-	var course_progress := float(_course.get(marker_property))
-	var surface_position := _course.surface_position_at(course_progress)
-	draw_line(
-		Vector2(surface_position.x, 0),
-		Vector2(surface_position.x, GAMEPLAY_BG.get_height()),
-		Color("010713ee"),
-		7.0
-	)
-	draw_line(
-		Vector2(surface_position.x, 0),
-		Vector2(surface_position.x, GAMEPLAY_BG.get_height()),
-		color,
-		3.0
-	)
-	draw_circle(surface_position, 15.0, Color("010713ee"))
-	draw_circle(surface_position, 10.0, color)
-	var label_size := ThemeDB.fallback_font.get_string_size(
-		marker_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 18
-	)
-	var label_rect := Rect2(surface_position + Vector2(8, -38), label_size + Vector2(16, 20))
-	draw_rect(label_rect, Color("010713dd"))
-	draw_rect(label_rect, color, false, 2.0)
-	draw_string(
-		ThemeDB.fallback_font,
-		surface_position + Vector2(16, -22),
-		marker_name,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		18.0,
-		color
-	)
-	var handle_position := _marker_handle_position(course_progress)
-	var handle_color := Color.WHITE if marker_property == _marker_drag_property else color
-	draw_circle(handle_position, MARKER_HANDLE_RADIUS, Color("010713ee"))
-	draw_circle(handle_position, MARKER_HANDLE_RADIUS - 3.0, handle_color)
-	draw_circle(handle_position, MARKER_HANDLE_RADIUS, Color("010713"), false, 2.0)
-
-
-func _draw_skier_debug_marker(source_rect: Rect2) -> void:
-	var scale := DESIGN_SIZE / source_rect.size
-	var screen_position := (_project_rider_position() - source_rect.position) * scale
-	draw_circle(screen_position, 56, Color("010713ee"), false, 8.0)
-	draw_circle(screen_position, 52, Color("fff16a"), false, 3.0)
-
-
-func _draw_predicted_takeoff_trajectory() -> void:
-	if _rider_state.phase != RiderState.Phase.AIRBORNE:
-		return
-	var start := _project_rider_position()
-	var velocity := Vector2(_rider_state.course_speed, _rider_state.vertical_speed) * 0.28
-	draw_line(start, start + velocity, Color("68efff"), 3.0)
-	draw_circle(start + velocity, 6.0, Color("68efff"))
+func _screen_to_ground(screen_position: Vector2) -> Vector2:
+	return CourseDebugDrawScene.screen_to_ground(_course, screen_position)
 
 
 func _build_hud() -> void:
@@ -690,24 +574,39 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_RIGHT and mouse_event.pressed:
+			if _remove_surface_vertex(_screen_to_world(mouse_event.global_position)):
+				_save_terrain_points()
+				get_viewport().set_input_as_handled()
+				queue_redraw()
+			return
 		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
 			return
 		if mouse_event.pressed:
 			var world_position := _screen_to_world(mouse_event.global_position)
 			if _rider_at(world_position):
 				_begin_rider_drag(world_position)
+			elif mouse_event.shift_pressed and _insert_surface_vertex(world_position):
+				_surface_drag_id = StringName()
+				_surface_drag_vertex = -1
+				_save_terrain_points()
+				get_viewport().set_input_as_handled()
 			else:
-				_marker_drag_property = _marker_at(world_position)
-				if _marker_drag_property.is_empty():
+				var surface_vertex := _surface_vertex_at(world_position)
+				if surface_vertex.is_empty():
 					_terrain_drag_point = _terrain_point_at(world_position)
+				else:
+					_surface_drag_id = surface_vertex["surface_id"]
+					_surface_drag_vertex = surface_vertex["vertex_index"]
 		elif _rider_dragging:
 			_rider_dragging = false
 			get_viewport().set_input_as_handled()
-		elif _terrain_drag_point >= 0 or not _marker_drag_property.is_empty():
+		elif _terrain_drag_point >= 0 or _surface_drag_vertex >= 0:
 			_save_terrain_points()
 			_terrain_drag_point = -1
-			_marker_drag_property = &""
-		if _rider_dragging or _terrain_drag_point >= 0 or not _marker_drag_property.is_empty():
+			_surface_drag_id = StringName()
+			_surface_drag_vertex = -1
+		if _rider_dragging or _terrain_drag_point >= 0 or _surface_drag_vertex >= 0:
 			get_viewport().set_input_as_handled()
 		queue_redraw()
 		return
@@ -716,9 +615,9 @@ func _input(event: InputEvent) -> void:
 		_place_rider_on_course(_screen_to_world(motion_event.global_position).x)
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventMouseMotion and not _marker_drag_property.is_empty():
+	if event is InputEventMouseMotion and _surface_drag_vertex >= 0:
 		var motion_event := event as InputEventMouseMotion
-		_move_marker(_marker_drag_property, _screen_to_world(motion_event.global_position).x)
+		_move_surface_vertex(_screen_to_world(motion_event.global_position))
 		get_viewport().set_input_as_handled()
 		queue_redraw()
 		return
@@ -735,6 +634,86 @@ func _screen_to_world(screen_position: Vector2) -> Vector2:
 
 func _rider_at(world_position: Vector2) -> bool:
 	return world_position.distance_to(_project_rider_position()) <= RIDER_DRAG_HIT_RADIUS
+
+
+func _surface_vertex_at(world_position: Vector2) -> Dictionary:
+	for surface in _course.surfaces:
+		for point_index in surface.footprint.size():
+			if (
+				world_position.distance_to(_ground_to_screen(surface.footprint[point_index]))
+				<= TERRAIN_HANDLE_HIT_RADIUS
+			):
+				return {"surface_id": surface.id, "vertex_index": point_index}
+	return {}
+
+
+func _move_surface_vertex(world_position: Vector2) -> void:
+	for surface in _course.surfaces:
+		if surface.id != _surface_drag_id:
+			continue
+		var ground_position := _screen_to_ground(world_position)
+		ground_position.x = clampf(
+			ground_position.x, _course.terrain_points[0].x, _course.terrain_points[-1].x
+		)
+		ground_position.y = clampf(ground_position.y, -900.0, 900.0)
+		surface.footprint[_surface_drag_vertex] = ground_position
+		return
+
+
+func _insert_surface_vertex(world_position: Vector2) -> bool:
+	var edge := _surface_edge_at(world_position)
+	if edge.is_empty():
+		return false
+	var surface_id: StringName = edge["surface_id"]
+	var edge_index: int = edge["edge_index"]
+	for surface in _course.surfaces:
+		if surface.id != surface_id:
+			continue
+		if edge_index == surface.launch_edge_index:
+			return false
+		surface.footprint.insert(edge_index + 1, _screen_to_ground(world_position))
+		if edge_index < surface.launch_edge_index:
+			surface.launch_edge_index += 1
+		return true
+	return false
+
+
+func _remove_surface_vertex(world_position: Vector2) -> bool:
+	var vertex := _surface_vertex_at(world_position)
+	if vertex.is_empty():
+		return false
+	var surface_id: StringName = vertex["surface_id"]
+	var vertex_index: int = vertex["vertex_index"]
+	for surface in _course.surfaces:
+		if surface.id != surface_id or surface.footprint.size() <= 3:
+			continue
+		var launch_edge_end := (surface.launch_edge_index + 1) % surface.footprint.size()
+		if vertex_index == surface.launch_edge_index or vertex_index == launch_edge_end:
+			return false
+		surface.footprint.remove_at(vertex_index)
+		if vertex_index < surface.launch_edge_index:
+			surface.launch_edge_index -= 1
+		return true
+	return false
+
+
+func _surface_edge_at(world_position: Vector2) -> Dictionary:
+	var closest_edge := {}
+	var closest_distance := TERRAIN_HANDLE_HIT_RADIUS
+	for surface in _course.surfaces:
+		var footprint := CourseDebugDrawScene.surface_screen_footprint(_course, surface)
+		for point_index in footprint.size():
+			var edge_start := footprint[point_index]
+			var edge_end := footprint[(point_index + 1) % footprint.size()]
+			var distance := (
+				Geometry2D
+				. get_closest_point_to_segment(world_position, edge_start, edge_end)
+				. distance_to(world_position)
+			)
+			if distance <= closest_distance:
+				closest_distance = distance
+				closest_edge = {"surface_id": surface.id, "edge_index": point_index}
+	return closest_edge
 
 
 func _begin_rider_drag(world_position: Vector2) -> void:
@@ -761,40 +740,6 @@ func _place_rider_on_course(world_x: float) -> void:
 	_rider_state.ground_position = Vector2(_rider_state.course_progress, _rider_state.lane_position)
 	_update_camera()
 	_update_skier_view()
-
-
-func _marker_handle_position(course_progress: float) -> Vector2:
-	return _course.surface_position_at(course_progress) + Vector2(0, -56)
-
-
-func _marker_at(world_position: Vector2) -> StringName:
-	for marker_property in EDITABLE_MARKERS:
-		var marker_progress := float(_course.get(marker_property))
-		var handle_position := _marker_handle_position(marker_progress)
-		if world_position.distance_to(handle_position) <= MARKER_HANDLE_HIT_RADIUS:
-			return marker_property
-		var surface_position := _course.surface_position_at(marker_progress)
-		if (
-			absf(world_position.x - marker_progress) <= MARKER_HANDLE_HIT_RADIUS
-			and world_position.y < surface_position.y - TERRAIN_HANDLE_HIT_RADIUS
-		):
-			return marker_property
-	return &""
-
-
-func _move_marker(marker_property: StringName, world_x: float) -> void:
-	var marker_index := EDITABLE_MARKERS.find(marker_property)
-	var minimum_x := (
-		_course.approach_start + 1.0
-		if marker_index == 0
-		else float(_course.get(EDITABLE_MARKERS[marker_index - 1])) + 1.0
-	)
-	var maximum_x := (
-		_course.recovery_progress - 1.0
-		if marker_index == EDITABLE_MARKERS.size() - 1
-		else float(_course.get(EDITABLE_MARKERS[marker_index + 1])) - 1.0
-	)
-	_course.set(marker_property, clampf(world_x, minimum_x, maximum_x))
 
 
 func _terrain_point_at(world_position: Vector2) -> int:
