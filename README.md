@@ -1,5 +1,4 @@
-# Groove Park at Heavenly
-
+# Groove Park at Heavenly [![build](https://img.shields.io/github/actions/workflow/status/jmurzy/groove-park/windows-build.yml?branch=main&label=build)](https://github.com/jmurzy/groove-park/actions/workflows/windows-build.yml) [![license: Proprietary](https://img.shields.io/badge/license-proprietary-red.svg)](LICENSE)
 
 Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing game for the Polycade Sente arcade cabinet. Pick a route down the slope, manage speed, time the pop at the lip, perform a trick, and land cleanly for the best score.
 
