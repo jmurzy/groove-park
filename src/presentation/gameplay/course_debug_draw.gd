@@ -7,7 +7,6 @@ const ParkSurfaceScene := preload("res://src/game/park/park_surface.gd")
 
 const SURFACE_GRID_SIZE := 120.0
 const TERRAIN_HANDLE_RADIUS := 5.5
-const LANE_PROJECTION_SCALE := 0.18
 
 
 static func draw_course_debug(
@@ -92,14 +91,17 @@ static func _draw_control_zone(
 static func ground_to_screen(course: ParkCourse, ground_position: Vector2) -> Vector2:
 	return (
 		course.surface_position_at(ground_position.x)
-		+ Vector2(0, ground_position.y * LANE_PROJECTION_SCALE)
+		+ Vector2(0, ground_position.y * GameConstants.LANE_PROJECTION_SCALE)
 	)
 
 
 static func screen_to_ground(course: ParkCourse, screen_position: Vector2) -> Vector2:
 	return Vector2(
 		screen_position.x,
-		(screen_position.y - course.surface_y_at(screen_position.x)) / LANE_PROJECTION_SCALE
+		(
+			(screen_position.y - course.surface_y_at(screen_position.x))
+			/ GameConstants.LANE_PROJECTION_SCALE
+		)
 	)
 
 

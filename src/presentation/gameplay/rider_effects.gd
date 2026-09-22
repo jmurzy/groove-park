@@ -2,8 +2,6 @@
 class_name RiderEffects
 extends Node2D
 
-const LANE_PROJECTION_SCALE := 0.18
-
 var _state: RiderState
 var _course: ParkCourse
 var _elapsed := 0.0
@@ -21,13 +19,13 @@ func _draw() -> void:
 		return
 	var rider_position := Vector2(
 		_state.course_progress,
-		_state.vertical_position + _state.lane_position * LANE_PROJECTION_SCALE
+		_state.vertical_position + _state.lane_position * GameConstants.LANE_PROJECTION_SCALE
 	)
 	var surface_position := Vector2(
 		_state.course_progress,
 		(
 			_course.surface_y_at(_state.course_progress, _state.lane_position)
-			+ _state.lane_position * LANE_PROJECTION_SCALE
+			+ _state.lane_position * GameConstants.LANE_PROJECTION_SCALE
 		)
 	)
 	var height := maxf(surface_position.y - rider_position.y, 0.0)

@@ -28,7 +28,6 @@ const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_de
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
-const LANE_PROJECTION_SCALE := 0.18
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const START_LOGOMARK_POSITION := Vector2(640, 390)
 const MIDDLE_LOGOMARK_POSITION := Vector2(1572, 544)
@@ -156,7 +155,7 @@ func _project_rider_position() -> Vector2:
 		_run_manager.rider_state.course_progress,
 		(
 			_run_manager.rider_state.vertical_position
-			+ _run_manager.rider_state.lane_position * LANE_PROJECTION_SCALE
+			+ _run_manager.rider_state.lane_position * GameConstants.LANE_PROJECTION_SCALE
 		)
 	)
 
@@ -187,7 +186,7 @@ func _update_snowboarder_view() -> void:
 			_run_manager.skier_state.course_progress,
 			(
 				_run_manager.skier_state.vertical_position
-				+ _run_manager.skier_state.lane_position * LANE_PROJECTION_SCALE
+				+ _run_manager.skier_state.lane_position * GameConstants.LANE_PROJECTION_SCALE
 			)
 		),
 		skier_rotation
