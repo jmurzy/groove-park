@@ -9,6 +9,7 @@ const KMH_TO_MPH := 0.621371
 const WORLD_TO_DISPLAY_SCALE := 0.12
 
 var _frame: HudFrame
+var _rider_title: Label
 var _rider_value: Label
 var _speed_value: Label
 var _jump_value: Label
@@ -37,7 +38,7 @@ func _ready() -> void:
 
 
 func set_rider_text(rider_text: String) -> void:
-	_rider_value.text = rider_text
+	_rider_title.text = rider_text
 
 
 func set_speed(world_speed: float) -> void:
@@ -57,18 +58,22 @@ func set_rotation_text(rotation_text: String) -> void:
 
 
 func _build_metrics() -> void:
-	_rider_value = _add_metric("P1  SKIER", "READY", 506, Color("ffe126"), Color("f3f6ff"))
+	_rider_title = _add_metric_title("P1  SKIER", 506, Color("ffe126"))
+	_rider_value = _add_metric_value("READY", 506, Color("f3f6ff"))
 	_speed_value = _add_metric("SPEED", "0 MPH", 780, Color("42eaff"), Color("f3f6ff"))
 	_jump_value = _add_metric("JUMP", "01 / 01", 1054, Color("42eaff"), Color("f3f6ff"))
 	_score_value = _add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
-	_rotation_value = _add_metric("ROTATION", "0", 1602, Color("42eaff"), Color("f3f6ff"))
+	_rotation_value = _add_metric("ROTATION", "+0", 1602, Color("42eaff"), Color("f3f6ff"))
 
 
 func _add_metric(
 	title: String, value: String, x_position: float, title_color: Color, value_color: Color
 ) -> Label:
 	_add_metric_title(title, x_position, title_color)
+	return _add_metric_value(value, x_position, value_color)
 
+
+func _add_metric_value(value: String, x_position: float, value_color: Color) -> Label:
 	var value_label := ArcadeTheme.make_label(value, 29, value_color)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	value_label.position = Vector2(x_position, 84)
@@ -80,7 +85,7 @@ func _add_metric(
 	return value_label
 
 
-func _add_metric_title(title: String, x_position: float, title_color: Color) -> void:
+func _add_metric_title(title: String, x_position: float, title_color: Color) -> Label:
 	var title_label := ArcadeTheme.make_label(title, 25, title_color)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title_label.position = Vector2(x_position, 43)
@@ -89,3 +94,4 @@ func _add_metric_title(title: String, x_position: float, title_color: Color) -> 
 	title_label.add_theme_constant_override("shadow_offset_x", 3)
 	title_label.add_theme_constant_override("shadow_offset_y", 3)
 	add_child(title_label)
+	return title_label

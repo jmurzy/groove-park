@@ -62,10 +62,10 @@ func _ready() -> void:
 	_build_header()
 	_build_ticker()
 	_build_skier()
-	_build_footer()
 	_build_logomark()
-	# Snowfall last (before diagnostics) so flakes drift in front of the logomark.
+	# Keep snowfall behind the footer notice so its text stays readable.
 	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28, SNOW_SAFE_INSET))
+	_build_footer()
 	if show_diagnostics:
 		add_child(_build_diagnostics())
 	queue_redraw()
@@ -132,9 +132,9 @@ func _update_skier() -> void:
 	if not _skier:
 		return
 	var travel_width := DESIGN_SIZE.x + SKIER_OFFSCREEN_MARGIN * 2.0
-	_skier.position.x = - SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
+	_skier.position.x = -SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
 	_snowboarder.position.x = (
-		- SKIER_OFFSCREEN_MARGIN
+		-SKIER_OFFSCREEN_MARGIN
 		+ fposmod(_elapsed * SKIER_SPEED + SNOWBOARDER_LEAD_DISTANCE, travel_width)
 	)
 
