@@ -1,6 +1,6 @@
 ## Advances the rider through the authored approach zone only.
-## Future jump zones will own their own rules instead of extending this controller.
-class_name RiderSimulation
+## Future jump zones own their rules; a RunSimulation dispatcher will select them.
+class_name ApproachSimulation
 extends RefCounted
 
 

@@ -5,20 +5,20 @@ const ParkCourseScene := preload("res://src/game/park/park_course.gd")
 const ParkControlZoneScene := preload("res://src/game/park/park_control_zone.gd")
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
-const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
+const ApproachSimulationScene := preload("res://src/game/park/approach_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
 
 const DELTA := 1.0 / 60.0
 var _failures := PackedStringArray()
 var _course: ParkCourse
-var _simulation: RiderSimulation
+var _simulation: ApproachSimulation
 var _tuning: RiderTuning
 
 
 func _init() -> void:
 	_course = _approach_course()
-	_simulation = RiderSimulationScene.new()
+	_simulation = ApproachSimulationScene.new()
 	_tuning = RiderTuningScene.new()
 	_test_neutral_input_does_not_start_a_run()
 	_test_shipped_course_starts_blank()
