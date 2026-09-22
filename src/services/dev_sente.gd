@@ -2,8 +2,7 @@
 ## diagnostics, terrain editor). Example: launch with `--sente` for 1080p + marquee windows.
 ##
 ## Lives under `src/services/` for CLI access but is purely a development helper.
-## Production window sizing lives in `main.gd` (`_configure_window`); this is the
-## dev twin that honors `--sente` / `--primary-size` / `--marquee-size` overrides.
+## Window configuration is owned by `WindowManager`; this only parses overrides.
 class_name DevSente
 extends RefCounted
 
@@ -71,29 +70,3 @@ static func size_to_string(size: Vector2i) -> String:
 	if size.x < 0:
 		return "cabinet"
 	return "%dx%d" % [size.x, size.y]
-
-
-static func configure_window(
-	window: Window,
-	screen_index: int,
-	design_size: Vector2i,
-	window_title: String,
-	window_size: Vector2i,
-	offset: Vector2i
-) -> void:
-	var screen_position := DisplayServer.screen_get_position(screen_index)
-	var screen_size := DisplayServer.screen_get_size(screen_index)
-
-	window.title = window_title
-	window.mode = Window.MODE_WINDOWED
-	window.current_screen = screen_index
-	window.borderless = false
-	window.unresizable = false
-	window.content_scale_size = design_size
-	window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-	window.size = window_size
-	var centered := screen_position + (screen_size - window_size) / 2 + offset
-	centered.x = maxf(float(screen_position.x), centered.x)
-	centered.y = maxf(float(screen_position.y), centered.y)
-	window.position = centered
