@@ -10,8 +10,8 @@ const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboard
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
-const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_debug_draw.gd")
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
+const ParkDebugOverlayScene := preload("res://src/presentation/gameplay/park_debug_overlay.gd")
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
 
@@ -23,6 +23,7 @@ var _rider_marker: RiderMarker
 var _rider_effects: RiderEffects
 var _camera: Camera2D
 var _projection: ParkProjection
+var _debug_overlay: ParkDebugOverlay
 
 
 func setup(next_course: ParkCourse, next_show_terrain: bool) -> void:
@@ -39,22 +40,11 @@ func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: 
 	_update_rider_marker(run_manager, hud_occlusion)
 	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
 	_update_camera(run_manager)
-	if show_terrain:
-		queue_redraw()
 
 
 func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -> void:
 	_snowboarder.reset_presentation()
 	update_from_run(run_manager, 0.0, hud_occlusion)
-
-
-func _draw() -> void:
-	if not show_terrain:
-		return
-	CourseDebugDrawScene.draw_course_debug(
-		self, _projection, Vector2(GAMEPLAY_BG.get_size()), &"", -1
-	)
-	CourseDebugDrawScene.draw_terrain_handles(self, _projection)
 
 
 func _build_world() -> void:
@@ -92,6 +82,13 @@ func _build_world() -> void:
 	_camera.limit_right = GAMEPLAY_BG.get_width()
 	_camera.limit_bottom = GAMEPLAY_BG.get_height()
 	add_child(_camera)
+	if show_terrain:
+		_debug_overlay = ParkDebugOverlayScene.new()
+		_debug_overlay.name = "ParkDebugOverlay"
+		_debug_overlay.z_index = 3
+		_debug_overlay.setup(_projection)
+		add_child(_debug_overlay)
+		_debug_overlay.refresh()
 
 
 func _build_logomark(logomark_name: String, position: Vector2) -> AnimatedSprite2D:
