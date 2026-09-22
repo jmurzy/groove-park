@@ -1,5 +1,8 @@
-## Runs the park run: steps RiderSimulation, drives camera/HUD/audio, handles
-## pause/exit dialogs, and hosts the debug terrain editor.
+## Runs the park run: orchestrates RiderRunManager stepping, camera/HUD/audio,
+## and the pause/exit flow. Run state lives in RiderRunManager, the exit dialog
+## in PauseMenu. Course authoring lives in the Godot editor
+## (park_course_editor.tscn); the in-game terrain overlay below is a
+## read-only visualizer (`--show-terrain`).
 class_name GameplayScreen
 extends Control
 
@@ -10,25 +13,21 @@ const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
 const HeavenlyLogotypeScene := preload("res://src/presentation/features/heavenly_logotype.gd")
-const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
-const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
-const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
+const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboarder_view.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
+const PauseMenuScene := preload("res://src/presentation/gameplay/pause_menu.gd")
+const RiderRunManagerScene := preload("res://src/game/park/rider_run_manager.gd")
+const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_debug_draw.gd")
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
-const PARK_COURSE_RESOURCE_PATH := "res://src/game/park/park_course.tres"
-const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
-const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
-const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_debug_draw.gd")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
-const RIDER_DRAG_HIT_RADIUS := 56.0
 const LANE_PROJECTION_SCALE := 0.18
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const START_LOGOMARK_POSITION := Vector2(640, 390)
@@ -45,33 +44,21 @@ var _ready_label: Label
 var _action_label: Label
 var _action_hint_time := 0.0
 var _elapsed := 0.0
-var _has_started_moving := false
-var _rider_state: RiderState = RiderStateScene.new()
-var _skier_state: RiderState = RiderStateScene.new()
-var _rider_simulation: RiderSimulation = RiderSimulationScene.new()
+var _run_manager: RiderRunManager = RiderRunManagerScene.new()
 var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
 var _snowboarder: SnowboarderView
 var _skier: SkierView
 var _rider_marker: RiderMarker
 var _rider_effects: RiderEffects
 var _hud: GameplayHud
-var _exit_confirmation: Control
-var _return_button: Button
-var _keep_playing_button: Button
-var _controls_button: Button
-var _switch_sound: AudioStreamPlayer
-var _confirmation_sound: AudioStreamPlayer
+var _pause_menu: PauseMenu
 var _gameplay_music: AudioStreamPlayer
 var _back_sound: AudioStreamPlayer
-var _focused_dialog_button: Button
 var _controls_screen: HowToPlayScreen
 var _course: ParkCourse = PARK_COURSE_RESOURCE.duplicate()
 var _world: Node2D
 var _camera: Camera2D
 var _ui_layer: CanvasLayer
-var _surface_drag_id: StringName
-var _surface_drag_vertex := -1
-var _rider_dragging := false
 
 
 func _ready() -> void:
@@ -83,11 +70,7 @@ func _ready() -> void:
 	var course_errors := _course.validation_errors()
 	if not course_errors.is_empty():
 		push_error("Invalid ParkCourse:\n%s" % "\n".join(course_errors))
-	_rider_state.course_progress = _course.spawn_progress()
-	_rider_state.ground_position = Vector2(_rider_state.course_progress, _rider_state.lane_position)
-	_rider_state.vertical_position = _course.surface_y_at(
-		_rider_state.course_progress, _rider_state.lane_position
-	)
+	_run_manager.setup(_course)
 	_build_world()
 	_build_screen_ui()
 	_build_snowboarder()
@@ -101,7 +84,7 @@ func _process(delta: float) -> void:
 		return
 	_elapsed += delta
 	_ready_label.visible = (
-		(not _has_started_moving or _rider_state.phase == RiderState.Phase.CRASHED)
+		(not _run_manager.has_started_moving or _run_manager.is_crashed())
 		and fmod(_elapsed, 0.8) < 0.56
 	)
 	if _action_hint_time > 0.0:
@@ -123,8 +106,6 @@ func _draw() -> void:
 func _physics_process(delta: float) -> void:
 	if is_exit_confirmation_open():
 		return
-	if _rider_dragging:
-		return
 	_update_rider_state(delta)
 	_update_snowboarder_view()
 
@@ -133,7 +114,9 @@ func _background_source_rect() -> Rect2:
 	var texture_size := Vector2(GAMEPLAY_BG.get_size())
 	var source_size := _background_source_size()
 	var camera_x := clampf(
-		_rider_state.course_progress - source_size.x * 0.5, 0.0, texture_size.x - source_size.x
+		_run_manager.rider_state.course_progress - source_size.x * 0.5,
+		0.0,
+		texture_size.x - source_size.x
 	)
 	return Rect2(Vector2(camera_x, 0), source_size)
 
@@ -145,16 +128,13 @@ func _background_source_size() -> Vector2:
 
 func _update_rider_state(delta: float) -> void:
 	var input := RiderInputFrameScene.from_actions()
-	_rider_simulation.step(_rider_state, input, _course, _rider_tuning, delta)
-	_rider_simulation.step(_skier_state, input, _course, _rider_tuning, delta)
-	if not _has_started_moving and _rider_state.ground_velocity.length() > 1.0:
-		_has_started_moving = true
+	_run_manager.step(input, _course, _rider_tuning, delta)
 	_ready_label.text = (
 		"PRESS START OR R TO RESTART"
-		if _rider_state.phase == RiderState.Phase.CRASHED
+		if _run_manager.is_crashed()
 		else "%d PLAYER%s READY" % [player_count, "" if player_count == 1 else "S"]
 	)
-	_hud.set_speed(_rider_state.ground_velocity.length())
+	_hud.set_speed(_run_manager.rider_state.ground_velocity.length())
 	_update_action_label(input)
 	_update_camera()
 
@@ -174,8 +154,11 @@ func _update_action_label(input: RiderInputFrame) -> void:
 
 func _project_rider_position() -> Vector2:
 	return Vector2(
-		_rider_state.course_progress,
-		_rider_state.vertical_position + _rider_state.lane_position * LANE_PROJECTION_SCALE
+		_run_manager.rider_state.course_progress,
+		(
+			_run_manager.rider_state.vertical_position
+			+ _run_manager.rider_state.lane_position * LANE_PROJECTION_SCALE
+		)
 	)
 
 
@@ -188,32 +171,38 @@ func _build_snowboarder() -> void:
 	_skier.z_index = 2
 	_skier.set_show_source_bounds(show_terrain)
 	_world.add_child(_skier)
-	_reset_skier_state()
 	_rider_marker = RiderMarkerScene.new()
 	_world.add_child(_rider_marker)
 	_update_snowboarder_view()
 
 
 func _update_snowboarder_view() -> void:
-	var ground_rotation := _course.tangent_at(_rider_state.course_progress).angle()
-	_snowboarder.update_from_state(_rider_state, _project_rider_position(), ground_rotation)
-	var skier_rotation := _course.tangent_at(_skier_state.course_progress).angle()
+	var ground_rotation := _course.tangent_at(_run_manager.rider_state.course_progress).angle()
+	_snowboarder.update_from_state(
+		_run_manager.rider_state, _project_rider_position(), ground_rotation
+	)
+	var skier_rotation := _course.tangent_at(_run_manager.skier_state.course_progress).angle()
 	_skier.update_from_state(
-		_skier_state,
+		_run_manager.skier_state,
 		Vector2(
-			_skier_state.course_progress,
-			_skier_state.vertical_position + _skier_state.lane_position * LANE_PROJECTION_SCALE
+			_run_manager.skier_state.course_progress,
+			(
+				_run_manager.skier_state.vertical_position
+				+ _run_manager.skier_state.lane_position * LANE_PROJECTION_SCALE
+			)
 		),
 		skier_rotation
 	)
 	_update_rider_marker()
-	_rider_effects.update_from_state(_rider_state, _course, get_physics_process_delta_time())
+	_rider_effects.update_from_state(
+		_run_manager.rider_state, _course, get_physics_process_delta_time()
+	)
 
 
 func _update_rider_marker() -> void:
 	if _rider_marker == null:
 		return
-	var speed_mph := roundi(_rider_state.ground_velocity.length() * 0.12 * KMH_TO_MPH)
+	var speed_mph := roundi(_run_manager.rider_state.ground_velocity.length() * 0.12 * KMH_TO_MPH)
 	if speed_mph == 0:
 		_rider_marker.hide()
 		return
@@ -303,14 +292,12 @@ func _update_camera() -> void:
 	var half_view_width := DESIGN_SIZE.x / CAMERA_ZOOM.x * 0.5
 	var camera_min := half_view_width
 	var camera_max := GAMEPLAY_BG.get_width() - half_view_width
-	var target_x := clampf(_rider_state.course_progress, camera_min, camera_max)
+	var target_x := clampf(_run_manager.rider_state.course_progress, camera_min, camera_max)
 	_camera.position = Vector2(target_x, GAMEPLAY_BG.get_height() * 0.5)
 
 
 func _draw_course_debug() -> void:
-	CourseDebugDrawScene.draw_course_debug(
-		self, _course, Vector2(GAMEPLAY_BG.get_size()), _surface_drag_id, _surface_drag_vertex
-	)
+	CourseDebugDrawScene.draw_course_debug(self, _course, Vector2(GAMEPLAY_BG.get_size()), &"", -1)
 
 
 func _draw_terrain_handles() -> void:
@@ -350,280 +337,54 @@ func _build_music() -> void:
 
 
 func request_exit_confirmation() -> void:
-	if _exit_confirmation:
+	if _pause_menu:
 		return
 	get_tree().paused = true
-	_exit_confirmation = Control.new()
-	_exit_confirmation.name = "ExitConfirmation"
-	_exit_confirmation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_exit_confirmation.mouse_filter = Control.MOUSE_FILTER_STOP
-	_ui_layer.add_child(_exit_confirmation)
-
-	var shade := ColorRect.new()
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color("02060fd9")
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_exit_confirmation.add_child(shade)
-
-	var panel := Panel.new()
-	panel.position = Vector2(300, 342)
-	panel.size = Vector2(1320, 396)
-	panel.add_theme_stylebox_override("panel", _pause_dialog_style())
-	_exit_confirmation.add_child(panel)
-
-	var title := ArcadeTheme.make_label("ABANDON THIS RUN?", 36, Color("fff16a"))
-	title.position = Vector2(0, 55)
-	title.size = Vector2(panel.size.x, 58)
-	panel.add_child(title)
-
-	var warning := ArcadeTheme.make_label("YOUR CURRENT SCORE WILL VANISH", 20, Color("fff7cf"))
-	warning.position = Vector2(0, 145)
-	warning.size = Vector2(panel.size.x, 38)
-	panel.add_child(warning)
-
-	_switch_sound = AudioStreamPlayer.new()
-	_switch_sound.stream = SWITCH_SOUND
-	_exit_confirmation.add_child(_switch_sound)
-	if _confirmation_sound == null:
-		_confirmation_sound = AudioStreamPlayer.new()
-		_confirmation_sound.stream = CONFIRMATION_SOUND
-		add_child(_confirmation_sound)
-	_focused_dialog_button = null
-
-	_keep_playing_button = _build_confirmation_button("KEEP PLAYING", Vector2(460, 248))
-	_keep_playing_button.pressed.connect(_on_keep_playing_pressed)
-	panel.add_child(_keep_playing_button)
-
-	_controls_button = _build_confirmation_button("HOW TO PLAY", Vector2(60, 248))
-	_controls_button.pressed.connect(_open_controls)
-	panel.add_child(_controls_button)
-
-	_return_button = _build_confirmation_button("ABANDON RUN", Vector2(860, 248))
-	_return_button.pressed.connect(_confirm_return_to_title)
-	panel.add_child(_return_button)
-	_wire_dialog_button_focus()
-	_confirmation_sound.play()
-	_keep_playing_button.call_deferred("grab_focus")
+	_pause_menu = PauseMenuScene.new()
+	_pause_menu.resume_requested.connect(close_exit_confirmation)
+	_pause_menu.controls_requested.connect(_open_controls)
+	_pause_menu.abandon_requested.connect(_confirm_return_to_title)
+	_ui_layer.add_child(_pause_menu)
 
 
 func is_exit_confirmation_open() -> bool:
-	return _exit_confirmation != null
-
-
-func _build_confirmation_button(text: String, button_position: Vector2) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.position = button_position
-	button.size = Vector2(400, 86)
-	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
-	button.add_theme_font_size_override("font_size", 18)
-	button.add_theme_color_override("font_color", Color("e8f7ff"))
-	button.add_theme_color_override("font_hover_color", Color("fff7cf"))
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_focus_color", Color("fff16a"))
-	button.add_theme_color_override("font_outline_color", Color("010713"))
-	button.add_theme_constant_override("outline_size", 7)
-	button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	button.add_theme_stylebox_override("hover", _pause_selected_style())
-	button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	button.add_theme_stylebox_override("focus", _pause_selected_style())
-	var left_marker := ArcadeTheme.make_label(">", 24, Color("fff16a"))
-	left_marker.name = "SelectionLeft"
-	left_marker.position = Vector2(14, 0)
-	left_marker.size = Vector2(30, button.size.y)
-	left_marker.hide()
-	button.add_child(left_marker)
-	var right_marker := ArcadeTheme.make_label("<", 24, Color("fff16a"))
-	right_marker.name = "SelectionRight"
-	right_marker.position = Vector2(button.size.x - 44, 0)
-	right_marker.size = Vector2(30, button.size.y)
-	right_marker.hide()
-	button.add_child(right_marker)
-	button.focus_entered.connect(_on_dialog_button_focused.bind(button))
-	button.mouse_entered.connect(button.grab_focus)
-	return button
-
-
-func _pause_selected_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("03162be0")
-	style.border_color = Color("fff16a")
-	style.set_border_width_all(3)
-	style.corner_radius_top_left = 0
-	style.corner_radius_top_right = 0
-	style.corner_radius_bottom_left = 0
-	style.corner_radius_bottom_right = 0
-	style.shadow_color = Color("01040ae6")
-	style.shadow_size = 5
-	style.shadow_offset = Vector2(0, 5)
-	return style
-
-
-func _pause_dialog_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("071b39")
-	style.border_color = Color("fff16a")
-	style.set_border_width_all(4)
-	style.corner_radius_top_left = 0
-	style.corner_radius_top_right = 0
-	style.corner_radius_bottom_left = 0
-	style.corner_radius_bottom_right = 0
-	style.shadow_color = Color("01040add")
-	style.shadow_size = 5
-	style.shadow_offset = Vector2(0, 5)
-	return style
-
-
-func _wire_dialog_button_focus() -> void:
-	_controls_button.focus_neighbor_left = NodePath(".")
-	_controls_button.focus_neighbor_right = _controls_button.get_path_to(_keep_playing_button)
-	_keep_playing_button.focus_neighbor_left = _keep_playing_button.get_path_to(_controls_button)
-	_keep_playing_button.focus_neighbor_right = _keep_playing_button.get_path_to(_return_button)
-	_return_button.focus_neighbor_left = _return_button.get_path_to(_keep_playing_button)
-	_return_button.focus_neighbor_right = NodePath(".")
-
-
-func _on_dialog_button_focused(button: Button) -> void:
-	if _focused_dialog_button == button:
-		return
-	var is_first_focus := _focused_dialog_button == null
-	if _focused_dialog_button:
-		_set_dialog_selection(_focused_dialog_button, false)
-	_focused_dialog_button = button
-	_set_dialog_selection(button, true)
-	if not is_first_focus and is_instance_valid(_switch_sound):
-		_switch_sound.play()
-
-
-func _set_dialog_selection(button: Button, selected: bool) -> void:
-	var left_marker := button.get_node("SelectionLeft") as Label
-	var right_marker := button.get_node("SelectionRight") as Label
-	left_marker.visible = selected
-	right_marker.visible = selected
-
-
-func _rider_at(world_position: Vector2) -> bool:
-	return world_position.distance_to(_project_rider_position()) <= RIDER_DRAG_HIT_RADIUS
-
-
-func _begin_rider_drag(world_position: Vector2) -> void:
-	_rider_dragging = true
-	_rider_state = RiderStateScene.new()
-	_reset_skier_state()
-	_snowboarder.reset_presentation()
-	_has_started_moving = false
-	_action_hint_time = 0.0
-	_action_label.hide()
-	_hud.set_speed(0.0)
-	_place_rider_on_course(world_position.x)
-
-
-func _place_rider_on_course(world_x: float) -> void:
-	_rider_state.course_progress = clampf(
-		world_x, _course.approach_rider_path[0].x, _course.approach_rider_path[-1].x
-	)
-	_rider_state.lane_position = 0.0
-	_rider_state.vertical_position = _course.surface_y_at(
-		_rider_state.course_progress, _rider_state.lane_position
-	)
-	_rider_state.ground_position = Vector2(_rider_state.course_progress, _rider_state.lane_position)
-	_update_camera()
-	_update_snowboarder_view()
-
-
-func _reset_skier_state() -> void:
-	_skier_state = RiderStateScene.new()
-	_skier_state.course_progress = _course.approach_rider_path[4].x
-	_skier_state.ground_position = Vector2(_skier_state.course_progress, _skier_state.lane_position)
-	_skier_state.vertical_position = _course.surface_y_at(
-		_skier_state.course_progress, _skier_state.lane_position
-	)
-
-
-func _save_approach_rider_path() -> void:
-	var errors := _course.validation_errors()
-	if not errors.is_empty():
-		push_error("Approach rider path not saved:\n%s" % "\n".join(errors))
-		return
-	var error := ResourceSaver.save(_course, PARK_COURSE_RESOURCE_PATH)
-	if error != OK:
-		push_error("Could not save approach rider path: %s" % error_string(error))
+	return _pause_menu != null
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _controls_screen:
 		return
-	if not _exit_confirmation:
-		if (
-			event is InputEventKey
-			and (event as InputEventKey).pressed
-			and not (event as InputEventKey).echo
-			and (event as InputEventKey).keycode == KEY_R
-		):
-			_restart_run()
-			get_viewport().set_input_as_handled()
-			return
-		if (
-			_rider_state.phase == RiderState.Phase.CRASHED
-			and event.is_action_pressed(&"controller_start")
-		):
-			_restart_run()
-			get_viewport().set_input_as_handled()
-			return
-		# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, white EXIT opens the dialog.
-		# Holding white EXIT quits to AGS via main._process. Esc is the Mac dev equivalent.
-		if (
-			event.is_action_pressed(&"exit_escape")
-			or event.is_action_pressed(&"controller_start")
-			or event.is_action_pressed(&"controller_back")
-			or event.is_action_pressed(&"cabinet_exit")
-		):
-			request_exit_confirmation()
-			get_viewport().set_input_as_handled()
+	if is_exit_confirmation_open():
+		# PauseMenu owns dialog navigation input while open.
 		return
-
 	if (
-		event.is_action_pressed(&"ui_left")
-		or event.is_action_pressed(&"ui_right")
-		or event.is_action_pressed(&"ui_up")
-		or event.is_action_pressed(&"ui_down")
+		event is InputEventKey
+		and (event as InputEventKey).pressed
+		and not (event as InputEventKey).echo
+		and (event as InputEventKey).keycode == KEY_R
 	):
-		if _keep_playing_button.has_focus():
-			_controls_button.grab_focus()
-		elif _controls_button.has_focus():
-			_return_button.grab_focus()
-		else:
-			_keep_playing_button.grab_focus()
+		_restart_run()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"ui_accept"):
-		if _return_button.has_focus():
-			_confirm_return_to_title()
-		elif _controls_button.has_focus():
-			_open_controls()
-		else:
-			_on_keep_playing_pressed()
+		return
+	if _run_manager.is_crashed() and event.is_action_pressed(&"controller_start"):
+		_restart_run()
 		get_viewport().set_input_as_handled()
-	elif (
+		return
+	# Cabinet: ▷ (Start) pauses, ≡ (Back) backs out, white EXIT opens the dialog.
+	# Holding white EXIT quits to AGS via main._process. Esc is the Mac dev equivalent.
+	if (
 		event.is_action_pressed(&"exit_escape")
-		or event.is_action_pressed(&"ui_cancel")
+		or event.is_action_pressed(&"controller_start")
 		or event.is_action_pressed(&"controller_back")
 		or event.is_action_pressed(&"cabinet_exit")
 	):
-		close_exit_confirmation()
+		request_exit_confirmation()
 		get_viewport().set_input_as_handled()
 
 
 func _restart_run() -> void:
-	_rider_state = RiderStateScene.new()
-	_reset_skier_state()
+	_run_manager.reset_run(_course)
 	_snowboarder.reset_presentation()
-	_rider_state.course_progress = _course.spawn_progress()
-	_rider_state.ground_position = Vector2(_rider_state.course_progress, _rider_state.lane_position)
-	_rider_state.vertical_position = _course.surface_y_at(
-		_rider_state.course_progress, _rider_state.lane_position
-	)
-	_has_started_moving = false
 	_action_hint_time = 0.0
 	_action_label.hide()
 	_hud.set_speed(0.0)
@@ -635,30 +396,17 @@ func _confirm_return_to_title() -> void:
 	return_to_title_requested.emit()
 
 
-func _on_keep_playing_pressed() -> void:
-	if is_instance_valid(_confirmation_sound):
-		_confirmation_sound.play()
-	close_exit_confirmation()
-
-
 func close_exit_confirmation() -> void:
-	if not _exit_confirmation:
+	if not _pause_menu:
 		return
 	get_tree().paused = false
-	_exit_confirmation.queue_free()
-	_exit_confirmation = null
-	_return_button = null
-	_keep_playing_button = null
-	_controls_button = null
-	_switch_sound = null
-	_focused_dialog_button = null
+	_pause_menu.queue_free()
+	_pause_menu = null
 
 
 func _open_controls() -> void:
 	if _controls_screen:
 		return
-	if is_instance_valid(_confirmation_sound):
-		_confirmation_sound.play()
 	_controls_screen = HowToPlayScreenScene.new()
 	_controls_screen.closed.connect(_close_controls)
 	_ui_layer.add_child(_controls_screen)
@@ -671,4 +419,5 @@ func _close_controls() -> void:
 	_controls_screen = null
 	if is_instance_valid(_back_sound):
 		_back_sound.play()
-	_controls_button.call_deferred("grab_focus")
+	if is_instance_valid(_pause_menu):
+		_pause_menu.focus_controls_button()
