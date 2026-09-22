@@ -14,7 +14,6 @@ const HUD_SEPARATORS := [490.0, 764.0, 1038.0, 1312.0, 1586.0]
 func _ready() -> void:
 	name = "HudFrame"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	position.y = 30.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
