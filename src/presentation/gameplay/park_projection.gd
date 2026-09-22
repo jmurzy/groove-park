@@ -26,6 +26,13 @@ func project_ground(ground_position: Vector2) -> Vector2:
 	)
 
 
+func project_rider_ground(state: RiderState) -> Vector2:
+	return Vector2(
+		state.ground_position.x,
+		course.route_surface_y_at(state.ground_position.x, state.approach_path_position)
+	)
+
+
 func unproject_ground(world_position: Vector2) -> Vector2:
 	return Vector2(
 		world_position.x,

@@ -18,7 +18,7 @@ func _draw() -> void:
 	if _state == null or _projection == null:
 		return
 	var rider_position := _projection.project_rider(_state)
-	var surface_position := _projection.project_ground(_state.ground_position)
+	var surface_position := _projection.project_rider_ground(_state)
 	var height := maxf(surface_position.y - rider_position.y, 0.0)
 	var shadow_alpha := clampf(0.42 - height / 820.0, 0.08, 0.42)
 	draw_set_transform(surface_position, 0.0, Vector2(1.8, 0.42))

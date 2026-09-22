@@ -2,6 +2,7 @@
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
+const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const ApproachSimulationScene := preload("res://src/game/park/approach_simulation.gd")
@@ -99,7 +100,9 @@ func _test_vertical_heading_does_not_free_carve() -> void:
 	var state := _run(Vector2.RIGHT, false, false, 30)
 	for _tick in 60:
 		_step(state, Vector2.DOWN, false, true)
-	_expect(is_zero_approx(state.lane_position), "W/S should select authored paths, not free-carve.")
+	_expect(
+		is_zero_approx(state.lane_position), "W/S should select authored paths, not free-carve."
+	)
 
 
 func _test_vertical_input_switches_approach_paths_smoothly() -> void:
@@ -126,9 +129,16 @@ func _test_vertical_input_switches_approach_paths_smoothly() -> void:
 		state.approach_path_position > 1.0 and state.approach_path_position < 2.0,
 		"Approach path changes should blend rather than snap."
 	)
+	var projection := ParkProjectionScene.new(routed_course)
+	_expect(
+		is_equal_approx(projection.project_rider_ground(state).y, state.vertical_position),
+		"The ground projection must follow the rider's blended approach path."
+	)
 	for _tick in 60:
 		_simulation.step(state, RiderInputFrameScene.new(), routed_course, _tuning, DELTA)
-	_expect(is_equal_approx(state.vertical_position, 200.0), "The rider should reach the selected path.")
+	_expect(
+		is_equal_approx(state.vertical_position, 200.0), "The rider should reach the selected path."
+	)
 
 
 func _test_braking_reduces_speed() -> void:
