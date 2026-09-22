@@ -22,7 +22,6 @@ const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
 const PauseMenuScene := preload("res://src/presentation/gameplay/pause_menu.gd")
-const RiderRunManagerScene := preload("res://src/game/park/rider_run_manager.gd")
 const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_debug_draw.gd")
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
@@ -36,13 +35,12 @@ const LOGOMARK_SCALE := 0.105
 const LOGOTYPE_POSITION := Vector2(250, 260)
 const LOGOTYPE_SCALE := 0.12096
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
-var player_count := 1
+var game_controller: GameController
 var show_terrain := OS.is_debug_build()
 var _ready_label: Label
 var _action_label: Label
 var _action_hint_time := 0.0
 var _elapsed := 0.0
-var _run_manager: RiderRunManager = RiderRunManagerScene.new()
 var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
 var _snowboarder: SnowboarderView
 var _skier: SkierView
@@ -58,6 +56,10 @@ var _world: Node2D
 var _camera: Camera2D
 var _ui_layer: CanvasLayer
 
+var _run_manager: RiderRunManager:
+	get:
+		return game_controller.run_manager
+
 
 func _ready() -> void:
 	name = "GameplayScreen"
@@ -68,11 +70,17 @@ func _ready() -> void:
 	var course_errors := _course.validation_errors()
 	if not course_errors.is_empty():
 		push_error("Invalid ParkCourse:\n%s" % "\n".join(course_errors))
-	_run_manager.setup(_course)
+	if game_controller == null:
+		push_error("GameplayScreen requires a GameController.")
+		return
+	game_controller.begin_run(_course)
 	_build_world()
 	_build_screen_ui()
 	_build_snowboarder()
 	_build_hud()
+	game_controller.run_score_changed.connect(_on_run_score_changed)
+	_hud.set_rider_text("P1  SKIER" if game_controller.player_count == 1 else "P1 / P2")
+	_on_run_score_changed(game_controller.run_score)
 	_build_music()
 	queue_redraw()
 
@@ -126,11 +134,17 @@ func _background_source_size() -> Vector2:
 
 func _update_rider_state(delta: float) -> void:
 	var input := RiderInputFrameScene.from_actions()
-	_run_manager.step(input, _course, _rider_tuning, delta)
+	game_controller.step_run(input, _course, _rider_tuning, delta)
 	_ready_label.text = (
 		"PRESS START OR R TO RESTART"
 		if _run_manager.is_crashed()
-		else "%d PLAYER%s READY" % [player_count, "" if player_count == 1 else "S"]
+		else (
+			"%d PLAYER%s READY"
+			% [
+				game_controller.player_count,
+				"" if game_controller.player_count == 1 else "S",
+			]
+		)
 	)
 	_hud.set_speed(_run_manager.rider_state.ground_velocity.length())
 	_update_action_label(input)
@@ -148,6 +162,10 @@ func _update_action_label(input: RiderInputFrame) -> void:
 	if not action_message.is_empty():
 		_action_label.text = action_message
 		_action_hint_time = 1.5
+
+
+func _on_run_score_changed(score: int) -> void:
+	_hud.set_score("%04d" % score)
 
 
 func _project_rider_position() -> Vector2:
@@ -306,8 +324,19 @@ func _build_hud() -> void:
 	_hud = GameplayHudScene.new()
 	_ui_layer.add_child(_hud)
 
-	_ready_label = ArcadeTheme.make_label(
-		"%d PLAYER%s READY" % [player_count, "" if player_count == 1 else "S"], 42, Color("fff7cf")
+	_ready_label = (
+		ArcadeTheme
+		. make_label(
+			(
+				"%d PLAYER%s READY"
+				% [
+					game_controller.player_count,
+					"" if game_controller.player_count == 1 else "S",
+				]
+			),
+			42,
+			Color("fff7cf")
+		)
 	)
 	_ready_label.position = Vector2(0, 430)
 	_ready_label.size = Vector2(DESIGN_SIZE.x, 72)
@@ -337,6 +366,7 @@ func _build_music() -> void:
 func request_exit_confirmation() -> void:
 	if _pause_menu:
 		return
+	game_controller.set_paused(true)
 	get_tree().paused = true
 	_pause_menu = PauseMenuScene.new()
 	_pause_menu.resume_requested.connect(close_exit_confirmation)
@@ -381,7 +411,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _restart_run() -> void:
-	_run_manager.reset_run(_course)
+	game_controller.restart_run(_course)
 	_snowboarder.reset_presentation()
 	_action_hint_time = 0.0
 	_action_label.hide()
@@ -391,6 +421,7 @@ func _restart_run() -> void:
 
 func _confirm_return_to_title() -> void:
 	get_tree().paused = false
+	game_controller.set_paused(false)
 	return_to_title_requested.emit()
 
 
@@ -398,6 +429,7 @@ func close_exit_confirmation() -> void:
 	if not _pause_menu:
 		return
 	get_tree().paused = false
+	game_controller.set_paused(false)
 	_pause_menu.queue_free()
 	_pause_menu = null
 

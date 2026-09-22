@@ -107,14 +107,14 @@ func _start_game(player_count: int) -> void:
 func _show_gameplay(player_count: int, transition: CrtTransition) -> void:
 	_primary_view.queue_free()
 	_primary_view = null
+	_game_controller.start_game(player_count)
 	_gameplay_screen = GameplayScreenScene.new()
-	_gameplay_screen.player_count = player_count
+	_gameplay_screen.game_controller = _game_controller
 	_gameplay_screen.show_terrain = _show_terrain
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	add_child(_gameplay_screen)
 	move_child(_gameplay_screen, transition.get_index())
 	_audio_manager.stop_background_music()
-	_game_controller.start_game(player_count)
 
 
 func _finish_transition(transition: CrtTransition) -> void:
