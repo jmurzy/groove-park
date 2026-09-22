@@ -65,6 +65,7 @@ func _ready() -> void:
 	gondola = _build_gondola()
 	add_child(gondola)
 	gondola.play()
+	_build_footer()
 	add_child(SnowfallLayerScene.create(DESIGN_SIZE, SNOWFLAKE_COUNT, SNOW_SAFE_INSET))
 	confirmation_sound = AudioStreamPlayer.new()
 	confirmation_sound.stream = CONFIRMATION_SOUND
@@ -83,7 +84,6 @@ func _ready() -> void:
 	add_child(exit_button)
 	_apply_attract_menu_style()
 	_wire_menu_button_focus()
-	_build_footer()
 	if show_diagnostics:
 		add_child(_build_diagnostics())
 	queue_redraw()

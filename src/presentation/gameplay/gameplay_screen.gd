@@ -79,7 +79,7 @@ func _ready() -> void:
 	_build_snowboarder()
 	_build_hud()
 	game_controller.run_score_changed.connect(_on_run_score_changed)
-	_hud.set_rider_text("P1  SKIER" if game_controller.player_count == 1 else "P1 / P2")
+	_hud.set_rider_text("P1" if game_controller.player_count == 1 else "P1 / P2")
 	_on_run_score_changed(game_controller.run_score)
 	_build_music()
 	queue_redraw()
@@ -326,7 +326,7 @@ func _build_hud() -> void:
 
 	_ready_label = (
 		ArcadeTheme
-		. make_label(
+		.make_label(
 			(
 				"%d PLAYER%s READY"
 				% [

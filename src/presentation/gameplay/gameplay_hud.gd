@@ -59,7 +59,7 @@ func set_rotation_text(rotation_text: String) -> void:
 
 func _build_metrics() -> void:
 	_rider_title = _add_metric_title("P1  SKIER", 506, Color("ffe126"))
-	_rider_value = _add_metric_value("READY", 506, Color("f3f6ff"))
+	_rider_value = _add_metric_value("JAKE", 506, Color("f3f6ff"))
 	_speed_value = _add_metric("SPEED", "0 MPH", 780, Color("42eaff"), Color("f3f6ff"))
 	_jump_value = _add_metric("JUMP", "01 / 01", 1054, Color("42eaff"), Color("f3f6ff"))
 	_score_value = _add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
