@@ -18,7 +18,7 @@ const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboarder_view.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
-const ParkRiderEffectsScene := preload("res://src/presentation/gameplay/park_rider_effects.gd")
+const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
@@ -53,7 +53,7 @@ var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
 var _snowboarder: SnowboarderView
 var _skier: SkierView
 var _rider_marker: RiderMarker
-var _rider_effects: ParkRiderEffects
+var _rider_effects: RiderEffects
 var _hud: GameplayHud
 var _exit_confirmation: Control
 var _return_button: Button
@@ -231,9 +231,7 @@ func _rider_marker_overlaps_hud() -> bool:
 	var marker_top_left := marker_transform * marker_bounds.position
 	var marker_bottom_right := marker_transform * marker_bounds.end
 	var marker_rect := Rect2(marker_top_left, marker_bottom_right - marker_top_left).abs()
-	var hud_rect := GameplayHud.HUD_RECT
-	hud_rect.position += _hud.position
-	return marker_rect.intersects(hud_rect)
+	return _hud.is_occluded(marker_rect)
 
 
 func _build_world() -> void:
@@ -252,7 +250,7 @@ func _build_world() -> void:
 	_world.add_child(_build_logomark("StartLogomark", START_LOGOMARK_POSITION))
 	_world.add_child(_build_logomark("MiddleLogomark", MIDDLE_LOGOMARK_POSITION))
 	_world.add_child(_build_logomark("LandingLogomark", END_LOGOMARK_POSITION))
-	_rider_effects = ParkRiderEffectsScene.new()
+	_rider_effects = RiderEffectsScene.new()
 	_rider_effects.name = "RiderEffects"
 	_rider_effects.z_index = 1
 	_world.add_child(_rider_effects)

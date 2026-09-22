@@ -1,5 +1,5 @@
 ## Procedural rider effects: altitude-faded shadow blob plus carve/brake snow spray.
-class_name ParkRiderEffects
+class_name RiderEffects
 extends Node2D
 
 const LANE_PROJECTION_SCALE := 0.18

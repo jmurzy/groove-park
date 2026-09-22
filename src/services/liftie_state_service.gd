@@ -11,8 +11,6 @@ const DEV_OPEN_LIFT_COUNT := 19
 const DEV_HOLD_LIFT_COUNT := 2
 const DEV_CLOSED_LIFT_COUNT := 8
 
-const Config := preload("res://src/services/config.gd")
-
 var state := {
 	"status": "unknown",
 	"open_count": 0,

@@ -61,7 +61,7 @@ build.
 ### Course profile
 
 Open `src/game/park/park_course_editor.tscn` in the Godot editor to shape the
-approach rider path over the gameplay panorama. Select `ApproachRiderPath` in
+approach rider path over the gameplay panorama. Select `ParkApproachPath` in
 the Scene tree and use Godot's native Path2D controls in the 2D viewport to
 add, move, or remove points. Save the scene normally to write the path to
 `park_course.tres`. Use **Preview Color** and **Preview Width** in the path's

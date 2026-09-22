@@ -1,5 +1,9 @@
 ## Dev-only window overrides for single-display testing (sizes, forced marquee,
 ## diagnostics, terrain editor). Example: launch with `--sente` for 1080p + marquee windows.
+##
+## Lives under `src/services/` for CLI access but is purely a development helper.
+## Production window sizing lives in `main.gd` (`_configure_window`); this is the
+## dev twin that honors `--sente` / `--primary-size` / `--marquee-size` overrides.
 class_name DevSente
 extends RefCounted
 
@@ -69,7 +73,7 @@ static func size_to_string(size: Vector2i) -> String:
 	return "%dx%d" % [size.x, size.y]
 
 
-static func configure(
+static func configure_window(
 	window: Window,
 	screen_index: int,
 	design_size: Vector2i,

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dwss16as27l0r" path="res://src/game/park/park_course_editor.gd" id="1_editor"]
 [ext_resource type="Texture2D" uid="uid://b8ff2wkpy6qyl" path="res://artwork/gameplay/gameplay_bg.png" id="2_background"]
-[ext_resource type="Script" uid="uid://ctqe7rh5pt3dt" path="res://src/game/park/approach_rider_path.gd" id="3_rider_path"]
+[ext_resource type="Script" uid="uid://ctqe7rh5pt3dt" path="res://src/game/park/park_approach_path.gd" id="3_rider_path"]
 
 [sub_resource type="Curve2D" id="Curve2D_ljxe1"]
 _data = {
@@ -20,7 +20,7 @@ texture = ExtResource("2_background")
 centered = false
 metadata/_edit_lock_ = true
 
-[node name="ApproachRiderPath" type="Path2D" parent="." unique_id=942950380]
+[node name="ParkApproachPath" type="Path2D" parent="." unique_id=942950380]
 curve = SubResource("Curve2D_ljxe1")
 script = ExtResource("3_rider_path")
 zone_id = &"approach"

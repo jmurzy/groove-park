@@ -61,7 +61,7 @@ func _ready() -> void:
 
 	var primary_screen := PRIMARY_SCREEN_WITH_MARQUEE if screen_count >= 2 else 0
 	if overrides.primary_size.x > 0:
-		DevSente.configure(
+		DevSente.configure_window(
 			get_window(),
 			primary_screen,
 			PRIMARY_DESIGN_SIZE,
@@ -186,7 +186,7 @@ func _create_marquee(
 	marquee.close_requested.connect(_quit)
 	add_child(marquee)
 	if window_size.x > 0:
-		DevSente.configure(
+		DevSente.configure_window(
 			marquee, screen_index, MARQUEE_DESIGN_SIZE, "HEAVENLY - MARQUEE", window_size, offset
 		)
 	else:

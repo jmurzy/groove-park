@@ -4,13 +4,19 @@ class_name GameplayHud
 extends Control
 
 const HEAVENLY_LOGO := preload("res://artwork/gameplay/heavenly_logo.png")
-const HUD_RECT := Rect2(60, 24, 1800, 126)
+const _HUD_RECT := Rect2(60, 24, 1800, 126)
 const HUD_INSET := 11.0
 const HUD_LOGO_SIZE := Vector2(280, 90)
 const HUD_SEPARATORS := [490.0, 764.0, 1038.0, 1312.0, 1586.0]
 const KMH_TO_MPH := 0.621371
 
 var _speed_value: Label
+
+
+func is_occluded(rect: Rect2) -> bool:
+	var hud_rect := _HUD_RECT
+	hud_rect.position += position
+	return rect.intersects(hud_rect)
 
 
 func _ready() -> void:
@@ -25,7 +31,7 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var divider_x: float = HUD_SEPARATORS[0]
-	var outer := HUD_RECT
+	var outer := _HUD_RECT
 	var inner := outer.grow(-HUD_INSET)
 	var mid := outer.grow(-5)
 	var shadow := outer.grow(8)
@@ -110,9 +116,9 @@ func _beveled_rect_points(rect: Rect2, corner_size: float) -> PackedVector2Array
 
 
 func _logo_rect() -> Rect2:
-	var first_box_width: float = HUD_SEPARATORS[0] - HUD_RECT.position.x
-	var logo_x := HUD_RECT.position.x + (first_box_width - HUD_LOGO_SIZE.x) / 2.0 + 4.0
-	var logo_y := HUD_RECT.position.y + (HUD_RECT.size.y - HUD_LOGO_SIZE.y) / 2.0
+	var first_box_width: float = HUD_SEPARATORS[0] - _HUD_RECT.position.x
+	var logo_x := _HUD_RECT.position.x + (first_box_width - HUD_LOGO_SIZE.x) / 2.0 + 4.0
+	var logo_y := _HUD_RECT.position.y + (_HUD_RECT.size.y - HUD_LOGO_SIZE.y) / 2.0
 	return Rect2(Vector2(logo_x, logo_y), HUD_LOGO_SIZE)
 
 

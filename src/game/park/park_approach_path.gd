@@ -1,6 +1,6 @@
 @tool
 ## Editable, visible centerline for the approach zone.
-class_name ApproachRiderPath
+class_name ParkApproachPath
 extends Path2D
 
 @export var zone_id: StringName
