@@ -8,7 +8,7 @@ const PauseMenuScene := preload("res://src/presentation/gameplay/pause_menu.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 
-var _game_controller: GameController
+var _game_session: GameSession
 var _owner: Node
 var _ui_layer: CanvasLayer
 var _pause_menu: PauseMenu
@@ -16,9 +16,9 @@ var _controls_screen: HowToPlayScreen
 var _back_sound: AudioStreamPlayer
 
 
-func setup(owner: Node, game_controller: GameController, ui_layer: CanvasLayer) -> void:
+func setup(owner: Node, game_session: GameSession, ui_layer: CanvasLayer) -> void:
 	_owner = owner
-	_game_controller = game_controller
+	_game_session = game_session
 	_ui_layer = ui_layer
 	_back_sound = AudioStreamPlayer.new()
 	_back_sound.name = "BackSound"
@@ -33,7 +33,7 @@ func is_open() -> bool:
 func request_open(tree: SceneTree) -> void:
 	if _pause_menu:
 		return
-	_game_controller.set_paused(true)
+	_game_session.set_paused(true)
 	tree.paused = true
 	_pause_menu = PauseMenuScene.new()
 	_pause_menu.resume_requested.connect(close)
@@ -46,14 +46,14 @@ func close() -> void:
 	if not _pause_menu:
 		return
 	_owner.get_tree().paused = false
-	_game_controller.set_paused(false)
+	_game_session.set_paused(false)
 	_pause_menu.queue_free()
 	_pause_menu = null
 
 
 func close_for_navigation(tree: SceneTree) -> void:
 	tree.paused = false
-	_game_controller.set_paused(false)
+	_game_session.set_paused(false)
 
 
 func accepts_screen_input() -> bool:

@@ -1,6 +1,6 @@
 ## Owns the active game session: presentation flow, player selection, park run,
 ## score, pause state, and forwarded mountain lift state.
-class_name GameController
+class_name GameSession
 extends Node
 
 signal mountain_state_changed(state: MountainState)
@@ -25,6 +25,8 @@ var run_score := 0
 var results: RunResult
 var is_paused := false
 var _mountain_state_source: MountainStateSource
+var _active_course: ParkCourse
+var _active_tuning: RiderTuning
 
 
 func set_mountain_state_source(source: MountainStateSource) -> void:
@@ -36,7 +38,7 @@ func set_mountain_state_source(source: MountainStateSource) -> void:
 
 func _ready() -> void:
 	if not _mountain_state_source:
-		push_error("GameController requires a MountainStateSource.")
+		push_error("GameSession requires a MountainStateSource.")
 		return
 	_mountain_state_source.state_changed.connect(_on_mountain_state_changed)
 	add_child(_mountain_state_source)
@@ -47,6 +49,8 @@ func start_game(selected_player_count: int) -> void:
 	run_manager = null
 	run_score = 0
 	results = null
+	_active_course = null
+	_active_tuning = null
 	is_paused = false
 	_set_presentation_state(PresentationState.PLAYING)
 
@@ -57,6 +61,7 @@ func begin_run(course: ParkCourse) -> void:
 		return
 	run_manager = RiderRunManager.new()
 	run_manager.setup(course)
+	_active_course = course
 	run_score = 0
 	run_started.emit(run_manager)
 
@@ -66,6 +71,7 @@ func step_run(
 ) -> void:
 	if not run_manager or is_paused or presentation_state != PresentationState.PLAYING:
 		return
+	_active_tuning = tuning
 	run_manager.step(input, course, tuning, delta)
 	_set_run_score(run_manager.rider_state.jump_score)
 
@@ -87,11 +93,13 @@ func set_paused(next_paused: bool) -> void:
 
 
 func show_results() -> void:
-	if not run_manager:
+	if not run_manager or _active_course == null or _active_tuning == null:
 		push_error("Cannot show results without an active run.")
 		return
 	_set_run_score(run_manager.rider_state.jump_score)
-	results = RunResult.new(player_count, JumpResult.from_jump_state(run_manager.rider_state.jump))
+	results = RunResult.from_primary_rider(
+		player_count, run_manager.rider_state, _active_course, _active_tuning
+	)
 	_set_presentation_state(PresentationState.RESULTS)
 	results_ready.emit(results)
 
@@ -99,6 +107,8 @@ func show_results() -> void:
 func return_to_attract() -> void:
 	is_paused = false
 	run_manager = null
+	_active_course = null
+	_active_tuning = null
 	_set_presentation_state(PresentationState.ATTRACT)
 
 

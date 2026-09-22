@@ -14,7 +14,7 @@ const DevSente := preload("res://src/services/dev_sente.gd")
 const WindowManagerScript := preload("res://src/app/window_manager.gd")
 const AudioManagerScript := preload("res://src/app/audio_manager.gd")
 const CabinetExitHandlerScript := preload("res://src/app/cabinet_exit_handler.gd")
-const GameControllerScene := preload("res://src/game/game_controller.gd")
+const GameSessionScene := preload("res://src/game/game_session.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
 const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
 const BackgroundMusic := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
@@ -22,7 +22,7 @@ const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 
 var _audio_manager: AudioManager
 var _cabinet_exit_handler := CabinetExitHandlerScript.new()
-var _game_controller: GameController
+var _game_session: GameSession
 var _liftie_state_service: LiftieStateService
 var _primary_view: PrimaryScreen
 var _gameplay_screen: GameplayScreen
@@ -49,9 +49,9 @@ func _ready() -> void:
 	var overrides := DevSente.parse_overrides(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
 	_show_terrain = overrides.show_terrain
 	_show_diagnostics = overrides.show_diagnostics
-	_game_controller = GameControllerScene.new()
-	_game_controller.set_mountain_state_source(MockMountainStateSourceScene.new())
-	add_child(_game_controller)
+	_game_session = GameSessionScene.new()
+	_game_session.set_mountain_state_source(MockMountainStateSourceScene.new())
+	add_child(_game_session)
 	_liftie_state_service = LiftieStateServiceScene.new()
 	add_child(_liftie_state_service)
 
@@ -107,9 +107,9 @@ func _start_game(player_count: int) -> void:
 func _show_gameplay(player_count: int, transition: CrtTransition) -> void:
 	_primary_view.queue_free()
 	_primary_view = null
-	_game_controller.start_game(player_count)
+	_game_session.start_game(player_count)
 	_gameplay_screen = GameplayScreenScene.new()
-	_gameplay_screen.game_controller = _game_controller
+	_gameplay_screen.game_session = _game_session
 	_gameplay_screen.show_terrain = _show_terrain
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	add_child(_gameplay_screen)
@@ -130,7 +130,7 @@ func _return_to_attract() -> void:
 	_gameplay_screen = null
 	_audio_manager.play_confirmation()
 	_audio_manager.play_background_music()
-	_game_controller.return_to_attract()
+	_game_session.return_to_attract()
 	_show_attract(_primary_screen_index(), _show_diagnostics)
 
 

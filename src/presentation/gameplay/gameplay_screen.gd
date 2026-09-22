@@ -19,7 +19,7 @@ const PauseFlowControllerScene := preload(
 	"res://src/presentation/gameplay/pause_flow_controller.gd"
 )
 
-var game_controller: GameController
+var game_session: GameSession
 var show_terrain := OS.is_debug_build()
 var _course: ParkCourse = PARK_COURSE_RESOURCE.duplicate()
 var _input_controller: GameplayInputController
@@ -32,7 +32,7 @@ var _gameplay_music: AudioStreamPlayer
 
 var _run_manager: RiderRunManager:
 	get:
-		return game_controller.run_manager
+		return game_session.run_manager
 
 
 func _ready() -> void:
@@ -40,26 +40,26 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if game_controller == null:
-		push_error("GameplayScreen requires a GameController.")
+	if game_session == null:
+		push_error("GameplayScreen requires a GameSession.")
 		return
 	var course_errors := _course.validation_errors()
 	if not course_errors.is_empty():
 		push_error("Invalid ParkCourse:\n%s" % "\n".join(course_errors))
-	game_controller.begin_run(_course)
+	game_session.begin_run(_course)
 	_build_ui_layer()
 	_input_controller = GameplayInputControllerScene.new()
 	_hud_presenter = GameplayHudPresenterScene.new()
-	_hud_presenter.build(_ui_layer, game_controller.player_count)
+	_hud_presenter.build(_ui_layer, game_session.player_count)
 	_world_presenter = ParkWorldPresenterScene.new()
 	add_child(_world_presenter)
 	_world_presenter.setup(_course, show_terrain)
 	_world_presenter.update_from_run(_run_manager, 0.0, _hud_presenter.is_occluded)
 	_pause_flow = PauseFlowControllerScene.new()
-	_pause_flow.setup(self, game_controller, _ui_layer)
+	_pause_flow.setup(self, game_session, _ui_layer)
 	_pause_flow.abandon_requested.connect(_confirm_return_to_title)
-	game_controller.run_score_changed.connect(_hud_presenter.set_score)
-	_hud_presenter.set_score(game_controller.run_score)
+	game_session.run_score_changed.connect(_hud_presenter.set_score)
+	_hud_presenter.set_score(game_session.run_score)
 	_build_music()
 
 
@@ -67,7 +67,7 @@ func _process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
 	_hud_presenter.update(
-		delta, _run_manager, game_controller.player_count, _input_controller.sample_frame()
+		delta, _run_manager, game_session.player_count, _input_controller.sample_frame()
 	)
 
 
@@ -75,7 +75,7 @@ func _physics_process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
 	var input := _input_controller.sample_frame()
-	game_controller.step_run(input, _course, _rider_tuning, delta)
+	game_session.step_run(input, _course, _rider_tuning, delta)
 	_world_presenter.update_from_run(_run_manager, delta, _hud_presenter.is_occluded)
 
 
@@ -104,8 +104,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _restart_run() -> void:
-	game_controller.restart_run(_course)
-	_hud_presenter.reset(game_controller.player_count)
+	game_session.restart_run(_course)
+	_hud_presenter.reset(game_session.player_count)
 	_world_presenter.reset_presentation(_run_manager, _hud_presenter.is_occluded)
 
 
