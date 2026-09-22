@@ -2,7 +2,8 @@
   "files.exclude": {
     "**/build": true,
     "**/.godot": true,
-    "**/*.gd.uid": true
+    "**/*.gd.uid": true,
+    "**/*.import": true
   },
 
   // @see https://github.com/Microsoft/vscode/issues/6502
