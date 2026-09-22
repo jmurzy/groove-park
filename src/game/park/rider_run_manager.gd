@@ -48,11 +48,11 @@ func is_crashed() -> bool:
 
 func _reset_skier_state(course: ParkCourse) -> void:
 	skier_state = RiderState.new()
-	if course.approach_rider_path.is_empty():
+	if course.approach_path.is_empty():
 		skier_state.course_progress = course.spawn_progress()
 	else:
-		var skier_index := mini(4, course.approach_rider_path.size() - 1)
-		skier_state.course_progress = course.approach_rider_path[skier_index].x
+		var skier_index := mini(4, course.approach_path.size() - 1)
+		skier_state.course_progress = course.approach_path[skier_index].x
 	skier_state.ground_position = Vector2(skier_state.course_progress, skier_state.lane_position)
 	skier_state.vertical_position = course.surface_y_at(
 		skier_state.course_progress, skier_state.lane_position

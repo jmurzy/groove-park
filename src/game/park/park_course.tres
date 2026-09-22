@@ -1,14 +1,7 @@
 [gd_resource type="Resource" script_class="ParkCourse" format=3 uid="uid://dskmo53o8rako"]
 
 [ext_resource type="Script" uid="uid://dvq4c3ub26io6" path="res://src/game/park/park_course.gd" id="1_park_course"]
-[ext_resource type="Script" path="res://src/game/park/park_phase_path.gd" id="2_phase_path"]
-
-[sub_resource type="Resource" id="ParkPhasePath_approach"]
-script = ExtResource("2_phase_path")
-id = &"approach"
-path_points = PackedVector2Array(75.15978, 209.89066, 129, 222, 178.68219, 250.09103, 225.88126, 297.68317, 285.81656, 325.78876, 337.1362, 350.8964, 426.66458, 370.0082, 530.8022, 408.9813, 716, 460, 872, 506, 967, 507, 1113, 382)
 
 [resource]
 script = ExtResource("1_park_course")
-approach_rider_path = PackedVector2Array(75.15978, 209.89066, 129, 222, 178.68219, 250.09103, 225.88126, 297.68317, 285.81656, 325.78876, 337.1362, 350.8964, 426.66458, 370.0082, 530.8022, 408.9813, 716, 460, 872, 506, 967, 507, 1113, 382)
-phase_paths = [SubResource("ParkPhasePath_approach")]
+approach_path = PackedVector2Array(75.15978, 209.89066, 129, 222, 178.68219, 250.09103, 225.88126, 297.68317, 285.81656, 325.78876, 337.1362, 350.8964, 426.66458, 370.0082, 530.8022, 408.9813, 716, 460, 872, 506, 967, 507, 1113, 382)

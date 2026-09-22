@@ -2,7 +2,6 @@
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
-const ParkPhasePathScene := preload("res://src/game/park/park_phase_path.gd")
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const ApproachSimulationScene := preload("res://src/game/park/approach_simulation.gd")
@@ -21,7 +20,7 @@ func _init() -> void:
 	_simulation = ApproachSimulationScene.new()
 	_tuning = RiderTuningScene.new()
 	_test_neutral_input_does_not_start_a_run()
-	_test_shipped_course_has_an_approach_path()
+	_test_shipped_course_has_an_approach_line()
 	_test_downhill_input_starts_a_run()
 	_test_releasing_right_carves_to_a_stop()
 	_test_left_brakes_without_turning_uphill()
@@ -47,10 +46,10 @@ func _test_neutral_input_does_not_start_a_run() -> void:
 	_expect(state.ground_velocity.is_zero_approx(), "Neutral input must not start an approach run.")
 
 
-func _test_shipped_course_has_an_approach_path() -> void:
+func _test_shipped_course_has_an_approach_line() -> void:
 	_expect(
-		ShippedParkCourse.phase_paths.size() == 1,
-		"The shipped course must define one approach phase path."
+		ShippedParkCourse.approach_path.size() >= 2,
+		"The shipped course must define an approach line."
 	)
 
 
@@ -162,27 +161,19 @@ func _new_state() -> RiderState:
 
 func _approach_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.approach_rider_path = PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
+	course.approach_path = PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
 	course.lane_min = -100.0
 	course.lane_max = 100.0
-	var approach := ParkPhasePathScene.new()
-	approach.id = &"approach"
-	approach.path_points = PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)])
-	course.phase_paths = [approach]
 	return course
 
 
 func _roller_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.approach_rider_path = PackedVector2Array(
+	course.approach_path = PackedVector2Array(
 		[Vector2(0, 400), Vector2(400, 560), Vector2(600, 360), Vector2(1000, 520)]
 	)
 	course.lane_min = -100.0
 	course.lane_max = 100.0
-	var approach := ParkPhasePathScene.new()
-	approach.id = &"approach"
-	approach.path_points = PackedVector2Array([Vector2(0, 0), Vector2(1000, 0)])
-	course.phase_paths = [approach]
 	return course
 
 

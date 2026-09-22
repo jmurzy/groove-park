@@ -24,7 +24,7 @@ func load_from_course() -> void:
 		push_error("Could not load ParkCourse from %s." % PARK_COURSE_PATH)
 		return
 	var curve := Curve2D.new()
-	for point in course.approach_rider_path:
+	for point in course.approach_path:
 		curve.add_point(point)
 	_park_approach_path.curve = curve
 	_park_approach_path.refresh_preview()
@@ -41,7 +41,7 @@ func save_to_course() -> void:
 	var points := PackedVector2Array()
 	for point_index in _park_approach_path.curve.point_count:
 		points.append(_park_approach_path.curve.get_point_position(point_index))
-	course.approach_rider_path = points
+	course.approach_path = points
 	var errors := course.validation_errors()
 	if not errors.is_empty():
 		push_error("Approach rider path not saved:\n%s" % "\n".join(errors))

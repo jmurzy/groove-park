@@ -3,7 +3,6 @@
 class_name ParkApproachPath
 extends Path2D
 
-@export var zone_id: StringName
 @export var preview_color := Color("ff3bd4"):
 	set(value):
 		preview_color = value

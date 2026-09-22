@@ -7,13 +7,15 @@ extends RefCounted
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	var phase_path := course.phase_path_at(state.course_progress)
-	if phase_path == null or phase_path.phase != ParkPhasePath.Phase.APPROACH:
+	if (
+		state.course_progress < course.spawn_progress()
+		or state.course_progress > _approach_end(course)
+	):
 		_stop_at_approach_edge(state)
 		return
 
 	state.phase = RiderState.Phase.GROUNDED
-	state.current_control_zone_id = phase_path.id
+	state.current_control_zone_id = &"approach"
 	state.control_mode = RiderState.ControlMode.APPROACH
 	state.current_surface_id = StringName()
 	var steering_heading := input.heading
@@ -38,10 +40,8 @@ func step(
 		return
 
 	_turn_toward_input(state, steering_heading, input, tuning, delta)
-	_apply_approach_forces(
-		state, input, course, phase_path, tuning, delta, downhill_held, left_braking
-	)
-	_move_within_approach(state, course, phase_path, delta)
+	_apply_approach_forces(state, input, course, tuning, delta, downhill_held, left_braking)
+	_move_within_approach(state, course, delta)
 	_sync_ground_state(state, course)
 
 
@@ -70,13 +70,12 @@ func _apply_approach_forces(
 	state: RiderState,
 	input: RiderInputFrame,
 	course: ParkCourse,
-	phase_path: ParkPhasePath,
 	tuning: RiderTuning,
 	delta: float,
 	downhill_held: bool,
 	left_braking: bool
 ) -> void:
-	var fall_line := phase_path.fall_line_direction.normalized()
+	var fall_line := Vector2.RIGHT
 	var gradient := course.gradient_at(state.course_progress, state.lane_position)
 	# Gravity along the slope: downhill pitches accelerate, uphill pitches
 	# decelerate. Capped at slope_gravity on steep faces.
@@ -97,13 +96,13 @@ func _apply_approach_forces(
 		state.ground_velocity = state.ground_velocity.move_toward(
 			state.heading * speed, tuning.steering_response * delta
 		)
-	var drag := tuning.snow_resistance * phase_path.snow_resistance_multiplier
+	var drag := tuning.snow_resistance
 	drag += tuning.aerodynamic_drag * speed * speed
-	drag += tuning.edge_drag * phase_path.edge_grip_multiplier * absf(state.heading.y)
+	drag += tuning.edge_drag * absf(state.heading.y)
 	if input.tuck_pressed:
 		drag *= tuning.tuck_drag_multiplier
 	if input.edge_pressed:
-		drag += tuning.strong_edge_drag * phase_path.edge_grip_multiplier
+		drag += tuning.strong_edge_drag
 	if input.brake_pressed or left_braking:
 		drag += tuning.brake_drag
 	if not downhill_held:
@@ -113,15 +112,11 @@ func _apply_approach_forces(
 		_stop_at_approach_edge(state)
 
 
-func _move_within_approach(
-	state: RiderState, course: ParkCourse, phase_path: ParkPhasePath, delta: float
-) -> void:
+func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) -> void:
 	var next_position := (
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
-	state.course_progress = clampf(
-		next_position.x, phase_path.progress_start(), phase_path.progress_end()
-	)
+	state.course_progress = clampf(next_position.x, course.spawn_progress(), _approach_end(course))
 	var lane_bounds := course.lane_bounds_at(state.course_progress)
 	state.lane_position = clampf(next_position.y, lane_bounds.x, lane_bounds.y)
 	if not is_equal_approx(state.course_progress, next_position.x):
@@ -134,6 +129,10 @@ func _stop_at_approach_edge(state: RiderState) -> void:
 	state.tuck_active = false
 	state.brake_active = false
 	state.edge_active = false
+
+
+func _approach_end(course: ParkCourse) -> float:
+	return course.approach_path[-1].x
 
 
 func _sync_ground_state(state: RiderState, course: ParkCourse) -> void:

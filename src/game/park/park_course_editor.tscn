@@ -23,5 +23,4 @@ metadata/_edit_lock_ = true
 [node name="ParkApproachPath" type="Path2D" parent="." unique_id=942950380]
 curve = SubResource("Curve2D_ljxe1")
 script = ExtResource("3_rider_path")
-zone_id = &"approach"
 metadata/_edit_lock_ = true
