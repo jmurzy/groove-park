@@ -31,6 +31,7 @@ func _init() -> void:
 	_test_braking_reduces_speed()
 	_test_approach_boundary_ends_the_run()
 	_test_lower_approach_path_owns_its_endpoint()
+	_test_route_tangent_follows_selected_path()
 	_test_gradient_sign_matches_terrain_pitch()
 	_test_uphill_stalls_without_momentum()
 	_test_uphill_clears_with_momentum()
@@ -181,6 +182,27 @@ func _test_lower_approach_path_owns_its_endpoint() -> void:
 	_expect(
 		is_equal_approx(state.course_progress, 3200.0),
 		"The lower approach path must be rideable through its authored endpoint."
+	)
+
+
+func _test_route_tangent_follows_selected_path() -> void:
+	var routed_course := _approach_course()
+	routed_course.approach_paths = [
+		PackedVector2Array([Vector2(0, 200), Vector2(3000, 0)]),
+		PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
+		PackedVector2Array([Vector2(0, 0), Vector2(3000, 200)]),
+	]
+	_expect(
+		routed_course.route_tangent_at(1000.0, 0.0).y < 0.0,
+		"The upper path tangent should point uphill."
+	)
+	_expect(
+		is_zero_approx(routed_course.route_tangent_at(1000.0, 1.0).y),
+		"The center path tangent should stay flat."
+	)
+	_expect(
+		routed_course.route_tangent_at(1000.0, 2.0).y > 0.0,
+		"The lower path tangent should point downhill."
 	)
 
 

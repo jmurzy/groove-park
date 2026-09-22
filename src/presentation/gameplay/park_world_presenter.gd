@@ -112,7 +112,9 @@ func _update_rider_views(run_manager: RiderRunManager) -> void:
 
 func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
 	view.update_from_state(
-		state, _projection.project_rider(state), course.tangent_at(state.course_progress).angle()
+		state,
+		_projection.project_rider(state),
+		course.route_tangent_at(state.course_progress, state.approach_path_position).angle()
 	)
 
 

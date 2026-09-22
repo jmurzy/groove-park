@@ -78,12 +78,25 @@ func route_surface_y_at(course_progress: float, route_position: float) -> float:
 	)
 
 
+func route_surface_position_at(course_progress: float, route_position: float) -> Vector2:
+	return Vector2(course_progress, route_surface_y_at(course_progress, route_position))
+
+
 func route_gradient_at(
 	course_progress: float, route_position: float, sample_distance := 4.0
 ) -> float:
 	var forward := route_surface_y_at(course_progress + sample_distance, route_position)
 	var backward := route_surface_y_at(course_progress - sample_distance, route_position)
 	return (forward - backward) / (2.0 * sample_distance)
+
+
+func route_tangent_at(course_progress: float, route_position: float) -> Vector2:
+	return Vector2(1.0, route_gradient_at(course_progress, route_position, 1.0)).normalized()
+
+
+func route_normal_at(course_progress: float, route_position: float) -> Vector2:
+	var tangent := route_tangent_at(course_progress, route_position)
+	return Vector2(tangent.y, -tangent.x)
 
 
 func route_end_at(route_position: float) -> float:
