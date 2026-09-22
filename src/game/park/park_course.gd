@@ -78,6 +78,23 @@ func route_surface_y_at(course_progress: float, route_position: float) -> float:
 	)
 
 
+func route_gradient_at(
+	course_progress: float, route_position: float, sample_distance := 4.0
+) -> float:
+	var forward := route_surface_y_at(course_progress + sample_distance, route_position)
+	var backward := route_surface_y_at(course_progress - sample_distance, route_position)
+	return (forward - backward) / (2.0 * sample_distance)
+
+
+func route_end_at(route_position: float) -> float:
+	if approach_paths.size() != 3:
+		return approach_path[-1].x
+	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
+	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
+	var blend := clampf(route_position - lower_index, 0.0, 1.0)
+	return lerpf(approach_paths[lower_index][-1].x, approach_paths[upper_index][-1].x, blend)
+
+
 func tangent_at(course_progress: float) -> Vector2:
 	if approach_path.size() < 2:
 		push_error("ParkCourse needs at least two approach path points to calculate a tangent.")

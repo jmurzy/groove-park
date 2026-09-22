@@ -30,6 +30,7 @@ func _init() -> void:
 	_test_vertical_input_switches_approach_paths_smoothly()
 	_test_braking_reduces_speed()
 	_test_approach_boundary_ends_the_run()
+	_test_lower_approach_path_owns_its_endpoint()
 	_test_gradient_sign_matches_terrain_pitch()
 	_test_uphill_stalls_without_momentum()
 	_test_uphill_clears_with_momentum()
@@ -161,6 +162,26 @@ func _test_approach_boundary_ends_the_run() -> void:
 		"The rider should stop at the approach edge."
 	)
 	_expect(state.ground_velocity.is_zero_approx(), "Leaving the approach should clear velocity.")
+
+
+func _test_lower_approach_path_owns_its_endpoint() -> void:
+	var routed_course := _approach_course()
+	routed_course.approach_paths = [
+		PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
+		PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
+		PackedVector2Array([Vector2(0, 200), Vector2(3200, 200)]),
+	]
+	var state := RiderStateScene.new()
+	state.approach_path_target = 2
+	state.approach_path_position = 2.0
+	state.course_progress = 3195.0
+	state.ground_velocity = Vector2(600.0, 0.0)
+	state.has_ground_intent = true
+	_step_on(state, routed_course, Vector2.RIGHT)
+	_expect(
+		is_equal_approx(state.course_progress, 3200.0),
+		"The lower approach path must be rideable through its authored endpoint."
+	)
 
 
 func _run(heading: Vector2, tuck: bool, edge: bool, ticks: int, brake: bool = false) -> RiderState:

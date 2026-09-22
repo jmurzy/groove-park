@@ -11,7 +11,7 @@ func step(
 ) -> void:
 	if (
 		state.course_progress < course.spawn_progress()
-		or state.course_progress > _approach_end(course)
+		or state.course_progress > _approach_end(state, course)
 	):
 		_stop_at_approach_edge(state)
 		return
@@ -79,7 +79,7 @@ func _apply_approach_forces(
 	left_braking: bool
 ) -> void:
 	var fall_line := Vector2.RIGHT
-	var gradient := course.gradient_at(state.course_progress, state.lane_position)
+	var gradient := course.route_gradient_at(state.course_progress, state.approach_path_position)
 	# Gravity along the slope: downhill pitches accelerate, uphill pitches
 	# decelerate. Capped at slope_gravity on steep faces.
 	state.ground_velocity.x += (
@@ -119,7 +119,9 @@ func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) 
 	var next_position := (
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
-	state.course_progress = clampf(next_position.x, course.spawn_progress(), _approach_end(course))
+	state.course_progress = clampf(
+		next_position.x, course.spawn_progress(), _approach_end(state, course)
+	)
 	state.lane_position = 0.0
 	if not is_equal_approx(state.course_progress, next_position.x):
 		_stop_at_approach_edge(state)
@@ -133,8 +135,8 @@ func _stop_at_approach_edge(state: RiderState) -> void:
 	state.edge_active = false
 
 
-func _approach_end(course: ParkCourse) -> float:
-	return course.approach_path[-1].x
+func _approach_end(state: RiderState, course: ParkCourse) -> float:
+	return course.route_end_at(state.approach_path_position)
 
 
 func _sync_ground_state(state: RiderState, course: ParkCourse) -> void:
@@ -178,7 +180,7 @@ func _can_coast_through_path_change(
 	var simulated_speed := maxf(state.ground_velocity.x, 0.0)
 	while remaining_transition_time > 0.0:
 		var step := minf(COAST_PREDICTION_STEP, remaining_transition_time)
-		var gradient := course.gradient_at(simulated_progress)
+		var gradient := course.route_gradient_at(simulated_progress, state.approach_path_position)
 		simulated_speed += (
 			tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient) * step
 		)
