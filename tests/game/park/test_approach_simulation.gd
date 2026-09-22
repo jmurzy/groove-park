@@ -52,8 +52,8 @@ func _test_neutral_input_does_not_start_a_run() -> void:
 
 func _test_shipped_course_has_an_approach_line() -> void:
 	_expect(
-		ShippedParkCourse.approach_path.size() >= 2,
-		"The shipped course must define an approach line."
+		ShippedParkCourse.approach_paths.size() == 3,
+		"The shipped course must define three approach paths."
 	)
 
 
@@ -238,13 +238,16 @@ func _step_on(
 func _new_state() -> RiderState:
 	var state := RiderStateScene.new()
 	state.course_progress = 20.0
-	state.vertical_position = _course.surface_y_at(state.course_progress)
+	state.vertical_position = _course.route_surface_y_at(
+		state.course_progress, state.approach_path_position
+	)
 	return state
 
 
 func _approach_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.approach_path = PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
+	var path := PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
+	course.approach_paths = [path, path, path]
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course
@@ -252,9 +255,10 @@ func _approach_course() -> ParkCourse:
 
 func _roller_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.approach_path = PackedVector2Array(
+	var path := PackedVector2Array(
 		[Vector2(0, 400), Vector2(400, 560), Vector2(600, 360), Vector2(1000, 520)]
 	)
+	course.approach_paths = [path, path, path]
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course
@@ -262,8 +266,13 @@ func _roller_course() -> ParkCourse:
 
 func _test_gradient_sign_matches_terrain_pitch() -> void:
 	var roller := _roller_course()
-	_expect(_course.gradient_at(500.0) > 0.0, "Downhill pitch should read a positive gradient.")
-	_expect(roller.gradient_at(500.0) < 0.0, "Uphill pitch should read a negative gradient.")
+	_expect(
+		_course.route_gradient_at(500.0, 1.0) > 0.0,
+		"Downhill pitch should read a positive gradient."
+	)
+	_expect(
+		roller.route_gradient_at(500.0, 1.0) < 0.0, "Uphill pitch should read a negative gradient."
+	)
 
 
 func _test_uphill_stalls_without_momentum() -> void:

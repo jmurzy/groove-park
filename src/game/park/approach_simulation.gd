@@ -6,11 +6,12 @@ extends RefCounted
 const APPROACH_PATH_SWITCH_SPEED := 2.5
 const COAST_PREDICTION_STEP := 1.0 / 60.0
 
+
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
 	if (
-		state.course_progress < course.spawn_progress()
+		state.course_progress < course.route_start_at(state.approach_path_position)
 		or state.course_progress > _approach_end(state, course)
 	):
 		_stop_at_approach_edge(state)
@@ -120,7 +121,9 @@ func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) 
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
 	state.course_progress = clampf(
-		next_position.x, course.spawn_progress(), _approach_end(state, course)
+		next_position.x,
+		course.route_start_at(state.approach_path_position),
+		_approach_end(state, course)
 	)
 	state.lane_position = 0.0
 	if not is_equal_approx(state.course_progress, next_position.x):
@@ -160,9 +163,7 @@ func _update_approach_path(
 		requested_path != state.approach_path_target
 		and _can_coast_through_path_change(state, requested_path, course, tuning)
 	):
-		state.approach_path_target = clampi(
-			requested_path, 0, course.approach_paths.size() - 1
-		)
+		state.approach_path_target = clampi(requested_path, 0, course.approach_paths.size() - 1)
 	state.approach_path_position = move_toward(
 		state.approach_path_position,
 		float(state.approach_path_target),

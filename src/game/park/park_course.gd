@@ -4,9 +4,7 @@ class_name ParkCourse
 extends Resource
 
 @export var course_version := "park-course-v1"
-@export var approach_path := PackedVector2Array()
-## Three editor-authored routes ordered top-to-bottom. The center route remains
-## in approach_path for compatibility with the rest of the approach course.
+## Three editor-authored routes ordered top-to-bottom.
 @export var approach_paths: Array[PackedVector2Array] = []
 @export var lane_min := -360.0
 @export var lane_max := 360.0
@@ -14,29 +12,21 @@ extends Resource
 
 func validation_errors() -> PackedStringArray:
 	var errors := PackedStringArray()
-	if approach_path.size() < 2:
-		errors.append("ParkCourse needs at least two approach path points.")
-		return errors
-	if not approach_paths.is_empty() and approach_paths.size() != 3:
+	if approach_paths.size() != 3:
 		errors.append("ParkCourse needs exactly three approach paths when routes are authored.")
+		return errors
 	for path_index in approach_paths.size():
 		if approach_paths[path_index].size() < 2:
 			errors.append("Approach path %d needs at least two points." % path_index)
 			continue
 		for point_index in range(approach_paths[path_index].size() - 1):
-			if approach_paths[path_index][point_index + 1].x <= approach_paths[path_index][point_index].x:
-				errors.append("Approach path %d points must be strictly ordered by progress." % path_index)
-
-	for point_index in range(approach_path.size() - 1):
-		var start := approach_path[point_index]
-		var end := approach_path[point_index + 1]
-		if end.x <= start.x:
-			errors.append(
-				(
-					"Approach path points %d and %d must be strictly ordered by progress."
-					% [point_index, point_index + 1]
+			if (
+				approach_paths[path_index][point_index + 1].x
+				<= approach_paths[path_index][point_index].x
+			):
+				errors.append(
+					"Approach path %d points must be strictly ordered by progress." % path_index
 				)
-			)
 
 	if lane_min >= lane_max:
 		errors.append("ParkCourse lane_min must be less than lane_max.")
@@ -47,27 +37,7 @@ func is_valid() -> bool:
 	return validation_errors().is_empty()
 
 
-func surface_position_at(course_progress: float, lane_position := 0.0) -> Vector2:
-	return Vector2(course_progress, surface_y_at(course_progress, lane_position))
-
-
-func surface_y_at(course_progress: float, _lane_position := 0.0) -> float:
-	if approach_path.is_empty():
-		push_error("ParkCourse has no approach path points.")
-		return 0.0
-	if course_progress <= approach_path[0].x:
-		return approach_path[0].y
-	for point_index in range(approach_path.size() - 1):
-		var start := approach_path[point_index]
-		var end := approach_path[point_index + 1]
-		if course_progress <= end.x:
-			return lerpf(start.y, end.y, inverse_lerp(start.x, end.x, course_progress))
-	return approach_path[-1].y
-
-
 func route_surface_y_at(course_progress: float, route_position: float) -> float:
-	if approach_paths.size() != 3:
-		return surface_y_at(course_progress)
 	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
 	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
 	var blend := clampf(route_position - lower_index, 0.0, 1.0)
@@ -100,57 +70,35 @@ func route_normal_at(course_progress: float, route_position: float) -> Vector2:
 
 
 func route_end_at(route_position: float) -> float:
-	if approach_paths.size() != 3:
-		return approach_path[-1].x
 	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
 	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
 	var blend := clampf(route_position - lower_index, 0.0, 1.0)
 	return lerpf(approach_paths[lower_index][-1].x, approach_paths[upper_index][-1].x, blend)
 
 
-func tangent_at(course_progress: float) -> Vector2:
-	if approach_path.size() < 2:
-		push_error("ParkCourse needs at least two approach path points to calculate a tangent.")
-		return Vector2.RIGHT
-	return _segment_at(course_progress).normalized()
-
-
-func normal_at(course_progress: float) -> Vector2:
-	var tangent := tangent_at(course_progress)
-	return Vector2(tangent.y, -tangent.x)
-
-
-## Terrain pitch dy/dx at a ground position. Positive means downhill (surface Y
-## grows with progress), negative means uphill. Example: a kicker lip reads < 0.
-func gradient_at(course_progress: float, lane_position := 0.0, sample_distance := 4.0) -> float:
-	var forward := surface_y_at(course_progress + sample_distance, lane_position)
-	var backward := surface_y_at(course_progress - sample_distance, lane_position)
-	return (forward - backward) / (2.0 * sample_distance)
-
-
 func lane_bounds_at(_course_progress: float) -> Vector2:
 	return Vector2(lane_min, lane_max)
 
 
-func spawn_progress() -> float:
-	if approach_path.is_empty():
-		return 0.0
-	return approach_path[0].x
+func route_start_at(route_position: float) -> float:
+	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
+	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
+	var blend := clampf(route_position - lower_index, 0.0, 1.0)
+	return lerpf(approach_paths[lower_index][0].x, approach_paths[upper_index][0].x, blend)
 
 
-func swept_terrain_intersection(
-	previous_position: Vector2,
-	next_position: Vector2,
-	_previous_lane_position := 0.0,
-	_next_lane_position := 0.0
+func route_swept_terrain_intersection(
+	previous_position: Vector2, next_position: Vector2, route_position: float
 ) -> Dictionary:
 	# Return the earliest forward flight/terrain contact, including contacts at terrain seams.
-	if approach_path.size() < 2 or next_position.x <= previous_position.x:
+	if next_position.x <= previous_position.x:
 		return {}
+	var path_index := clampi(roundi(route_position), 0, approach_paths.size() - 1)
+	var path := approach_paths[path_index]
 	var earliest_contact := {}
-	for point_index in range(approach_path.size() - 1):
-		var terrain_start := approach_path[point_index]
-		var terrain_end := approach_path[point_index + 1]
+	for point_index in range(path.size() - 1):
+		var terrain_start := path[point_index]
+		var terrain_end := path[point_index + 1]
 		if terrain_end.x < previous_position.x or terrain_start.x > next_position.x:
 			continue
 		var contact := _segment_intersection(
@@ -165,17 +113,6 @@ func swept_terrain_intersection(
 			earliest_contact["tangent"] = tangent
 			earliest_contact["normal"] = Vector2(tangent.y, -tangent.x)
 	return earliest_contact
-
-
-func _segment_at(course_progress: float) -> Vector2:
-	if course_progress <= approach_path[0].x:
-		return approach_path[1] - approach_path[0]
-	for point_index in range(approach_path.size() - 1):
-		var start := approach_path[point_index]
-		var end := approach_path[point_index + 1]
-		if course_progress <= end.x:
-			return end - start
-	return approach_path[-1] - approach_path[-2]
 
 
 func _path_surface_y_at(path: PackedVector2Array, course_progress: float) -> float:

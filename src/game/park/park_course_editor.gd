@@ -27,7 +27,8 @@ func load_from_course() -> void:
 		return
 	var paths := course.approach_paths
 	if paths.size() != _park_approach_paths.size():
-		paths = [course.approach_path, course.approach_path, course.approach_path]
+		push_error("ParkCourse needs exactly three approach paths.")
+		return
 	for path_index in _park_approach_paths.size():
 		var curve := Curve2D.new()
 		for point in paths[path_index]:
@@ -51,8 +52,6 @@ func save_to_course() -> void:
 			points.append(approach_path.curve.get_point_position(point_index))
 		paths.append(points)
 	course.approach_paths = paths
-	# The middle route is the course's default profile for systems outside the approach.
-	course.approach_path = paths[1]
 	var errors := course.validation_errors()
 	if not errors.is_empty():
 		push_error("Approach rider path not saved:\n%s" % "\n".join(errors))

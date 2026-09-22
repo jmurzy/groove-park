@@ -22,7 +22,7 @@ static func draw_course_debug(
 
 static func draw_terrain_handles(canvas: CanvasItem, projection: ParkProjection) -> void:
 	var course := projection.course
-	var paths := _approach_paths(course)
+	var paths := course.approach_paths
 	for path_index in paths.size():
 		var path: PackedVector2Array = paths[path_index]
 		var color: Color = APPROACH_PATH_COLORS[path_index]
@@ -42,7 +42,7 @@ static func draw_terrain_handles(canvas: CanvasItem, projection: ParkProjection)
 
 
 static func _draw_approach_line(canvas: CanvasItem, course: ParkCourse) -> void:
-	var paths := _approach_paths(course)
+	var paths := course.approach_paths
 	for path_index in paths.size():
 		var path: PackedVector2Array = paths[path_index]
 		var color: Color = APPROACH_PATH_COLORS[path_index]
@@ -58,12 +58,6 @@ static func _draw_approach_line(canvas: CanvasItem, course: ParkCourse) -> void:
 				16.0,
 				color
 			)
-
-
-static func _approach_paths(course: ParkCourse) -> Array[PackedVector2Array]:
-	if course.approach_paths.size() == 3:
-		return course.approach_paths
-	return [course.approach_path]
 
 
 static func _draw_grid(canvas: CanvasItem, world_bounds: Rect2) -> void:
