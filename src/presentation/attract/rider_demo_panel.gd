@@ -8,6 +8,7 @@ const DEMO_SIZE := Vector2(1696, 389)
 const SKIER_LANE_POSITION := Vector2(188, 97)
 const SNOWBOARDER_LANE_POSITION := Vector2(1220, 97)
 const LANE_SIZE := Vector2(288, 195)
+const RIDER_POSITION := Vector2(144, 165)
 const RIDER_SCALE := 1.12
 
 var _skier: SkierView
@@ -66,7 +67,7 @@ func _add_rider_lane(rider_name: String, lane_position: Vector2, is_skier: bool)
 		scanline.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lane.add_child(scanline)
 	var rider: RiderViewBase = SkierView.new() if is_skier else SnowboarderView.new()
-	rider.position = Vector2(144, 139 if is_skier else 159)
+	rider.position = RIDER_POSITION
 	rider.scale = Vector2.ONE * RIDER_SCALE
 	lane.add_child(rider)
 	if is_skier:
