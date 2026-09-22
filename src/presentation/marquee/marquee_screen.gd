@@ -13,6 +13,7 @@ const MARQUEE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const LiveIndicatorScene := preload("res://src/presentation/marquee/live_indicator.gd")
 const TICKER_SPEED := 85.0
 const BORDER_WIDTH := 14.0
+const SNOW_SAFE_INSET := 40.0
 const SKIER_FRAME_COUNT := 8
 const SKIER_FRAME_RATE := 10.0
 const SKIER_SPEED := 150.0
@@ -64,7 +65,7 @@ func _ready() -> void:
 	_build_footer()
 	_build_logomark()
 	# Snowfall last (before diagnostics) so flakes drift in front of the logomark.
-	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28))
+	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28, SNOW_SAFE_INSET))
 	if show_diagnostics:
 		add_child(_build_diagnostics())
 	queue_redraw()
@@ -131,9 +132,9 @@ func _update_skier() -> void:
 	if not _skier:
 		return
 	var travel_width := DESIGN_SIZE.x + SKIER_OFFSCREEN_MARGIN * 2.0
-	_skier.position.x = -SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
+	_skier.position.x = - SKIER_OFFSCREEN_MARGIN + fposmod(_elapsed * SKIER_SPEED, travel_width)
 	_snowboarder.position.x = (
-		-SKIER_OFFSCREEN_MARGIN
+		- SKIER_OFFSCREEN_MARGIN
 		+ fposmod(_elapsed * SKIER_SPEED + SNOWBOARDER_LEAD_DISTANCE, travel_width)
 	)
 

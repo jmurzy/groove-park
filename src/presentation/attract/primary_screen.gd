@@ -26,6 +26,7 @@ const GONDOLA_SCALE := 0.36
 const GONDOLA_LANE := Rect2(712, 448, 497, 0)
 const GONDOLA_SPEED := 65.0
 const SNOWFLAKE_COUNT := 84
+const SNOW_SAFE_INSET := 60.0
 const FOOTER_COPYRIGHT_FORMAT := "© %d JULIA & JAKE MURZY - ALL RIGHTS RESERVED"
 const FOOTER_DEV_SUFFIX := "DEV BUILD: BUT EXPECT NO BUGS!"
 const ARCADE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
@@ -64,7 +65,7 @@ func _ready() -> void:
 	gondola = _build_gondola()
 	add_child(gondola)
 	gondola.play()
-	add_child(SnowfallLayerScene.create(DESIGN_SIZE, SNOWFLAKE_COUNT))
+	add_child(SnowfallLayerScene.create(DESIGN_SIZE, SNOWFLAKE_COUNT, SNOW_SAFE_INSET))
 	confirmation_sound = AudioStreamPlayer.new()
 	confirmation_sound.stream = CONFIRMATION_SOUND
 	add_child(confirmation_sound)
