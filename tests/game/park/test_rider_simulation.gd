@@ -1,27 +1,15 @@
-## Headless physics checks for RiderSimulation: ground feel, takeoff/pop, flight,
-## landing, grabs, scoring, and trace replays. Run headless with this script as the entry.
+## Headless checks for the approach-only rider controller.
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
-const ParkSurfaceScene := preload("res://src/game/park/park_surface.gd")
+const ParkControlZoneScene := preload("res://src/game/park/park_control_zone.gd")
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
-const JumpJudgeScene := preload("res://src/game/park/jump_judge.gd")
-const JumpScoreScene := preload("res://src/game/park/jump_score.gd")
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
-const TrickTrackerScene := preload("res://src/game/park/trick_tracker.gd")
 
 const DELTA := 1.0 / 60.0
-var _trace_paths: PackedStringArray = [
-	"res://tests/game/park/traces/straight_tuck.json",
-	"res://tests/game/park/traces/shallow_carve.json",
-	"res://tests/game/park/traces/hard_brake.json",
-	"res://tests/game/park/traces/forward_rotation.json",
-	"res://tests/game/park/traces/backward_rotation.json",
-]
-
 var _failures := PackedStringArray()
 var _course: ParkCourse
 var _simulation: RiderSimulation
@@ -29,54 +17,23 @@ var _tuning: RiderTuning
 
 
 func _init() -> void:
-	_course = ParkCourseScene.new()
-	_course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(10000, 0)])
-	_course.lane_min = -360.0
-	_course.lane_max = 360.0
+	_course = _approach_course()
 	_simulation = RiderSimulationScene.new()
 	_tuning = RiderTuningScene.new()
-	_test_straight_tuck_is_faster()
-	_test_traverse_is_slower_than_straight()
-	_test_strong_edge_turns_faster_and_costs_speed()
-	_test_brake_costs_more_speed_than_strong_edge()
-	_test_tuck_reduces_turn_authority()
-	_test_neutral_input_preserves_momentum()
 	_test_neutral_input_does_not_start_a_run()
-	_test_lane_boundary_does_not_reflect_velocity()
-	_test_bounded_surface_contains_lateral_motion()
-	_test_surface_supports_more_than_four_corners()
-	_test_surface_sweep_ignores_air_gap()
-	_test_baseline_traces_replay()
-	_test_lip_crossing_transitions_to_airborne()
-	_test_polygon_launch_edge_controls_takeoff()
-	_test_valid_pop_increases_upward_takeoff_speed()
-	_test_held_pop_does_not_add_an_impulse()
-	_test_air_input_does_not_change_translation()
-	_test_faster_takeoff_travels_farther()
-	_test_torque_changes_angular_velocity()
-	_test_reversing_torque_reduces_existing_spin()
-	_test_body_shape_changes_rotation_rate()
-	_test_landing_prep_damps_rotation()
-	_test_swept_contact_resolves_once()
-	_test_takeoff_speed_stays_within_landing_zone()
-	_test_shipped_course_is_valid()
-	_test_shipped_course_declares_separate_surfaces()
-	_test_control_zone_selects_compression_mode()
-	_test_shipped_course_has_a_reachable_clean_landing()
-	_test_landing_keeps_lane_velocity_separate_from_slope()
-	_test_landing_labels_and_continuous_quality()
-	_test_terrain_seam_returns_first_contact()
-	_test_held_ground_action_does_not_start_grab()
-	_test_fresh_air_press_starts_and_releases_grab()
-	_test_tweak_requires_an_active_grab()
-	_test_held_pop_does_not_become_a_tweak()
-	_test_trick_tracker_measures_full_rotation()
-	_test_score_components_are_deterministic()
-	_test_landing_multiplier_is_continuous()
-	_test_clean_rotation_beats_perfect_straight_air()
-	_test_crash_scores_zero()
+	_test_shipped_course_starts_blank()
+	_test_downhill_input_starts_a_run()
+	_test_releasing_right_carves_to_a_stop()
+	_test_left_brakes_without_turning_uphill()
+	_test_tuck_builds_more_speed()
+	_test_carving_redirects_the_rider()
+	_test_braking_reduces_speed()
+	_test_approach_boundary_ends_the_run()
+	_test_gradient_sign_matches_terrain_pitch()
+	_test_uphill_stalls_without_momentum()
+	_test_uphill_clears_with_momentum()
 	if _failures.is_empty():
-		print("RiderSimulation checks passed.")
+		print("Approach rider checks passed.")
 		quit(0)
 		return
 	for failure in _failures:
@@ -84,812 +41,184 @@ func _init() -> void:
 	quit(1)
 
 
-func _test_straight_tuck_is_faster() -> void:
-	var untucked := _run(Vector2.RIGHT, false, false, false, 120)
-	var tucked := _run(Vector2.RIGHT, true, false, false, 120)
-	_expect(
-		tucked.ground_velocity.length() > untucked.ground_velocity.length(),
-		"Tuck should increase straight-line speed."
-	)
-
-
-func _test_traverse_is_slower_than_straight() -> void:
-	var straight := _run(Vector2.RIGHT, false, false, false, 120)
-	var traverse := _run(Vector2.DOWN, false, false, false, 120)
-	_expect(
-		traverse.course_progress < straight.course_progress,
-		"Traverse should cover less downhill progress."
-	)
-
-
-func _test_strong_edge_turns_faster_and_costs_speed() -> void:
-	var ordinary := _turn_from_speed(false, false)
-	var strong_edge := _turn_from_speed(true, false)
-	_expect(
-		absf(strong_edge.heading.angle()) > absf(ordinary.heading.angle()),
-		"Strong edge should turn faster than an ordinary carve."
-	)
-	_expect(
-		strong_edge.ground_velocity.length() < ordinary.ground_velocity.length(),
-		"Strong edge should lose more speed than an ordinary carve."
-	)
-
-
-func _test_brake_costs_more_speed_than_strong_edge() -> void:
-	var strong_edge := _turn_from_speed(true, false)
-	var brake := _turn_from_speed(false, true)
-	_expect(
-		brake.ground_velocity.length() < strong_edge.ground_velocity.length(),
-		"Brake should lose more speed than strong edge."
-	)
-
-
-func _test_tuck_reduces_turn_authority() -> void:
-	var normal := _turn_from_speed(false, false)
-	var tucked := _turn_from_speed(false, false, true)
-	_expect(
-		absf(tucked.heading.angle()) < absf(normal.heading.angle()),
-		"Tuck should reduce turn authority."
-	)
-
-
-func _test_neutral_input_preserves_momentum() -> void:
-	var state := _new_state()
-	state.ground_velocity = Vector2(500, 0)
-	state.has_ground_intent = true
-	_step(state, Vector2.ZERO, false, false, false)
-	_expect(
-		state.ground_velocity.length() > 0.0, "Neutral input should not instantly stop the rider."
-	)
-
-
 func _test_neutral_input_does_not_start_a_run() -> void:
 	var state := _new_state()
-	_step(state, Vector2.ZERO, false, false, false)
+	_step(state, Vector2.ZERO)
+	_expect(state.ground_velocity.is_zero_approx(), "Neutral input must not start an approach run.")
+
+
+func _test_shipped_course_starts_blank() -> void:
 	_expect(
-		is_zero_approx(state.ground_velocity.length()),
-		"Neutral input should not start a run before the player chooses a line."
+		ShippedParkCourse.control_zones.is_empty(), "The shipped course must start with no zones."
+	)
+	_expect(
+		ShippedParkCourse.surfaces.is_empty(), "The shipped course must start with no surfaces."
 	)
 
 
-func _test_lane_boundary_does_not_reflect_velocity() -> void:
+func _test_downhill_input_starts_a_run() -> void:
+	var state := _run(Vector2.RIGHT, false, false, 60)
+	_expect(state.course_progress > 20.0, "Downhill input should move through the approach.")
+	_expect(state.ground_velocity.x > 0.0, "Downhill input should build forward speed.")
+
+
+func _test_releasing_right_carves_to_a_stop() -> void:
+	var state := _run(Vector2.RIGHT, false, false, 60)
+	var speed_before_release := state.ground_velocity.length()
+	for _tick in 600:
+		_step(state, Vector2.ZERO)
+	_expect(speed_before_release > 0.0, "Holding Right should create speed before release.")
+	_expect(
+		state.ground_velocity.is_zero_approx(), "Releasing Right should carve the rider to a stop."
+	)
+
+
+func _test_left_brakes_without_turning_uphill() -> void:
+	var centered := _run(Vector2.RIGHT, false, false, 60)
+	var left := _run(Vector2.RIGHT, false, false, 60)
+	var starting_speed := centered.ground_velocity.length()
+	_step(centered, Vector2.ZERO)
+	_step(left, Vector2.LEFT)
+	var centered_deceleration := starting_speed - centered.ground_velocity.length()
+	var left_deceleration := starting_speed - left.ground_velocity.length()
+	_expect(
+		left_deceleration >= centered_deceleration * 2.0,
+		"Left input should brake at least twice as hard as a centered stick."
+	)
+	_expect(left.heading.x >= 0.0, "Left input must not turn the rider uphill.")
+
+
+func _test_tuck_builds_more_speed() -> void:
+	var neutral := _run(Vector2.RIGHT, false, false, 120)
+	var tucked := _run(Vector2.RIGHT, true, false, 120)
+	_expect(
+		tucked.ground_velocity.length() > neutral.ground_velocity.length(),
+		"Tucking should reduce drag."
+	)
+
+
+func _test_carving_redirects_the_rider() -> void:
+	var state := _run(Vector2.RIGHT, false, false, 30)
+	for _tick in 60:
+		_step(state, Vector2.DOWN, false, true)
+	_expect(state.lane_position > 0.0, "Carving should move the rider across the approach.")
+
+
+func _test_braking_reduces_speed() -> void:
+	var coasting := _run(Vector2.RIGHT, false, false, 120)
+	var braking := _run(Vector2.RIGHT, false, false, 120, true)
+	_expect(
+		braking.ground_velocity.length() < coasting.ground_velocity.length(),
+		"Braking should reduce approach speed."
+	)
+
+
+func _test_approach_boundary_ends_the_run() -> void:
 	var state := _new_state()
-	state.lane_position = _course.lane_max - 1.0
-	state.ground_velocity = Vector2(300, 500)
-	state.has_ground_intent = true
-	_step(state, Vector2.DOWN, false, false, false)
-	_expect(state.lane_speed > 0.0, "Soft lane containment should not reflect lane velocity.")
-
-
-func _test_baseline_traces_replay() -> void:
-	for trace_path in _trace_paths:
-		var trace := _load_trace(trace_path)
-		if trace.is_empty():
-			continue
-		_expect(
-			str(trace.get("course_version", "")) == _course.course_version,
-			(
-				"%s targets course %s, expected %s."
-				% [trace_path, trace.get("course_version", "missing"), _course.course_version]
-			)
-		)
-		_expect(
-			str(trace.get("tuning_version", "")) == _tuning.rules_version,
-			(
-				"%s targets tuning %s, expected %s."
-				% [trace_path, trace.get("tuning_version", "missing"), _tuning.rules_version]
-			)
-		)
-		_expect(
-			is_equal_approx(float(trace.get("physics_delta", 0.0)), DELTA),
-			"%s targets a different physics timestep." % trace_path
-		)
-		var state := (
-			_new_airborne_state()
-			if trace.get("initial_phase", "grounded") == "airborne"
-			else _new_state()
-		)
-		var frames: Array = trace.get("frames", [])
-		for frame_value: Variant in frames:
-			var frame: Dictionary = frame_value
-			var heading_values: Array = frame.get("heading", [])
-			if heading_values.size() != 2:
-				_failures.append("%s has an invalid heading." % trace_path)
-				break
-			_step(
-				state,
-				Vector2(float(heading_values[0]), float(heading_values[1])),
-				bool(frame.get("tuck_pressed", false)),
-				bool(frame.get("edge_pressed", false)),
-				bool(frame.get("brake_pressed", false)),
-				bool(frame.get("landing_prep_pressed", false))
-			)
-		_expect(
-			state.ground_position.is_finite() and state.ground_velocity.is_finite(),
-			"%s produced invalid simulation state." % trace_path
-		)
-		if trace.has("expected_rotation_direction"):
-			var direction: float = float(trace["expected_rotation_direction"])
-			_expect(
-				state.orientation * direction > 0.0,
-				"%s did not rotate in its expected direction." % trace_path
-			)
-
-
-func _test_lip_crossing_transitions_to_airborne() -> void:
-	var course := _takeoff_course()
-	var state := _new_state_for_course(course)
-	state.course_progress = 195.0
-	state.ground_velocity = Vector2(1200.0, 30.0)
-	state.has_ground_intent = true
-	_step_with_pop(state, course, false, false, false)
-	_expect(
-		state.phase == RiderState.Phase.AIRBORNE,
-		"A high-speed rider crossing the lip should transition to airborne."
-	)
-	_expect(
-		is_equal_approx(state.course_progress, course.lip_progress),
-		"Takeoff should resolve at the authored lip position."
-	)
-	_expect(
-		state.vertical_speed < 0.0,
-		"An uphill ramp tangent should produce upward takeoff velocity without a pop."
-	)
-
-
-func _test_polygon_launch_edge_controls_takeoff() -> void:
-	var course := _takeoff_course()
-	var takeoff := ParkSurfaceScene.new()
-	takeoff.id = &"takeoff"
-	takeoff.role = ParkSurfaceScene.Role.TAKEOFF
-	takeoff.footprint = PackedVector2Array(
-		[Vector2(150, -360), Vector2(190, -360), Vector2(190, 360), Vector2(150, 360)]
-	)
-	takeoff.launch_edge_index = 1
-	course.surfaces = [takeoff]
-	var state := _new_state_for_course(course)
-	state.course_progress = 185.0
+	state.course_progress = 2995.0
 	state.ground_velocity = Vector2(600.0, 0.0)
 	state.has_ground_intent = true
-	_step_with_pop(state, course, false, false, false)
+	_step(state, Vector2.RIGHT)
 	_expect(
-		state.phase == RiderState.Phase.AIRBORNE, "Crossing a polygon launch edge should take off."
+		is_equal_approx(state.course_progress, 3000.0),
+		"The rider should stop at the approach edge."
 	)
-	_expect(
-		is_equal_approx(state.course_progress, 190.0),
-		"The polygon launch edge should override the legacy lip marker."
-	)
+	_expect(state.ground_velocity.is_zero_approx(), "Leaving the approach should clear velocity.")
 
 
-func _test_bounded_surface_contains_lateral_motion() -> void:
-	var course := ParkCourseScene.new()
-	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(300, 0)])
-	course.start_progress = 50.0
-	course.compression_start = 200.0
-	course.compression_end = 220.0
-	course.lip_progress = 240.0
-	course.landing_start = 250.0
-	course.landing_end = 275.0
-	course.recovery_progress = 300.0
-	course.camera_start = 0.0
-	course.camera_end = 300.0
-	var surface := ParkSurfaceScene.new()
-	surface.id = &"narrow_approach"
-	surface.footprint = PackedVector2Array(
-		[Vector2(0, -10), Vector2(199, -10), Vector2(199, 10), Vector2(0, 10)]
-	)
-	course.surfaces = [surface]
-	var state := _new_state_for_course(course)
-	state.lane_position = 9.0
-	state.ground_velocity = Vector2(0.0, 600.0)
-	state.has_ground_intent = true
-	_step_with_course(state, course, Vector2.RIGHT)
-	_expect(
-		state.lane_position <= 10.0,
-		"A bounded surface should contain lateral ground motion at its own edge."
-	)
-	_expect(
-		state.ground_velocity.y > 0.0,
-		"Soft containment should damp outward motion instead of reflecting it."
-	)
-
-
-func _test_surface_supports_more_than_four_corners() -> void:
-	var surface := ParkSurfaceScene.new()
-	surface.id = &"five_corner_surface"
-	surface.footprint = PackedVector2Array(
-		[
-			Vector2(0, -20),
-			Vector2(120, -20),
-			Vector2(120, 20),
-			Vector2(60, 40),
-			Vector2(0, 20),
-		]
-	)
-	_expect(
-		surface.validation_errors().is_empty(),
-		"A surface footprint should support more than four corners."
-	)
-	_expect(
-		surface.contains(Vector2(60, 0)),
-		"A rider should be able to travel inside an authored five-corner surface."
-	)
-
-
-func _test_surface_sweep_ignores_air_gap() -> void:
-	var course := ParkCourseScene.new()
-	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(300, 0)])
-	var approach := ParkSurfaceScene.new()
-	approach.id = &"approach"
-	approach.footprint = PackedVector2Array(
-		[Vector2(0, -10), Vector2(100, -10), Vector2(100, 10), Vector2(0, 10)]
-	)
-	var landing := ParkSurfaceScene.new()
-	landing.id = &"landing"
-	landing.role = ParkSurfaceScene.Role.LANDING
-	landing.footprint = PackedVector2Array(
-		[Vector2(200, -10), Vector2(300, -10), Vector2(300, 10), Vector2(200, 10)]
-	)
-	course.surfaces = [approach, landing]
-	var contact := course.swept_terrain_intersection(Vector2(140.0, -10.0), Vector2(160.0, 10.0))
-	_expect(contact.is_empty(), "A terrain profile in an authored air gap must not collide.")
-
-
-func _test_valid_pop_increases_upward_takeoff_speed() -> void:
-	var unpopped := _launch_from_course(false)
-	var popped := _launch_from_course(true)
-	_expect(
-		popped.takeoff_pop_impulse > 0.0,
-		"Releasing compression before the lip should produce a bounded pop impulse."
-	)
-	_expect(
-		popped.takeoff_vertical_speed < unpopped.takeoff_vertical_speed,
-		"A valid pop should increase upward takeoff velocity."
-	)
-
-
-func _test_held_pop_does_not_add_an_impulse() -> void:
-	var state := _new_state_for_course(_takeoff_course())
-	var course := _takeoff_course()
-	state.course_progress = 185.0
-	state.ground_velocity = Vector2(900.0, 0.0)
-	state.has_ground_intent = true
-	state.compression_active = true
-	state.compression_amount = 1.0
-	_step_with_pop(state, course, true, false, false)
-	_expect(
-		is_zero_approx(state.takeoff_pop_impulse),
-		"Holding compression through the lip should not add a pop impulse."
-	)
-
-
-func _test_air_input_does_not_change_translation() -> void:
-	var neutral := _new_airborne_state()
-	var rotating := _new_airborne_state()
-	for _tick in 60:
-		_step(neutral, Vector2.ZERO, false, false, false)
-		_step(rotating, Vector2(1.0, 1.0), false, false, false)
-	_expect(
-		(
-			neutral.course_progress == rotating.course_progress
-			and neutral.lane_position == rotating.lane_position
-			and neutral.vertical_position == rotating.vertical_position
-		),
-		"Air input must not alter ballistic translation."
-	)
-
-
-func _test_faster_takeoff_travels_farther() -> void:
-	var slower := _new_airborne_state()
-	var faster := _new_airborne_state()
-	faster.course_speed *= 1.5
-	for _tick in 60:
-		_step(slower, Vector2.ZERO, false, false, false)
-		_step(faster, Vector2.ZERO, false, false, false)
-	_expect(
-		faster.course_progress > slower.course_progress,
-		"A faster takeoff should travel farther during the same flight time."
-	)
-
-
-func _test_torque_changes_angular_velocity() -> void:
-	var state := _new_airborne_state()
-	_step(state, Vector2.RIGHT, false, false, false)
-	_expect(state.angular_velocity > 0.0, "Right air input should add positive angular velocity.")
-	_expect(
-		state.orientation > 0.0,
-		"Orientation should integrate angular velocity instead of snapping."
-	)
-
-
-func _test_reversing_torque_reduces_existing_spin() -> void:
-	var state := _new_airborne_state()
-	for _tick in 20:
-		_step(state, Vector2.RIGHT, false, false, false)
-	var forward_spin := state.angular_velocity
-	_step(state, Vector2.LEFT, false, false, false)
-	_expect(
-		state.angular_velocity > 0.0 and state.angular_velocity < forward_spin,
-		"Reverse torque should first reduce existing angular momentum."
-	)
-
-
-func _test_body_shape_changes_rotation_rate() -> void:
-	var compact := _new_airborne_state()
-	var neutral := _new_airborne_state()
-	var extended := _new_airborne_state()
-	_step(compact, Vector2(1.0, 1.0), false, false, false)
-	_step(neutral, Vector2.RIGHT, false, false, false)
-	_step(extended, Vector2(1.0, -1.0), false, false, false)
-	_expect(
-		(
-			compact.angular_velocity > neutral.angular_velocity
-			and neutral.angular_velocity > extended.angular_velocity
-		),
-		"Compact and extended body positions should change rotation rate predictably."
-	)
-
-
-func _test_landing_prep_damps_rotation() -> void:
-	var unprepared := _new_airborne_state()
-	var prepared := _new_airborne_state()
-	unprepared.angular_velocity = 4.0
-	prepared.angular_velocity = 4.0
-	_step(unprepared, Vector2.ZERO, false, false, false)
-	_step(prepared, Vector2.ZERO, false, false, false, true)
-	_expect(
-		prepared.angular_velocity < unprepared.angular_velocity,
-		"Landing preparation should add bounded angular damping."
-	)
-
-
-func _test_swept_contact_resolves_once() -> void:
-	var course := _landing_course()
-	var state := RiderStateScene.new()
-	state.phase = RiderState.Phase.AIRBORNE
-	state.course_progress = 60.0
-	state.vertical_position = -10.0
-	state.course_speed = 600.0
-	state.vertical_speed = 300.0
-	state.orientation = 0.0
-	for _tick in 30:
-		_step_with_course(state, course, Vector2.ZERO)
-		if state.landing_resolved:
-			break
-	_expect(
-		state.landing_resolved,
-		"A descending swept flight should resolve its first terrain contact."
-	)
-	_expect(state.phase == RiderState.Phase.LANDED, "A controlled in-zone contact should land.")
-	var first_contact := state.landing_position
-	for _tick in 10:
-		_step_with_course(state, course, Vector2.ZERO)
-	_expect(
-		state.landing_position == first_contact,
-		"Recovery must not resolve another landing after the first contact."
-	)
-
-
-func _test_takeoff_speed_stays_within_landing_zone() -> void:
-	var course := _takeoff_course()
-	var state := _new_state_for_course(course)
-	state.course_progress = course.lip_progress - 5.0
-	state.ground_velocity = Vector2(1800.0, 0.0)
-	state.has_ground_intent = true
-	_step_with_pop(state, course, false, false, false)
-	for _tick in 600:
-		_step_with_course(state, course, Vector2.ZERO)
-		if state.landing_resolved:
-			break
-	_expect(state.landing_resolved, "A high-speed takeoff should still resolve on terrain.")
-	_expect(
-		(
-			state.landing_position.x >= course.landing_start
-			and state.landing_position.x <= course.landing_end
-		),
-		"Takeoff speed must be capped so the rider reaches the landing zone."
-	)
-
-
-func _test_shipped_course_is_valid() -> void:
-	_expect(
-		ShippedParkCourse.validation_errors().is_empty(),
-		"The shipped course should pass ParkCourse validation."
-	)
-
-
-func _test_shipped_course_declares_separate_surfaces() -> void:
-	var approach := ShippedParkCourse.surface_at(Vector2(500.0, 0.0))
-	var landing: Variant = null
-	for surface in ShippedParkCourse.surfaces:
-		if surface.role == ParkSurfaceScene.Role.LANDING:
-			landing = surface
-	_expect(
-		approach != null and approach.role == ParkSurfaceScene.Role.APPROACH,
-		"The approach must be an authored travel surface."
-	)
-	_expect(
-		landing != null, "The landing must remain an authored surface separate from the approach."
-	)
-
-
-func _test_control_zone_selects_compression_mode() -> void:
-	var state := RiderStateScene.new()
-	state.course_progress = 900.0
-	state.vertical_position = ShippedParkCourse.surface_y_at(state.course_progress)
-	_simulation.step(state, RiderInputFrameScene.new(), ShippedParkCourse, _tuning, DELTA)
-	_expect(
-		(
-			state.control_mode == RiderState.ControlMode.COMPRESSION
-			and state.current_control_zone_id == &"compression"
-		),
-		"The compression area should explicitly select compression controls before takeoff."
-	)
-
-
-func _test_shipped_course_has_a_reachable_clean_landing() -> void:
-	var state := RiderStateScene.new()
-	var simulation := RiderSimulationScene.new()
-	var forward_rotation_ticks := roundi(15.0 / _tuning.air_time_scale)
-	state.course_progress = ShippedParkCourse.start_progress
-	state.vertical_position = ShippedParkCourse.surface_y_at(state.course_progress)
-	for _tick in 600:
-		if state.phase != RiderState.Phase.GROUNDED:
-			break
-		var approach := RiderInputFrameScene.new()
-		approach.heading = Vector2.RIGHT
-		simulation.step(state, approach, ShippedParkCourse, _tuning, DELTA)
-	_expect(state.phase == RiderState.Phase.AIRBORNE, "The shipped course should reach takeoff.")
-	for air_tick in 180:
-		if state.phase != RiderState.Phase.AIRBORNE:
-			break
-		var air := RiderInputFrameScene.new()
-		air.heading = Vector2.RIGHT if air_tick < forward_rotation_ticks else Vector2.ZERO
-		air.landing_prep_pressed = air_tick >= forward_rotation_ticks
-		simulation.step(state, air, ShippedParkCourse, _tuning, DELTA)
-	_expect(
-		state.phase == RiderState.Phase.LANDED,
-		"A simple forward rotation and landing preparation should land on the shipped course."
-	)
-
-
-func _test_landing_keeps_lane_velocity_separate_from_slope() -> void:
-	var course := _landing_course()
-	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(300, 120)])
-	var state := RiderStateScene.new()
-	state.phase = RiderState.Phase.AIRBORNE
-	state.course_progress = 60.0
-	state.vertical_position = -10.0
-	state.course_speed = 600.0
-	state.lane_speed = 60.0
-	state.vertical_speed = 300.0
-	state.orientation = course.tangent_at(150.0).angle()
-	for _tick in 30:
-		_step_with_course(state, course, Vector2.ZERO)
-		if state.landing_resolved:
-			break
-	_expect(state.landing_resolved, "A sloped landing should resolve contact.")
-	_expect(
-		absf(state.lane_speed) < 100.0,
-		"Landing should not convert the terrain's vertical slope into lane velocity."
-	)
-
-
-func _test_landing_labels_and_continuous_quality() -> void:
-	var course := _landing_course()
-	var perfect := _landing_result(course, 7.0)
-	var clean := _landing_result(course, 15.0)
-	var sketchy := _landing_result(course, 30.0)
-	var crash := _landing_result(course, 36.0)
-	_expect(perfect["label"] == "PERFECT", "A low-angle controlled contact should be perfect.")
-	_expect(clean["label"] == "CLEAN", "A 15 degree contact should be clean.")
-	_expect(sketchy["label"] == "SKETCHY", "A 30 degree contact should be sketchy.")
-	_expect(crash["label"] == "CRASH", "A contact beyond the crash angle should crash.")
-	var below_boundary := _landing_result(course, 19.0)
-	var above_boundary := _landing_result(course, 20.0)
-	_expect(
-		absf(float(below_boundary["quality"]) - float(above_boundary["quality"])) < 0.05,
-		"Landing quality should remain continuous at the clean/sketchy label boundary."
-	)
-
-
-func _test_terrain_seam_returns_first_contact() -> void:
-	var course := _landing_course()
-	var contact := course.swept_terrain_intersection(Vector2(140.0, -10.0), Vector2(160.0, 10.0))
-	_expect(not contact.is_empty(), "A sweep through a terrain seam should find contact.")
-	if not contact.is_empty():
-		var position: Vector2 = contact["position"]
-		_expect(
-			is_equal_approx(position.x, 150.0), "Terrain-seam contact should resolve at the seam."
-		)
-
-
-func _test_held_ground_action_does_not_start_grab() -> void:
-	var state := _new_airborne_state()
-	var input := RiderInputFrameScene.new()
-	input.grab_pressed = true
-	_simulation.step(state, input, _course, _tuning, DELTA)
-	_expect(
-		not state.trick_tracker.grab_active,
-		"Holding A through takeoff must not automatically start a grab."
-	)
-
-
-func _test_fresh_air_press_starts_and_releases_grab() -> void:
-	var state := _new_airborne_state()
-	var press := RiderInputFrameScene.new()
-	press.grab_pressed = true
-	press.grab_just_pressed = true
-	_simulation.step(state, press, _course, _tuning, DELTA)
-	_expect(state.trick_tracker.grab_active, "A fresh airborne A press should start a grab.")
-	for _tick in 20:
-		var held := RiderInputFrameScene.new()
-		held.grab_pressed = true
-		_simulation.step(state, held, _course, _tuning, DELTA)
-	var release := RiderInputFrameScene.new()
-	_simulation.step(state, release, _course, _tuning, DELTA)
-	_expect(
-		state.trick_tracker.valid_grab_duration >= _tuning.minimum_grab_duration,
-		"A released grab held past the minimum duration should be valid."
-	)
-
-
-func _test_tweak_requires_an_active_grab() -> void:
-	var state := _new_airborne_state()
-	var input := RiderInputFrameScene.new()
-	input.tweak_pressed = true
-	_simulation.step(state, input, _course, _tuning, DELTA)
-	_expect(not state.tweak_active, "X must not tweak without an active grab.")
-	_expect(
-		is_zero_approx(state.trick_tracker.tweak_duration),
-		"X without a grab must not accumulate tweak duration."
-	)
-
-
-func _test_held_pop_does_not_become_a_tweak() -> void:
-	var state := _new_airborne_state()
-	var input := RiderInputFrameScene.new()
-	input.grab_pressed = true
-	input.grab_just_pressed = true
-	input.tweak_pressed = true
-	_simulation.step(state, input, _course, _tuning, DELTA)
-	_expect(
-		not state.tweak_active,
-		"Holding X through takeoff must not automatically start a tweak after grabbing."
-	)
-
-
-func _test_trick_tracker_measures_full_rotation() -> void:
-	var tracker: TrickTracker = TrickTrackerScene.new()
-	tracker.reset(0.0)
-	tracker.track_rotation(PI * 0.5)
-	tracker.track_rotation(PI)
-	tracker.track_rotation(PI * 1.5)
-	tracker.track_rotation(TAU)
-	_expect(
-		tracker.completed_rotations == 1, "One accumulated TAU should count exactly one rotation."
-	)
-	_expect(
-		tracker.trick_call().contains("360 FORWARD"),
-		"Rotation calls must come from measured state."
-	)
-
-
-func _test_score_components_are_deterministic() -> void:
-	var state := _new_scored_state("CLEAN", 0)
-	state.compression_amount = 0.8
-	state.compression_release_quality = 0.75
-	state.trick_tracker.valid_grab_duration = 0.4
-	state.trick_tracker.tweak_duration = 0.25
-	var first: Dictionary = JumpScoreScene.evaluate(state, 0.7, _tuning)
-	var second: Dictionary = JumpScoreScene.evaluate(state, 0.7, _tuning)
-	_expect(first == second, "Identical measured state should produce an identical score.")
-	_expect(
-		(
-			int(first["approach"]) > 0
-			and int(first["takeoff"]) > 0
-			and int(first["airtime"]) > 0
-			and int(first["grab"]) > 0
-			and int(first["tweak"]) > 0
-		),
-		"Score breakdown should expose every earned component."
-	)
-
-
-func _test_landing_multiplier_is_continuous() -> void:
-	var state := _new_scored_state("CLEAN", 0)
-	var below: Dictionary = JumpScoreScene.evaluate(state, 0.70, _tuning)
-	var above: Dictionary = JumpScoreScene.evaluate(state, 0.71, _tuning)
-	_expect(
-		absf(float(above["landing_multiplier"]) - float(below["landing_multiplier"])) < 0.01,
-		"Landing multiplier should change continuously near a landing-label boundary."
-	)
-	_expect(
-		abs(int(above["total"]) - int(below["total"])) < 5,
-		"A small landing-quality change should not cause a large score jump."
-	)
-
-
-func _test_clean_rotation_beats_perfect_straight_air() -> void:
-	var perfect_straight := _new_scored_state("PERFECT", 0)
-	var clean_rotation := _new_scored_state("CLEAN", 1)
-	var perfect_result: Dictionary = JumpScoreScene.evaluate(perfect_straight, 0.98, _tuning)
-	var clean_result: Dictionary = JumpScoreScene.evaluate(clean_rotation, 0.7, _tuning)
-	_expect(
-		int(clean_result["total"]) > int(perfect_result["total"]),
-		"A clean completed rotation should beat a perfect straight air."
-	)
-
-
-func _test_crash_scores_zero() -> void:
-	var state := _new_scored_state("CRASH", 1)
-	var result: Dictionary = JumpScoreScene.evaluate(state, 0.0, _tuning)
-	_expect(int(result["total"]) == 0, "A crash must score zero.")
-
-
-func _load_trace(trace_path: String) -> Dictionary:
-	var json := JSON.new()
-	var parse_error := json.parse(FileAccess.get_file_as_string(trace_path))
-	if parse_error != OK:
-		_failures.append("Could not parse %s: %s" % [trace_path, json.get_error_message()])
-		return {}
-	var data: Variant = json.data
-	if not data is Dictionary:
-		_failures.append("%s must contain a JSON object." % trace_path)
-		return {}
-	return data
-
-
-func _run(heading: Vector2, tuck: bool, edge: bool, brake: bool, ticks: int) -> RiderState:
+func _run(heading: Vector2, tuck: bool, edge: bool, ticks: int, brake: bool = false) -> RiderState:
 	var state := _new_state()
 	for _tick in ticks:
 		_step(state, heading, tuck, edge, brake)
 	return state
 
 
-func _turn_from_speed(edge: bool, brake: bool, tuck: bool = false) -> RiderState:
-	var state := _new_state()
-	state.ground_velocity = Vector2(500, 0)
-	state.has_ground_intent = true
-	for _tick in 30:
-		_step(state, Vector2.DOWN, tuck, edge, brake)
-	return state
-
-
 func _step(
+	state: RiderState, heading: Vector2, tuck := false, edge := false, brake := false
+) -> void:
+	_step_on(state, _course, heading, tuck, edge, brake)
+
+
+func _step_on(
 	state: RiderState,
+	course: ParkCourse,
 	heading: Vector2,
-	tuck: bool,
-	edge: bool,
-	brake: bool,
-	landing_prep: bool = false
+	tuck := false,
+	edge := false,
+	brake := false
 ) -> void:
 	var input := RiderInputFrameScene.new()
-	input.heading = heading.normalized() if not heading.is_zero_approx() else Vector2.ZERO
+	input.heading = heading
 	input.tuck_pressed = tuck
 	input.edge_pressed = edge
 	input.brake_pressed = brake
-	input.landing_prep_pressed = landing_prep
-	_simulation.step(state, input, _course, _tuning, DELTA)
-
-
-func _step_with_pop(
-	state: RiderState,
-	course: ParkCourse,
-	pop_pressed: bool,
-	pop_just_pressed: bool,
-	pop_just_released: bool
-) -> void:
-	var input := RiderInputFrameScene.new()
-	input.heading = Vector2.RIGHT
-	input.pop_pressed = pop_pressed
-	input.pop_just_pressed = pop_just_pressed
-	input.pop_just_released = pop_just_released
-	_simulation.step(state, input, course, _tuning, DELTA)
-
-
-func _step_with_course(state: RiderState, course: ParkCourse, heading: Vector2) -> void:
-	var input := RiderInputFrameScene.new()
-	input.heading = heading
 	_simulation.step(state, input, course, _tuning, DELTA)
 
 
 func _new_state() -> RiderState:
 	var state := RiderStateScene.new()
+	state.course_progress = 20.0
 	state.vertical_position = _course.surface_y_at(state.course_progress)
 	return state
 
 
-func _new_state_for_course(course: ParkCourse) -> RiderState:
-	var state := RiderStateScene.new()
-	state.course_progress = course.start_progress
-	state.ground_position = Vector2(state.course_progress, state.lane_position)
-	state.vertical_position = course.surface_y_at(state.course_progress)
-	return state
-
-
-func _new_airborne_state() -> RiderState:
-	var state := _new_state()
-	state.phase = RiderState.Phase.AIRBORNE
-	state.course_speed = 480.0
-	state.lane_speed = 75.0
-	state.vertical_speed = -320.0
-	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
-	return state
-
-
-func _new_scored_state(landing_label: String, completed_rotations: int) -> RiderState:
-	var state := RiderStateScene.new()
-	state.landing_label = landing_label
-	state.approach_speed = 600.0
-	state.compression_amount = 0.5
-	state.compression_release_quality = 0.5
-	state.airtime = 0.5
-	state.trick_tracker.completed_rotations = completed_rotations
-	return state
-
-
-func _takeoff_course() -> ParkCourse:
+func _approach_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.terrain_points = PackedVector2Array(
-		[Vector2(0, 0), Vector2(150, 0), Vector2(200, -80), Vector2(400, 40)]
+	course.approach_rider_path = PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
+	var approach := ParkControlZoneScene.new()
+	approach.id = &"approach"
+	approach.footprint = PackedVector2Array(
+		[Vector2(0, -100), Vector2(3000, -100), Vector2(3000, 100), Vector2(0, 100)]
 	)
-	course.start_progress = 100.0
-	course.approach_start = 100.0
-	course.compression_start = 150.0
-	course.compression_end = 190.0
-	course.lip_progress = 200.0
-	course.landing_start = 250.0
-	course.landing_end = 350.0
-	course.recovery_progress = 400.0
-	course.camera_start = 0.0
-	course.camera_end = 400.0
+	course.control_zones = [approach]
 	return course
 
 
-func _landing_course() -> ParkCourse:
+func _roller_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.terrain_points = PackedVector2Array([Vector2(0, 0), Vector2(150, 0), Vector2(300, 0)])
-	course.start_progress = 0.0
-	course.approach_start = 0.0
-	course.compression_start = 0.0
-	course.compression_end = 0.0
-	course.lip_progress = 20.0
-	course.landing_start = 50.0
-	course.landing_end = 280.0
-	course.recovery_progress = 300.0
-	course.camera_start = 0.0
-	course.camera_end = 300.0
+	course.approach_rider_path = PackedVector2Array(
+		[Vector2(0, 400), Vector2(400, 560), Vector2(600, 360), Vector2(1000, 520)]
+	)
+	var approach := ParkControlZoneScene.new()
+	approach.id = &"approach"
+	approach.footprint = PackedVector2Array(
+		[Vector2(0, -100), Vector2(1000, -100), Vector2(1000, 100), Vector2(0, 100)]
+	)
+	course.control_zones = [approach]
 	return course
 
 
-func _landing_result(course: ParkCourse, angle_degrees: float) -> Dictionary:
+func _test_gradient_sign_matches_terrain_pitch() -> void:
+	var roller := _roller_course()
+	_expect(_course.gradient_at(500.0) > 0.0, "Downhill pitch should read a positive gradient.")
+	_expect(roller.gradient_at(500.0) < 0.0, "Uphill pitch should read a negative gradient.")
+
+
+func _test_uphill_stalls_without_momentum() -> void:
+	var roller := _roller_course()
 	var state := RiderStateScene.new()
-	state.orientation = deg_to_rad(angle_degrees)
-	state.course_speed = 400.0
-	state.vertical_speed = 40.0
-	state.angular_velocity = 0.2
-	return JumpJudgeScene.evaluate(
-		state, course, Vector2(150, 0), Vector2.RIGHT, Vector2.UP, _tuning
-	)
-
-
-func _launch_from_course(with_pop: bool) -> RiderState:
-	var course := _takeoff_course()
-	var state := _new_state_for_course(course)
-	state.course_progress = 165.0
-	state.ground_velocity = Vector2(300.0, 0.0)
+	state.course_progress = 380.0
+	state.ground_velocity = Vector2(120.0, 0.0)
 	state.has_ground_intent = true
-	if with_pop:
-		_step_with_pop(state, course, true, true, false)
-		_step_with_pop(state, course, true, false, false)
-		_step_with_pop(state, course, false, false, true)
-	_step_with_pop(state, course, false, false, false)
-	_step_with_pop(state, course, false, false, false)
-	_step_with_pop(state, course, false, false, false)
-	_step_with_pop(state, course, false, false, false)
-	_step_with_pop(state, course, false, false, false)
-	return state
+	for _tick in 300:
+		_step_on(state, roller, Vector2.RIGHT)
+	_expect(
+		state.course_progress < 590.0,
+		"Slow uphill entries must stall before the crest instead of creeping over."
+	)
+
+
+func _test_uphill_clears_with_momentum() -> void:
+	var roller := _roller_course()
+	var state := RiderStateScene.new()
+	state.course_progress = 100.0
+	state.ground_velocity = Vector2(700.0, 0.0)
+	state.has_ground_intent = true
+	for _tick in 300:
+		_step_on(state, roller, Vector2.RIGHT)
+		if state.course_progress >= 620.0:
+			break
+	_expect(state.course_progress >= 600.0, "Fast entries should carry over the uphill crest.")
 
 
 func _expect(condition: bool, message: String) -> void:

@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://b3ivqifunldq2"]
+
+[ext_resource type="Script" uid="uid://dwss16as27l0r" path="res://src/game/park/park_course_editor.gd" id="1_editor"]
+[ext_resource type="Texture2D" uid="uid://b8ff2wkpy6qyl" path="res://artwork/gameplay/gameplay_bg.png" id="2_background"]
+[ext_resource type="Script" uid="uid://ctqe7rh5pt3dt" path="res://src/game/park/approach_rider_path.gd" id="3_rider_path"]
+
+[sub_resource type="Curve2D" id="Curve2D_ljxe1"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 75.15978, 209.89066, 0, 0, 0, 0, 129, 222, 0, 0, 0, 0, 178.68219, 250.09103, 0, 0, 0, 0, 225.88126, 297.68317, 0, 0, 0, 0, 285.81656, 325.78876, 0, 0, 0, 0, 337.1362, 350.8964, 0, 0, 0, 0, 426.66458, 370.0082, 0, 0, 0, 0, 530.8022, 408.9813, 0, 0, 0, 0, 716, 460, 0, 0, 0, 0, 872, 506, 0, 0, 0, 0, 967, 507, 0, 0, 0, 0, 1113, 382)
+}
+point_count = 12
+
+[node name="ParkCourseEditor" type="Node2D" unique_id=1924169444]
+script = ExtResource("1_editor")
+metadata/_edit_lock_ = true
+
+[node name="CourseBackground" type="Sprite2D" parent="." unique_id=1849341478]
+texture_filter = 1
+texture = ExtResource("2_background")
+centered = false
+metadata/_edit_lock_ = true
+
+[node name="ApproachRiderPath" type="Path2D" parent="." unique_id=942950380]
+curve = SubResource("Curve2D_ljxe1")
+script = ExtResource("3_rider_path")
+zone_id = &"approach"
+metadata/_edit_lock_ = true

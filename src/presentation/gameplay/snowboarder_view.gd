@@ -87,6 +87,8 @@ func update_from_state(state: RiderState, screen_position: Vector2, ground_rotat
 		play_landing_animation(_landing_animation_for_state(state))
 		return
 	_play(_ground_animation(state))
+	if state.ground_velocity.is_zero_approx():
+		pause_idle_animation()
 
 
 func _landing_animation_for_state(state: RiderState) -> StringName:

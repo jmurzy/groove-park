@@ -1,75 +1,9 @@
-[gd_resource type="Resource" script_class="ParkCourse" format=3]
+[gd_resource type="Resource" script_class="ParkCourse" format=3 uid="uid://dskmo53o8rako"]
 
-[ext_resource type="Script" path="res://src/game/park/park_course.gd" id="1_park_course"]
-[ext_resource type="Script" path="res://src/game/park/park_surface.gd" id="2_surface"]
-[ext_resource type="Script" path="res://src/game/park/park_control_zone.gd" id="3_zone"]
-
-[sub_resource type="Resource" id="ParkControlZone_approach"]
-script = ExtResource("3_zone")
-id = &"approach"
-footprint = PackedVector2Array(75.15978, -360, 849.29755, -360, 849.29755, 360, 75.15978, 360)
-
-[sub_resource type="Resource" id="ParkControlZone_compression"]
-script = ExtResource("3_zone")
-id = &"compression"
-control_mode = 1
-footprint = PackedVector2Array(849.29755, -360, 1056.4528, -360, 1056.4528, 360, 849.29755, 360)
-priority = 1
-
-[sub_resource type="Resource" id="ParkControlZone_takeoff"]
-script = ExtResource("3_zone")
-id = &"takeoff"
-control_mode = 2
-footprint = PackedVector2Array(1056.4528, -360, 1163.0408, -360, 1163.0408, 360, 1056.4528, 360)
-
-[sub_resource type="Resource" id="ParkControlZone_landing"]
-script = ExtResource("3_zone")
-id = &"landing"
-control_mode = 4
-footprint = PackedVector2Array(1263.6665, -360, 1772.3052, -360, 1772.3052, 360, 1263.6665, 360)
-
-[sub_resource type="Resource" id="ParkControlZone_runout"]
-script = ExtResource("3_zone")
-id = &"runout"
-control_mode = 5
-footprint = PackedVector2Array(1772.3052, -360, 1777.175, -360, 1777.175, 360, 1772.3052, 360)
-
-[sub_resource type="Resource" id="ParkSurface_approach"]
-script = ExtResource("2_surface")
-id = &"approach"
-footprint = PackedVector2Array(75.15978, -53.55657, 176.80922, -19.360012, 364.48172, -84.47781, 484.72693, -122.80182, 624.0766, -29.94873, 789.6479, -265.296, 850.33246, -299.8908, 823.04517, 429.0165, 356.9898, 421.9803, 327.02213, 285.6454, 169.31729, 567.3242, 104.886826, 512.8261, 75.15978, 360)
-
-[sub_resource type="Resource" id="ParkSurface_takeoff"]
-script = ExtResource("2_surface")
-id = &"takeoff"
-role = 1
-footprint = PackedVector2Array(849.29755, -360, 1163.0408, -360, 1163.0408, 360, 849.29755, 360)
-launch_edge_index = 1
-
-[sub_resource type="Resource" id="ParkSurface_landing"]
-script = ExtResource("2_surface")
-id = &"landing"
-role = 2
-footprint = PackedVector2Array(1279.2339, -900, 1409.3699, -524.3896, 1466.6831, -259.16174, 1783.1686, -122.831894, 1783.1686, 420.54272, 1382.0244, 900, 1064.4695, 744.73346)
-
-[sub_resource type="Resource" id="ParkSurface_runout"]
-script = ExtResource("2_surface")
-id = &"runout"
-role = 3
-footprint = PackedVector2Array(1668.5902, -219.57251, 1777.175, -360, 1782.0928, 195.98212, 1772.3052, 360)
+[ext_resource type="Script" uid="uid://bfu1c6t808gcy" path="res://src/game/park/park_control_zone.gd" id="1_6hwhq"]
+[ext_resource type="Script" uid="uid://dvq4c3ub26io6" path="res://src/game/park/park_course.gd" id="1_park_course"]
+[ext_resource type="Script" uid="uid://dtp1hish8k8n7" path="res://src/game/park/park_surface.gd" id="3_6hwhq"]
 
 [resource]
 script = ExtResource("1_park_course")
-terrain_points = PackedVector2Array(75.15978, 189.89066, 127.36257, 202.3602, 178.68219, 230.09103, 225.88126, 277.68317, 285.81656, 305.78876, 337.1362, 330.8964, 426.66458, 350.0082, 530.8022, 388.9813, 717.6635, 440.32086, 848.5842, 484.91504, 922.05145, 501.4037, 979.4153, 459.05792, 1055.9858, 369.12006, 1177.8218, 227.09315, 1268.6768, 266.44098, 1407.1367, 582.72253, 1617.5972, 613.82605, 1783.1686, 621.6956)
-start_progress = 75.15978
-approach_start = 848.29755
-compression_start = 849.29755
-compression_end = 1056.4528
-lip_progress = 1163.0408
-landing_start = 1263.6665
-landing_end = 1772.3052
-recovery_progress = 1783.1686
-camera_start = 75.15978
-camera_end = 1783.1686
-surfaces = Array[ExtResource("2_surface")]([SubResource("ParkSurface_approach"), SubResource("ParkSurface_takeoff"), SubResource("ParkSurface_landing"), SubResource("ParkSurface_runout")])
-control_zones = Array[ExtResource("3_zone")]([SubResource("ParkControlZone_approach"), SubResource("ParkControlZone_compression"), SubResource("ParkControlZone_takeoff"), SubResource("ParkControlZone_landing"), SubResource("ParkControlZone_runout")])
+approach_rider_path = PackedVector2Array(75.15978, 209.89066, 129, 222, 178.68219, 250.09103, 225.88126, 297.68317, 285.81656, 325.78876, 337.1362, 350.8964, 426.66458, 370.0082, 530.8022, 408.9813, 716, 460, 872, 506, 967, 507, 1113, 382)

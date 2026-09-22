@@ -27,7 +27,7 @@ var _liftie_state_service: LiftieStateService
 var _primary_view: PrimaryScreen
 var _gameplay_screen: GameplayScreen
 var _transitioning := false
-var _terrain_editor_enabled := false
+var _show_terrain := false
 
 
 func _ready() -> void:
@@ -52,7 +52,7 @@ func _ready() -> void:
 	_log_connected_controllers()
 
 	var overrides := DevSente.parse_overrides(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
-	_terrain_editor_enabled = overrides.terrain_editor_enabled
+	_show_terrain = overrides.show_terrain
 	_game_controller = GameControllerScene.new()
 	_game_controller.set_mountain_state_source(MockMountainStateSourceScene.new())
 	add_child(_game_controller)
@@ -124,7 +124,7 @@ func _show_gameplay(player_count: int, transition: CrtTransition) -> void:
 	_primary_view = null
 	_gameplay_screen = GameplayScreenScene.new()
 	_gameplay_screen.player_count = player_count
-	_gameplay_screen.terrain_editor_enabled = _terrain_editor_enabled
+	_gameplay_screen.show_terrain = _show_terrain
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	add_child(_gameplay_screen)
 	move_child(_gameplay_screen, transition.get_index())

@@ -1,3 +1,4 @@
+@tool
 ## Polygonal travel surface with a role (approach / takeoff / landing / runout)
 ## and an optional launch edge. Example: a TAKEOFF surface fires via `launch_intersection()`.
 class_name ParkSurface

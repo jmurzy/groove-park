@@ -10,6 +10,7 @@ const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
 
 var _sprite: AnimatedSprite2D
+var _show_source_bounds := false
 var _repeat_crash := false
 var _landing_animation_active := false
 var _landing_animation: StringName
@@ -39,6 +40,11 @@ func reset_presentation() -> void:
 	_landing_animation_cycles = 0
 
 
+func set_show_source_bounds(enabled: bool) -> void:
+	_show_source_bounds = enabled
+	queue_redraw()
+
+
 func _setup_sprite(baseline: float, view_name: StringName) -> void:
 	name = String(view_name)
 	_sprite = AnimatedSprite2D.new()
@@ -49,15 +55,37 @@ func _setup_sprite(baseline: float, view_name: StringName) -> void:
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_sprite.animation_finished.connect(_on_sprite_animation_finished)
 	add_child(_sprite)
+	queue_redraw()
+
+
+func _draw() -> void:
+	if not _show_source_bounds or _sprite == null:
+		return
+	# Show the complete source canvas, including transparent padding, at its rendered size.
+	draw_rect(Rect2(_sprite.position, CANVAS_SIZE * SPRITE_SCALE), Color("ff00ff"), false, 2.0)
+	# The sprite is positioned so this line is the source-art baseline at the rider's world position.
+	draw_line(
+		Vector2(_sprite.position.x, 0.0),
+		Vector2(_sprite.position.x + CANVAS_SIZE.x * SPRITE_SCALE, 0.0),
+		Color("ffff00"),
+		2.0
+	)
 
 
 func _play(animation_name: StringName) -> void:
 	if _sprite == null:
 		return
 	if _sprite.animation == animation_name:
+		if not _sprite.is_playing():
+			_sprite.play()
 		return
 	_repeat_crash = animation_name == &"crash"
 	_sprite.play(animation_name)
+
+
+func pause_idle_animation() -> void:
+	if _sprite != null and _sprite.animation == &"neutral_glide":
+		_sprite.pause()
 
 
 func _on_sprite_animation_finished() -> void:

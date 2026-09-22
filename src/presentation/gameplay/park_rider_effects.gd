@@ -25,7 +25,10 @@ func _draw() -> void:
 	)
 	var surface_position := Vector2(
 		_state.course_progress,
-		_course.surface_y_at(_state.course_progress) + _state.lane_position * LANE_PROJECTION_SCALE
+		(
+			_course.surface_y_at(_state.course_progress, _state.lane_position)
+			+ _state.lane_position * LANE_PROJECTION_SCALE
+		)
 	)
 	var height := maxf(surface_position.y - rider_position.y, 0.0)
 	var shadow_alpha := clampf(0.42 - height / 820.0, 0.08, 0.42)

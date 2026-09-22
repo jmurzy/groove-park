@@ -5,12 +5,15 @@ extends Resource
 
 @export var rules_version := "scoring-v1"
 @export var fall_line_acceleration := 540.0
+@export var slope_gravity := 980.0
+@export var uphill_pump_cut_gradient := 0.33
 @export var snow_resistance := 48.0
 @export var aerodynamic_drag := 0.00115
 @export var tuck_drag_multiplier := 0.38
 @export var edge_drag := 105.0
 @export var strong_edge_drag := 150.0
-@export var brake_drag := 460.0
+@export var brake_drag := 820.0
+@export var release_carve_drag := 570.0
 @export var steering_response := 480.0
 @export var maximum_turn_rate := 3.8
 @export var tuck_steering_multiplier := 0.42
