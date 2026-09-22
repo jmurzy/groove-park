@@ -1,3 +1,6 @@
+> [!CAUTION]
+> **OUTDATED — archived in `plans/` for historical reference only. Do not use as source of truth.**
+
 # Cabinet Tuning Record
 
 Use this record for Milestone 10 on the physical Polycade Sente. Do not mark

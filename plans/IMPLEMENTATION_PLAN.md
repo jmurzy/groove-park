@@ -1,3 +1,6 @@
+> [!CAUTION]
+> **OUTDATED — archived in `plans/` for historical reference only. Do not use as source of truth.**
+
 # HEAVENLY PARK implementation plan
 
 ## 1. Purpose

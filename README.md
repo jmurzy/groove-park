@@ -53,6 +53,20 @@ The cabinet panel provides matching control sets for Players 1 and 2. See [POLYC
 
 On a cabinet with two displays, the primary window opens on the main display and the marquee opens on the other display. On a single display, The game runs primary-only unless marquee development overrides are enabled.
 
+## Terrain editor
+
+Run `just run -- --show-terrain` to view the debug course overlay in a debug
+build.
+
+### Course profile
+
+Open `src/game/park/park_course_editor.tscn` in the Godot editor to shape the
+approach rider path over the gameplay panorama. Select `ApproachRiderPath` in
+the Scene tree and use Godot's native Path2D controls in the 2D viewport to
+add, move, or remove points. Save the scene normally to write the path to
+`park_course.tres`. Use **Preview Color** and **Preview Width** in the path's
+Inspector to set its high-contrast guide line over the panorama.
+
 ## Development
 
 ### Prerequisites
