@@ -9,7 +9,7 @@ signal run_started(run_manager: RiderRunManager)
 signal run_restarted(run_manager: RiderRunManager)
 signal run_score_changed(score: int)
 signal pause_changed(paused: bool)
-signal results_ready(results: Dictionary)
+signal results_ready(result: RunResult)
 
 enum PresentationState {
 	ATTRACT,
@@ -22,7 +22,7 @@ var presentation_state: PresentationState = PresentationState.ATTRACT
 var player_count := 1
 var run_manager: RiderRunManager
 var run_score := 0
-var results: Dictionary = {}
+var results: RunResult
 var is_paused := false
 var _mountain_state_source: MountainStateSource
 
@@ -46,7 +46,7 @@ func start_game(selected_player_count: int) -> void:
 	player_count = selected_player_count
 	run_manager = null
 	run_score = 0
-	results = {}
+	results = null
 	is_paused = false
 	_set_presentation_state(PresentationState.PLAYING)
 
@@ -91,12 +91,7 @@ func show_results() -> void:
 		push_error("Cannot show results without an active run.")
 		return
 	_set_run_score(run_manager.rider_state.jump_score)
-	results = {
-		"player_count": player_count,
-		"score": run_score,
-		"landing_label": run_manager.rider_state.landing_label,
-		"score_breakdown": run_manager.rider_state.score_breakdown.duplicate(),
-	}
+	results = RunResult.new(player_count, JumpResult.from_jump_state(run_manager.rider_state.jump))
 	_set_presentation_state(PresentationState.RESULTS)
 	results_ready.emit(results)
 
