@@ -1,5 +1,5 @@
 ## Debug-only course overlay: approach path, surface fills, and drag handles.
-## Called from GameplayScreen when the terrain editor is on.
+## Called from ParkWorldPresenter when the terrain editor is on.
 class_name CourseDebugDraw
 extends RefCounted
 

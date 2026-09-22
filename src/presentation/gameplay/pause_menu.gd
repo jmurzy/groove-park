@@ -1,7 +1,7 @@
 ## Pause/exit dialog: "ABANDON THIS RUN?" with KEEP PLAYING / HOW TO PLAY /
 ## ABANDON RUN. Owns its panel styling, focus wiring, and switch/confirm SFX.
-## Emits intent signals; the owner (GameplayScreen) pauses the tree, frees this
-## control on close, and hosts the HowToPlay overlay + return-to-title flow.
+## Emits intent signals; PauseFlowController pauses the tree, frees this control
+## on close, and hosts the HowToPlay overlay + return-to-title flow.
 class_name PauseMenu
 extends Control
 
