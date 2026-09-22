@@ -11,6 +11,7 @@ const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
 const CourseDebugDrawScene := preload("res://src/presentation/gameplay/course_debug_draw.gd")
+const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
 
@@ -21,12 +22,14 @@ var _skier: SkierView
 var _rider_marker: RiderMarker
 var _rider_effects: RiderEffects
 var _camera: Camera2D
+var _projection: ParkProjection
 
 
 func setup(next_course: ParkCourse, next_show_terrain: bool) -> void:
 	name = "ParkWorld"
 	z_index = -1
 	course = next_course
+	_projection = ParkProjectionScene.new(course)
 	show_terrain = next_show_terrain
 	_build_world()
 
@@ -34,7 +37,7 @@ func setup(next_course: ParkCourse, next_show_terrain: bool) -> void:
 func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: Callable) -> void:
 	_update_rider_views(run_manager)
 	_update_rider_marker(run_manager, hud_occlusion)
-	_rider_effects.update_from_state(run_manager.rider_state, course, delta)
+	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
 	_update_camera(run_manager)
 	if show_terrain:
 		queue_redraw()
@@ -48,8 +51,10 @@ func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -
 func _draw() -> void:
 	if not show_terrain:
 		return
-	CourseDebugDrawScene.draw_course_debug(self, course, Vector2(GAMEPLAY_BG.get_size()), &"", -1)
-	CourseDebugDrawScene.draw_terrain_handles(self, course)
+	CourseDebugDrawScene.draw_course_debug(
+		self, _projection, Vector2(GAMEPLAY_BG.get_size()), &"", -1
+	)
+	CourseDebugDrawScene.draw_terrain_handles(self, _projection)
 
 
 func _build_world() -> void:
@@ -110,7 +115,7 @@ func _update_rider_views(run_manager: RiderRunManager) -> void:
 
 func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
 	view.update_from_state(
-		state, _project_rider_position(state), course.tangent_at(state.course_progress).angle()
+		state, _projection.project_rider(state), course.tangent_at(state.course_progress).angle()
 	)
 
 
@@ -120,7 +125,7 @@ func _update_rider_marker(run_manager: RiderRunManager, hud_occlusion: Callable)
 		_rider_marker.hide()
 		return
 	_rider_marker.update_from_rider(
-		_project_rider_position(run_manager.rider_state) + RIDER_MARKER_TOP_OFFSET,
+		_projection.project_rider(run_manager.rider_state) + RIDER_MARKER_TOP_OFFSET,
 		"%d MPH" % speed_mph
 	)
 	var marker_transform := _rider_marker.get_global_transform_with_canvas()
@@ -143,10 +148,3 @@ func _update_camera(run_manager: RiderRunManager) -> void:
 		GAMEPLAY_BG.get_width() - half_view_width
 	)
 	_camera.position = Vector2(target_x, GAMEPLAY_BG.get_height() * 0.5)
-
-
-func _project_rider_position(state: RiderState) -> Vector2:
-	return Vector2(
-		state.course_progress,
-		state.vertical_position + state.lane_position * GameConstants.LANE_PROJECTION_SCALE
-	)

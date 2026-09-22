@@ -11,22 +11,24 @@ const TERRAIN_HANDLE_RADIUS := 5.5
 
 static func draw_course_debug(
 	canvas: CanvasItem,
-	course: ParkCourse,
+	projection: ParkProjection,
 	background_size: Vector2,
 	surface_drag_id: StringName,
 	surface_drag_vertex: int
 ) -> void:
+	var course := projection.course
 	var world_bounds := Rect2(Vector2.ZERO, background_size)
 	canvas.draw_rect(world_bounds, Color("010713dd"), false, 7.0)
 	canvas.draw_rect(world_bounds, Color("ff5d52"), false, 3.0)
 	_draw_terrain(canvas, course)
-	_draw_surface_areas(canvas, course)
-	_draw_surface_footprint_handles(canvas, course, surface_drag_id, surface_drag_vertex)
-	_draw_control_zones(canvas, course)
+	_draw_surface_areas(canvas, projection)
+	_draw_surface_footprint_handles(canvas, projection, surface_drag_id, surface_drag_vertex)
+	_draw_control_zones(canvas, projection)
 	_draw_grid(canvas, world_bounds)
 
 
-static func draw_terrain_handles(canvas: CanvasItem, course: ParkCourse) -> void:
+static func draw_terrain_handles(canvas: CanvasItem, projection: ParkProjection) -> void:
+	var course := projection.course
 	for point_index in course.approach_rider_path.size():
 		var screen_point := course.approach_rider_path[point_index]
 		var color := Color("ff5d52")
@@ -50,21 +52,24 @@ static func _draw_terrain(canvas: CanvasItem, course: ParkCourse) -> void:
 		canvas.draw_line(slope_start, slope_end, Color("ff5d52"), 6.0)
 
 
-static func _draw_control_zones(canvas: CanvasItem, course: ParkCourse) -> void:
+static func _draw_control_zones(canvas: CanvasItem, projection: ParkProjection) -> void:
+	var course := projection.course
 	for zone in course.control_zones:
-		_draw_control_zone(canvas, course, zone.footprint, Color("64ffb2"), str(zone.id).to_upper())
+		_draw_control_zone(
+			canvas, projection, zone.footprint, Color("64ffb2"), str(zone.id).to_upper()
+		)
 
 
 static func _draw_control_zone(
 	canvas: CanvasItem,
-	course: ParkCourse,
+	projection: ParkProjection,
 	footprint: PackedVector2Array,
 	color: Color,
 	label: String
 ) -> void:
 	var screen_footprint := PackedVector2Array()
 	for point in footprint:
-		screen_footprint.append(ground_to_screen(course, point))
+		screen_footprint.append(projection.project_ground(point))
 	if screen_footprint.size() >= 3:
 		var fill := color
 		fill.a = 0.18
@@ -88,29 +93,12 @@ static func _draw_control_zone(
 		)
 
 
-static func ground_to_screen(course: ParkCourse, ground_position: Vector2) -> Vector2:
-	return (
-		course.surface_position_at(ground_position.x)
-		+ Vector2(0, ground_position.y * GameConstants.LANE_PROJECTION_SCALE)
-	)
-
-
-static func screen_to_ground(course: ParkCourse, screen_position: Vector2) -> Vector2:
-	return Vector2(
-		screen_position.x,
-		(
-			(screen_position.y - course.surface_y_at(screen_position.x))
-			/ GameConstants.LANE_PROJECTION_SCALE
-		)
-	)
-
-
 static func surface_screen_footprint(
-	course: ParkCourse, surface: ParkSurface
+	projection: ParkProjection, surface: ParkSurface
 ) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for ground_point in surface.footprint:
-		points.append(ground_to_screen(course, ground_point))
+		points.append(projection.project_ground(ground_point))
 	return points
 
 
@@ -126,10 +114,11 @@ static func surface_debug_color(role: int) -> Color:
 			return Color("a9b7d0")
 
 
-static func _draw_surface_areas(canvas: CanvasItem, course: ParkCourse) -> void:
+static func _draw_surface_areas(canvas: CanvasItem, projection: ParkProjection) -> void:
+	var course := projection.course
 	for surface in course.surfaces:
 		var color := surface_debug_color(surface.role)
-		var footprint := surface_screen_footprint(course, surface)
+		var footprint := surface_screen_footprint(projection, surface)
 		if footprint.size() < 3:
 			continue
 		var fill := color
@@ -159,13 +148,17 @@ static func _draw_surface_edge(
 
 
 static func _draw_surface_footprint_handles(
-	canvas: CanvasItem, course: ParkCourse, surface_drag_id: StringName, surface_drag_vertex: int
+	canvas: CanvasItem,
+	projection: ParkProjection,
+	surface_drag_id: StringName,
+	surface_drag_vertex: int
 ) -> void:
+	var course := projection.course
 	for surface in course.surfaces:
 		var color := surface_debug_color(surface.role)
 		for point_index in surface.footprint.size():
 			var is_dragged := surface.id == surface_drag_id and point_index == surface_drag_vertex
-			var screen_point := ground_to_screen(course, surface.footprint[point_index])
+			var screen_point := projection.project_ground(surface.footprint[point_index])
 			canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS, Color("010713ee"))
 			var handle_color := Color.WHITE if is_dragged else color
 			canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS - 3.0, handle_color)

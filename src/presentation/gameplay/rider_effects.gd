@@ -3,31 +3,22 @@ class_name RiderEffects
 extends Node2D
 
 var _state: RiderState
-var _course: ParkCourse
+var _projection: ParkProjection
 var _elapsed := 0.0
 
 
-func update_from_state(state: RiderState, course: ParkCourse, delta: float) -> void:
+func update_from_state(state: RiderState, projection: ParkProjection, delta: float) -> void:
 	_state = state
-	_course = course
+	_projection = projection
 	_elapsed += delta
 	queue_redraw()
 
 
 func _draw() -> void:
-	if _state == null or _course == null:
+	if _state == null or _projection == null:
 		return
-	var rider_position := Vector2(
-		_state.course_progress,
-		_state.vertical_position + _state.lane_position * GameConstants.LANE_PROJECTION_SCALE
-	)
-	var surface_position := Vector2(
-		_state.course_progress,
-		(
-			_course.surface_y_at(_state.course_progress, _state.lane_position)
-			+ _state.lane_position * GameConstants.LANE_PROJECTION_SCALE
-		)
-	)
+	var rider_position := _projection.project_rider(_state)
+	var surface_position := _projection.project_ground(_state.ground_position)
 	var height := maxf(surface_position.y - rider_position.y, 0.0)
 	var shadow_alpha := clampf(0.42 - height / 820.0, 0.08, 0.42)
 	draw_set_transform(surface_position, 0.0, Vector2(1.8, 0.42))
