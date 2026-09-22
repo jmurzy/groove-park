@@ -36,7 +36,6 @@ const END_LOGOMARK_POSITION := Vector2(1922, 600)
 const LOGOMARK_SCALE := 0.105
 const LOGOTYPE_POSITION := Vector2(250, 260)
 const LOGOTYPE_SCALE := 0.12096
-const KMH_TO_MPH := 0.621371
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
 var player_count := 1
 var show_terrain := OS.is_debug_build()
@@ -202,7 +201,7 @@ func _update_snowboarder_view() -> void:
 func _update_rider_marker() -> void:
 	if _rider_marker == null:
 		return
-	var speed_mph := roundi(_run_manager.rider_state.ground_velocity.length() * 0.12 * KMH_TO_MPH)
+	var speed_mph := GameplayHud.speed_to_mph(_run_manager.rider_state.ground_velocity.length())
 	if speed_mph == 0:
 		_rider_marker.hide()
 		return
