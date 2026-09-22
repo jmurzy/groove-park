@@ -80,31 +80,8 @@ func _ready() -> void:
 	_play(&"neutral_glide")
 
 
-func update_from_state(state: RiderState, screen_position: Vector2, ground_rotation: float) -> void:
-	position = screen_position
-	rotation = ground_rotation
-	if state.landing_resolved or is_playing_landing_animation():
-		play_landing_animation(_landing_animation_for_state(state))
-		return
-	_play(_ground_animation(state))
-	if state.ground_velocity.is_zero_approx():
-		pause_idle_animation()
-
-
-func _landing_animation_for_state(state: RiderState) -> StringName:
-	if state.phase == RiderState.Phase.CRASHED:
-		return &"crash"
-	if state.phase == RiderState.Phase.RECOVERING:
-		return &"sketchy_recovery"
-	return &"celebration"
-
-
-func _ground_animation(state: RiderState) -> StringName:
-	if state.tuck_active:
-		return &"tuck"
-	if state.edge_active or state.brake_active:
-		return &"carve_heel" if state.heading.y < 0.0 else &"carve_toe"
-	return &"neutral_glide"
+func _carve_animation(state: RiderState) -> StringName:
+	return &"carve_heel" if state.heading.y < 0.0 else &"carve_toe"
 
 
 func _build_frames() -> SpriteFrames:
