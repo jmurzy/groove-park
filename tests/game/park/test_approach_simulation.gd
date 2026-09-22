@@ -25,7 +25,8 @@ func _init() -> void:
 	_test_releasing_right_carves_to_a_stop()
 	_test_left_brakes_without_turning_uphill()
 	_test_tuck_builds_more_speed()
-	_test_carving_redirects_the_rider()
+	_test_vertical_heading_does_not_free_carve()
+	_test_vertical_input_switches_approach_paths_smoothly()
 	_test_braking_reduces_speed()
 	_test_approach_boundary_ends_the_run()
 	_test_gradient_sign_matches_terrain_pitch()
@@ -94,11 +95,40 @@ func _test_tuck_builds_more_speed() -> void:
 	)
 
 
-func _test_carving_redirects_the_rider() -> void:
+func _test_vertical_heading_does_not_free_carve() -> void:
 	var state := _run(Vector2.RIGHT, false, false, 30)
 	for _tick in 60:
 		_step(state, Vector2.DOWN, false, true)
-	_expect(state.lane_position > 0.0, "Carving should move the rider across the approach.")
+	_expect(is_zero_approx(state.lane_position), "W/S should select authored paths, not free-carve.")
+
+
+func _test_vertical_input_switches_approach_paths_smoothly() -> void:
+	var routed_course := _approach_course()
+	routed_course.approach_paths = [
+		PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
+		PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
+		PackedVector2Array([Vector2(0, 200), Vector2(3000, 200)]),
+	]
+	var state := _new_state()
+	state.approach_path_target = 1
+	state.approach_path_position = 1.0
+	var input := RiderInputFrameScene.new()
+	input.approach_path_change = 1
+	_simulation.step(state, input, routed_course, _tuning, DELTA)
+	_expect(
+		state.approach_path_target == 1,
+		"A rider who would stop before the next path must not begin a route change."
+	)
+	state.ground_velocity = Vector2(600.0, 0.0)
+	_simulation.step(state, input, routed_course, _tuning, DELTA)
+	_expect(state.approach_path_target == 2, "S should select the lower approach path.")
+	_expect(
+		state.approach_path_position > 1.0 and state.approach_path_position < 2.0,
+		"Approach path changes should blend rather than snap."
+	)
+	for _tick in 60:
+		_simulation.step(state, RiderInputFrameScene.new(), routed_course, _tuning, DELTA)
+	_expect(is_equal_approx(state.vertical_position, 200.0), "The rider should reach the selected path.")
 
 
 func _test_braking_reduces_speed() -> void:

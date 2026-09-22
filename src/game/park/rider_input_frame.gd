@@ -16,6 +16,7 @@ var grab_just_pressed := false
 var tweak_pressed := false
 var tweak_just_pressed := false
 var landing_prep_pressed := false
+var approach_path_change := 0
 
 
 static func from_actions() -> RiderInputFrame:
@@ -26,6 +27,10 @@ static func from_actions() -> RiderInputFrame:
 	if not frame.heading.is_zero_approx():
 		# The cabinet stick is digital. Normalizing makes every diagonal one of eight headings.
 		frame.heading = frame.heading.normalized()
+	# W/S choose the neighboring authored approach path once per press.
+	frame.approach_path_change = int(Input.is_action_just_pressed(&"move_down")) - int(
+		Input.is_action_just_pressed(&"move_up")
+	)
 	frame.tuck_pressed = Input.is_action_pressed(&"action_a")
 	frame.grab_pressed = frame.tuck_pressed
 	frame.grab_just_pressed = Input.is_action_just_pressed(&"action_a")

@@ -1,12 +1,14 @@
 @tool
-## Visual authoring surface for the course terrain profile.
-## Select the park approach path in the 2D viewport to use Godot's native Curve2D handles.
+## Visual authoring surface for the three selectable approach terrain profiles.
+## Select a path in the 2D viewport to use Godot's native Curve2D handles.
 class_name ParkCourseEditor
 extends Node2D
 
 const PARK_COURSE_PATH := "res://src/game/park/park_course.tres"
 
-@onready var _park_approach_path: ParkApproachPath = $ParkApproachPath
+@onready var _park_approach_paths: Array[ParkApproachPath] = [
+	$UpperApproachPath, $CenterApproachPath, $LowerApproachPath
+]
 
 
 func _ready() -> void:
@@ -23,25 +25,34 @@ func load_from_course() -> void:
 	if course == null:
 		push_error("Could not load ParkCourse from %s." % PARK_COURSE_PATH)
 		return
-	var curve := Curve2D.new()
-	for point in course.approach_path:
-		curve.add_point(point)
-	_park_approach_path.curve = curve
-	_park_approach_path.refresh_preview()
+	var paths := course.approach_paths
+	if paths.size() != _park_approach_paths.size():
+		paths = [course.approach_path, course.approach_path, course.approach_path]
+	for path_index in _park_approach_paths.size():
+		var curve := Curve2D.new()
+		for point in paths[path_index]:
+			curve.add_point(point)
+		_park_approach_paths[path_index].curve = curve
+		_park_approach_paths[path_index].refresh_preview()
 
 
 func save_to_course() -> void:
-	if _park_approach_path.curve == null:
-		push_error("ParkApproachPath needs a Curve2D before it can be saved.")
-		return
 	var course := load(PARK_COURSE_PATH) as ParkCourse
 	if course == null:
 		push_error("Could not load ParkCourse from %s." % PARK_COURSE_PATH)
 		return
-	var points := PackedVector2Array()
-	for point_index in _park_approach_path.curve.point_count:
-		points.append(_park_approach_path.curve.get_point_position(point_index))
-	course.approach_path = points
+	var paths: Array[PackedVector2Array] = []
+	for approach_path in _park_approach_paths:
+		if approach_path.curve == null:
+			push_error("%s needs a Curve2D before it can be saved." % approach_path.name)
+			return
+		var points := PackedVector2Array()
+		for point_index in approach_path.curve.point_count:
+			points.append(approach_path.curve.get_point_position(point_index))
+		paths.append(points)
+	course.approach_paths = paths
+	# The middle route is the course's default profile for systems outside the approach.
+	course.approach_path = paths[1]
 	var errors := course.validation_errors()
 	if not errors.is_empty():
 		push_error("Approach rider path not saved:\n%s" % "\n".join(errors))

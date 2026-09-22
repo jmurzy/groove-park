@@ -5,9 +5,6 @@
 class_name GameplayHud
 extends Control
 
-const KMH_TO_MPH := 0.621371
-const WORLD_TO_DISPLAY_SCALE := 0.12
-
 var _frame: HudFrame
 var _rider_title: Label
 var _rider_value: Label
@@ -18,7 +15,7 @@ var _rotation_value: Label
 
 
 static func speed_to_mph(world_speed: float) -> int:
-	return roundi(maxf(world_speed, 0.0) * WORLD_TO_DISPLAY_SCALE * KMH_TO_MPH)
+	return GameConstants.speed_to_mph(world_speed)
 
 
 func is_occluded(rect: Rect2) -> bool:

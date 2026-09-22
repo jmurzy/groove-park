@@ -5,6 +5,8 @@ extends RefCounted
 
 const SURFACE_GRID_SIZE := 120.0
 const TERRAIN_HANDLE_RADIUS := 5.5
+const APPROACH_PATH_COLORS := [Color("48b3ffff"), Color("ff3bd4ff"), Color("ffba33ff")]
+const APPROACH_PATH_NAMES := ["UPPER APPROACH", "CENTER APPROACH", "LOWER APPROACH"]
 
 
 static func draw_course_debug(
@@ -20,37 +22,48 @@ static func draw_course_debug(
 
 static func draw_terrain_handles(canvas: CanvasItem, projection: ParkProjection) -> void:
 	var course := projection.course
-	for point_index in course.approach_path.size():
-		var screen_point := course.approach_path[point_index]
-		var color := Color("ff5d52")
-		canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS, Color.WHITE)
-		canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS - 1.0, color)
-		canvas.draw_string(
-			ThemeDB.fallback_font,
-			screen_point + Vector2(18, 6),
-			"POINT %d" % point_index,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			14.0,
-			color
-		)
+	var paths := _approach_paths(course)
+	for path_index in paths.size():
+		var path: PackedVector2Array = paths[path_index]
+		var color: Color = APPROACH_PATH_COLORS[path_index]
+		for point_index in path.size():
+			var screen_point := path[point_index]
+			canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS, Color.WHITE)
+			canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS - 1.0, color)
+			canvas.draw_string(
+				ThemeDB.fallback_font,
+				screen_point + Vector2(18, 6),
+				"%d" % point_index,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				14.0,
+				color
+			)
 
 
 static func _draw_approach_line(canvas: CanvasItem, course: ParkCourse) -> void:
-	for point_index in range(course.approach_path.size() - 1):
-		var slope_start := course.approach_path[point_index]
-		var slope_end := course.approach_path[point_index + 1]
-		canvas.draw_line(slope_start, slope_end, Color("ff5d52"), 6.0)
-	if not course.approach_path.is_empty():
-		canvas.draw_string(
-			ThemeDB.fallback_font,
-			course.approach_path[0] + Vector2(0, -16),
-			"APPROACH",
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			16.0,
-			Color("ff5d52")
-		)
+	var paths := _approach_paths(course)
+	for path_index in paths.size():
+		var path: PackedVector2Array = paths[path_index]
+		var color: Color = APPROACH_PATH_COLORS[path_index]
+		for point_index in range(path.size() - 1):
+			canvas.draw_line(path[point_index], path[point_index + 1], color, 6.0)
+		if not path.is_empty():
+			canvas.draw_string(
+				ThemeDB.fallback_font,
+				path[0] + Vector2(0, -16),
+				APPROACH_PATH_NAMES[path_index],
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				16.0,
+				color
+			)
+
+
+static func _approach_paths(course: ParkCourse) -> Array[PackedVector2Array]:
+	if course.approach_paths.size() == 3:
+		return course.approach_paths
+	return [course.approach_path]
 
 
 static func _draw_grid(canvas: CanvasItem, world_bounds: Rect2) -> void:

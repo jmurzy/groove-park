@@ -6,6 +6,8 @@ extends RefCounted
 var course_progress := 0.0
 var lane_position := 0.0
 var vertical_position := 0.0
+var approach_path_target := 1
+var approach_path_position := 1.0
 
 var ground_position := Vector2.ZERO
 var ground_velocity := Vector2.ZERO

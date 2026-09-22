@@ -39,6 +39,16 @@ var vertical_position: float:
 		return kinematics.vertical_position
 	set(value):
 		kinematics.vertical_position = value
+var approach_path_target: int:
+	get:
+		return kinematics.approach_path_target
+	set(value):
+		kinematics.approach_path_target = value
+var approach_path_position: float:
+	get:
+		return kinematics.approach_path_position
+	set(value):
+		kinematics.approach_path_position = value
 var ground_position: Vector2:
 	get:
 		return kinematics.ground_position

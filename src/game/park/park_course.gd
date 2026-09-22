@@ -5,6 +5,9 @@ extends Resource
 
 @export var course_version := "park-course-v1"
 @export var approach_path := PackedVector2Array()
+## Three editor-authored routes ordered top-to-bottom. The center route remains
+## in approach_path for compatibility with the rest of the approach course.
+@export var approach_paths: Array[PackedVector2Array] = []
 @export var lane_min := -360.0
 @export var lane_max := 360.0
 
@@ -14,6 +17,15 @@ func validation_errors() -> PackedStringArray:
 	if approach_path.size() < 2:
 		errors.append("ParkCourse needs at least two approach path points.")
 		return errors
+	if not approach_paths.is_empty() and approach_paths.size() != 3:
+		errors.append("ParkCourse needs exactly three approach paths when routes are authored.")
+	for path_index in approach_paths.size():
+		if approach_paths[path_index].size() < 2:
+			errors.append("Approach path %d needs at least two points." % path_index)
+			continue
+		for point_index in range(approach_paths[path_index].size() - 1):
+			if approach_paths[path_index][point_index + 1].x <= approach_paths[path_index][point_index].x:
+				errors.append("Approach path %d points must be strictly ordered by progress." % path_index)
 
 	for point_index in range(approach_path.size() - 1):
 		var start := approach_path[point_index]
@@ -51,6 +63,19 @@ func surface_y_at(course_progress: float, _lane_position := 0.0) -> float:
 		if course_progress <= end.x:
 			return lerpf(start.y, end.y, inverse_lerp(start.x, end.x, course_progress))
 	return approach_path[-1].y
+
+
+func route_surface_y_at(course_progress: float, route_position: float) -> float:
+	if approach_paths.size() != 3:
+		return surface_y_at(course_progress)
+	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
+	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
+	var blend := clampf(route_position - lower_index, 0.0, 1.0)
+	return lerpf(
+		_path_surface_y_at(approach_paths[lower_index], course_progress),
+		_path_surface_y_at(approach_paths[upper_index], course_progress),
+		blend
+	)
 
 
 func tangent_at(course_progress: float) -> Vector2:
@@ -121,6 +146,17 @@ func _segment_at(course_progress: float) -> Vector2:
 		if course_progress <= end.x:
 			return end - start
 	return approach_path[-1] - approach_path[-2]
+
+
+func _path_surface_y_at(path: PackedVector2Array, course_progress: float) -> float:
+	if course_progress <= path[0].x:
+		return path[0].y
+	for point_index in range(path.size() - 1):
+		var start := path[point_index]
+		var end := path[point_index + 1]
+		if course_progress <= end.x:
+			return lerpf(start.y, end.y, inverse_lerp(start.x, end.x, course_progress))
+	return path[-1].y
 
 
 func _segment_intersection(

@@ -3,6 +3,8 @@
 class_name ApproachSimulation
 extends RefCounted
 
+const APPROACH_PATH_SWITCH_SPEED := 2.5
+const COAST_PREDICTION_STEP := 1.0 / 60.0
 
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
@@ -18,7 +20,7 @@ func step(
 	state.current_control_zone_id = &"approach"
 	state.control_mode = RiderState.ControlMode.APPROACH
 	state.current_surface_id = StringName()
-	var steering_heading := input.heading
+	var steering_heading := Vector2(input.heading.x, 0.0)
 	# The approach only permits downhill and across-slope steering, never uphill travel.
 	steering_heading.x = maxf(steering_heading.x, 0.0)
 	if not steering_heading.is_zero_approx():
@@ -30,6 +32,7 @@ func step(
 	state.edge_active = (
 		input.edge_pressed or (not downhill_held and not state.ground_velocity.is_zero_approx())
 	)
+	_update_approach_path(state, input, course, tuning, delta)
 
 	if not steering_heading.is_zero_approx():
 		state.desired_heading = steering_heading
@@ -117,8 +120,7 @@ func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) 
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
 	state.course_progress = clampf(next_position.x, course.spawn_progress(), _approach_end(course))
-	var lane_bounds := course.lane_bounds_at(state.course_progress)
-	state.lane_position = clampf(next_position.y, lane_bounds.x, lane_bounds.y)
+	state.lane_position = 0.0
 	if not is_equal_approx(state.course_progress, next_position.x):
 		_stop_at_approach_edge(state)
 
@@ -137,6 +139,57 @@ func _approach_end(course: ParkCourse) -> float:
 
 func _sync_ground_state(state: RiderState, course: ParkCourse) -> void:
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
-	state.vertical_position = course.surface_y_at(state.course_progress, state.lane_position)
+	state.vertical_position = course.route_surface_y_at(
+		state.course_progress, state.approach_path_position
+	)
 	state.course_speed = state.ground_velocity.x
 	state.lane_speed = state.ground_velocity.y
+
+
+func _update_approach_path(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	if course.approach_paths.size() != 3:
+		return
+	var requested_path := clampi(
+		state.approach_path_target + input.approach_path_change, 0, course.approach_paths.size() - 1
+	)
+	if (
+		requested_path != state.approach_path_target
+		and _can_coast_through_path_change(state, requested_path, course, tuning)
+	):
+		state.approach_path_target = clampi(
+			requested_path, 0, course.approach_paths.size() - 1
+		)
+	state.approach_path_position = move_toward(
+		state.approach_path_position,
+		float(state.approach_path_target),
+		APPROACH_PATH_SWITCH_SPEED * delta
+	)
+
+
+func _can_coast_through_path_change(
+	state: RiderState, requested_path: int, course: ParkCourse, tuning: RiderTuning
+) -> bool:
+	var remaining_transition_time := (
+		absf(float(requested_path) - state.approach_path_position) / APPROACH_PATH_SWITCH_SPEED
+	)
+	var simulated_progress := state.course_progress
+	var simulated_speed := maxf(state.ground_velocity.x, 0.0)
+	while remaining_transition_time > 0.0:
+		var step := minf(COAST_PREDICTION_STEP, remaining_transition_time)
+		var gradient := course.gradient_at(simulated_progress)
+		simulated_speed += (
+			tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient) * step
+		)
+		var drag := (
+			tuning.snow_resistance
+			+ tuning.aerodynamic_drag * simulated_speed * simulated_speed
+			+ tuning.release_carve_drag
+		)
+		simulated_speed = move_toward(simulated_speed, 0.0, drag * step)
+		if simulated_speed <= 1.0:
+			return false
+		simulated_progress += simulated_speed * step
+		remaining_transition_time -= step
+	return true

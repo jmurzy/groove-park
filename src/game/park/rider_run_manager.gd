@@ -15,6 +15,8 @@ var _simulation: ApproachSimulation
 func setup(course: ParkCourse) -> void:
 	_simulation = ApproachSimulation.new()
 	rider_state = RiderState.new()
+	rider_state.approach_path_target = 1
+	rider_state.approach_path_position = 1.0
 	rider_state.course_progress = course.spawn_progress()
 	rider_state.ground_position = Vector2(rider_state.course_progress, rider_state.lane_position)
 	rider_state.vertical_position = course.surface_y_at(
@@ -33,6 +35,8 @@ func step(input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta
 
 func reset_run(course: ParkCourse) -> void:
 	rider_state = RiderState.new()
+	rider_state.approach_path_target = 1
+	rider_state.approach_path_position = 1.0
 	_reset_skier_state(course)
 	rider_state.course_progress = course.spawn_progress()
 	rider_state.ground_position = Vector2(rider_state.course_progress, rider_state.lane_position)
@@ -48,6 +52,8 @@ func is_crashed() -> bool:
 
 func _reset_skier_state(course: ParkCourse) -> void:
 	skier_state = RiderState.new()
+	skier_state.approach_path_target = 1
+	skier_state.approach_path_position = 1.0
 	if course.approach_path.is_empty():
 		skier_state.course_progress = course.spawn_progress()
 	else:
