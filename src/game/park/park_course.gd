@@ -1,18 +1,15 @@
 @tool
-## Authored approach course: rider path polyline, travel surfaces, and control zones.
+## Authored terrain profile and ordered movement phase paths.
 class_name ParkCourse
 extends Resource
 
-const ParkSurfaceScene := preload("res://src/game/park/park_surface.gd")
-const ParkControlZoneScene := preload("res://src/game/park/park_control_zone.gd")
-const RiderStateScene := preload("res://src/game/park/rider_state.gd")
+const ParkPhasePathScene := preload("res://src/game/park/park_phase_path.gd")
 
 @export var course_version := "park-course-v1"
 @export var approach_rider_path := PackedVector2Array()
 @export var lane_min := -360.0
 @export var lane_max := 360.0
-@export var surfaces: Array[ParkSurfaceScene] = []
-@export var control_zones: Array[ParkControlZoneScene] = []
+@export var phase_paths: Array[ParkPhasePathScene] = []
 
 
 func validation_errors() -> PackedStringArray:
@@ -34,10 +31,19 @@ func validation_errors() -> PackedStringArray:
 
 	if lane_min >= lane_max:
 		errors.append("ParkCourse lane_min must be less than lane_max.")
-	for surface in surfaces:
-		errors.append_array(surface.validation_errors())
-	for zone in control_zones:
-		errors.append_array(zone.validation_errors())
+	if phase_paths.is_empty():
+		errors.append("ParkCourse needs at least one phase path.")
+	var previous_phase_end := -INF
+	var has_approach_path := false
+	for phase_path in phase_paths:
+		errors.append_array(phase_path.validation_errors())
+		if phase_path.phase == ParkPhasePath.Phase.APPROACH:
+			has_approach_path = true
+		if phase_path.progress_start() < previous_phase_end:
+			errors.append("ParkPhasePaths must be ordered without overlapping progress ranges.")
+		previous_phase_end = phase_path.progress_end()
+	if not has_approach_path:
+		errors.append("ParkCourse needs an approach phase path.")
 	return errors
 
 
@@ -86,71 +92,14 @@ func gradient_at(course_progress: float, lane_position := 0.0, sample_distance :
 
 
 func lane_bounds_at(_course_progress: float) -> Vector2:
-	var surface := surface_for_progress(_course_progress)
-	if surface != null:
-		return surface.lane_bounds_at(_course_progress)
 	return Vector2(lane_min, lane_max)
 
 
-func is_within_lane(course_progress: float, lane_position: float) -> bool:
-	return surface_at(Vector2(course_progress, lane_position)) != null
-
-
-func surface_at(ground_position: Vector2) -> ParkSurfaceScene:
-	for surface in _active_surfaces():
-		if surface.contains(ground_position):
-			return surface
+func phase_path_at(course_progress: float) -> ParkPhasePathScene:
+	for phase_path in phase_paths:
+		if phase_path.contains_progress(course_progress):
+			return phase_path
 	return null
-
-
-func control_zone_at(ground_position: Vector2) -> ParkControlZoneScene:
-	var selected: ParkControlZoneScene
-	for zone in _active_control_zones():
-		if (
-			zone.contains(ground_position)
-			and (selected == null or zone.priority > selected.priority)
-		):
-			selected = zone
-	return selected
-
-
-func surface_for_progress(course_progress: float) -> ParkSurfaceScene:
-	for surface in _active_surfaces():
-		if surface.has_progress(course_progress):
-			return surface
-	return null
-
-
-func _active_surfaces() -> Array[ParkSurfaceScene]:
-	if not surfaces.is_empty():
-		return surfaces
-	return _legacy_surfaces()
-
-
-func _active_control_zones() -> Array[ParkControlZoneScene]:
-	if not control_zones.is_empty():
-		return control_zones
-	return _legacy_control_zones()
-
-
-func _legacy_surfaces() -> Array[ParkSurfaceScene]:
-	return [
-		_make_surface(
-			&"approach", ParkSurfaceScene.Role.APPROACH, spawn_progress(), _approach_path_end()
-		)
-	]
-
-
-func _legacy_control_zones() -> Array[ParkControlZoneScene]:
-	return [
-		_make_zone(
-			&"approach",
-			RiderStateScene.ControlMode.APPROACH,
-			spawn_progress(),
-			_approach_path_end(),
-			0
-		)
-	]
 
 
 func spawn_progress() -> float:
@@ -159,51 +108,11 @@ func spawn_progress() -> float:
 	return approach_rider_path[0].x
 
 
-func _approach_path_end() -> float:
-	if approach_rider_path.is_empty():
-		return 0.0
-	return approach_rider_path[-1].x
-
-
-func _make_surface(
-	id: StringName, role: int, progress_start: float, progress_end: float
-) -> ParkSurfaceScene:
-	var surface := ParkSurfaceScene.new()
-	surface.id = id
-	surface.role = role
-	surface.footprint = _rectangle_footprint(progress_start, progress_end)
-	if role == ParkSurfaceScene.Role.TAKEOFF:
-		surface.launch_edge_index = 1
-	return surface
-
-
-func _make_zone(
-	id: StringName, mode: int, progress_start: float, progress_end: float, priority: int
-) -> ParkControlZoneScene:
-	var zone := ParkControlZoneScene.new()
-	zone.id = id
-	zone.control_mode = mode
-	zone.footprint = _rectangle_footprint(progress_start, progress_end)
-	zone.priority = priority
-	return zone
-
-
-func _rectangle_footprint(progress_start: float, progress_end: float) -> PackedVector2Array:
-	return PackedVector2Array(
-		[
-			Vector2(progress_start, lane_min),
-			Vector2(progress_end, lane_min),
-			Vector2(progress_end, lane_max),
-			Vector2(progress_start, lane_max),
-		]
-	)
-
-
 func swept_terrain_intersection(
 	previous_position: Vector2,
 	next_position: Vector2,
-	previous_lane_position := 0.0,
-	next_lane_position := 0.0
+	_previous_lane_position := 0.0,
+	_next_lane_position := 0.0
 ) -> Dictionary:
 	# Return the earliest forward flight/terrain contact, including contacts at terrain seams.
 	if approach_rider_path.size() < 2 or next_position.x <= previous_position.x:
@@ -220,11 +129,6 @@ func swept_terrain_intersection(
 		if contact.is_empty():
 			continue
 		var contact_position: Vector2 = contact["position"]
-		var contact_lane := lerpf(
-			previous_lane_position, next_lane_position, float(contact["time"])
-		)
-		if surface_at(Vector2(contact_position.x, contact_lane)) == null:
-			continue
 		if earliest_contact.is_empty() or float(contact["time"]) < float(earliest_contact["time"]):
 			earliest_contact = contact
 			var tangent := (terrain_end - terrain_start).normalized()

@@ -7,13 +7,13 @@ extends RefCounted
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	var zone := course.control_zone_at(Vector2(state.course_progress, state.lane_position))
-	if zone == null or zone.id != &"approach":
+	var phase_path := course.phase_path_at(state.course_progress)
+	if phase_path == null or phase_path.phase != ParkPhasePath.Phase.APPROACH:
 		_stop_at_approach_edge(state)
 		return
 
 	state.phase = RiderState.Phase.GROUNDED
-	state.current_control_zone_id = zone.id
+	state.current_control_zone_id = phase_path.id
 	state.control_mode = RiderState.ControlMode.APPROACH
 	state.current_surface_id = StringName()
 	var steering_heading := input.heading
@@ -38,8 +38,10 @@ func step(
 		return
 
 	_turn_toward_input(state, steering_heading, input, tuning, delta)
-	_apply_approach_forces(state, input, course, zone, tuning, delta, downhill_held, left_braking)
-	_move_within_approach(state, course, zone, delta)
+	_apply_approach_forces(
+		state, input, course, phase_path, tuning, delta, downhill_held, left_braking
+	)
+	_move_within_approach(state, course, phase_path, delta)
 	_sync_ground_state(state, course)
 
 
@@ -68,13 +70,13 @@ func _apply_approach_forces(
 	state: RiderState,
 	input: RiderInputFrame,
 	course: ParkCourse,
-	zone: ParkControlZone,
+	phase_path: ParkPhasePath,
 	tuning: RiderTuning,
 	delta: float,
 	downhill_held: bool,
 	left_braking: bool
 ) -> void:
-	var fall_line := zone.fall_line_direction.normalized()
+	var fall_line := phase_path.fall_line_direction.normalized()
 	var gradient := course.gradient_at(state.course_progress, state.lane_position)
 	# Gravity along the slope: downhill pitches accelerate, uphill pitches
 	# decelerate. Capped at slope_gravity on steep faces.
@@ -95,13 +97,13 @@ func _apply_approach_forces(
 		state.ground_velocity = state.ground_velocity.move_toward(
 			state.heading * speed, tuning.steering_response * delta
 		)
-	var drag := tuning.snow_resistance * zone.snow_resistance_multiplier
+	var drag := tuning.snow_resistance * phase_path.snow_resistance_multiplier
 	drag += tuning.aerodynamic_drag * speed * speed
-	drag += tuning.edge_drag * zone.edge_grip_multiplier * absf(state.heading.y)
+	drag += tuning.edge_drag * phase_path.edge_grip_multiplier * absf(state.heading.y)
 	if input.tuck_pressed:
 		drag *= tuning.tuck_drag_multiplier
 	if input.edge_pressed:
-		drag += tuning.strong_edge_drag * zone.edge_grip_multiplier
+		drag += tuning.strong_edge_drag * phase_path.edge_grip_multiplier
 	if input.brake_pressed or left_braking:
 		drag += tuning.brake_drag
 	if not downhill_held:
@@ -112,19 +114,18 @@ func _apply_approach_forces(
 
 
 func _move_within_approach(
-	state: RiderState, _course: ParkCourse, zone: ParkControlZone, delta: float
+	state: RiderState, course: ParkCourse, phase_path: ParkPhasePath, delta: float
 ) -> void:
 	var next_position := (
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
-	if zone.contains(next_position):
-		state.course_progress = next_position.x
-		state.lane_position = next_position.y
-		return
-	var boundary_position := _closest_zone_position(zone, next_position)
-	state.course_progress = boundary_position.x
-	state.lane_position = boundary_position.y
-	_stop_at_approach_edge(state)
+	state.course_progress = clampf(
+		next_position.x, phase_path.progress_start(), phase_path.progress_end()
+	)
+	var lane_bounds := course.lane_bounds_at(state.course_progress)
+	state.lane_position = clampf(next_position.y, lane_bounds.x, lane_bounds.y)
+	if not is_equal_approx(state.course_progress, next_position.x):
+		_stop_at_approach_edge(state)
 
 
 func _stop_at_approach_edge(state: RiderState) -> void:
@@ -140,17 +141,3 @@ func _sync_ground_state(state: RiderState, course: ParkCourse) -> void:
 	state.vertical_position = course.surface_y_at(state.course_progress, state.lane_position)
 	state.course_speed = state.ground_velocity.x
 	state.lane_speed = state.ground_velocity.y
-
-
-func _closest_zone_position(zone: ParkControlZone, position: Vector2) -> Vector2:
-	var closest_position := zone.footprint[0]
-	var closest_distance := INF
-	for point_index in zone.footprint.size():
-		var edge_start := zone.footprint[point_index]
-		var edge_end := zone.footprint[(point_index + 1) % zone.footprint.size()]
-		var candidate := Geometry2D.get_closest_point_to_segment(position, edge_start, edge_end)
-		var distance := candidate.distance_squared_to(position)
-		if distance < closest_distance:
-			closest_position = candidate
-			closest_distance = distance
-	return closest_position

@@ -19,7 +19,5 @@ func refresh() -> void:
 func _draw() -> void:
 	if projection == null:
 		return
-	CourseDebugDrawScene.draw_course_debug(
-		self, projection, Vector2(GAMEPLAY_BG.get_size()), &"", -1
-	)
+	CourseDebugDrawScene.draw_course_debug(self, projection, Vector2(GAMEPLAY_BG.get_size()))
 	CourseDebugDrawScene.draw_terrain_handles(self, projection)

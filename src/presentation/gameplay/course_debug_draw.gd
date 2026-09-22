@@ -1,29 +1,21 @@
-## Debug-only course overlay: approach path, surface fills, and drag handles.
+## Debug-only course overlay: terrain profile, phase paths, and drag handles.
 ## Called from ParkWorldPresenter when the terrain editor is on.
 class_name CourseDebugDraw
 extends RefCounted
-
-const ParkSurfaceScene := preload("res://src/game/park/park_surface.gd")
 
 const SURFACE_GRID_SIZE := 120.0
 const TERRAIN_HANDLE_RADIUS := 5.5
 
 
 static func draw_course_debug(
-	canvas: CanvasItem,
-	projection: ParkProjection,
-	background_size: Vector2,
-	surface_drag_id: StringName,
-	surface_drag_vertex: int
+	canvas: CanvasItem, projection: ParkProjection, background_size: Vector2
 ) -> void:
 	var course := projection.course
 	var world_bounds := Rect2(Vector2.ZERO, background_size)
 	canvas.draw_rect(world_bounds, Color("010713dd"), false, 7.0)
 	canvas.draw_rect(world_bounds, Color("ff5d52"), false, 3.0)
 	_draw_terrain(canvas, course)
-	_draw_surface_areas(canvas, projection)
-	_draw_surface_footprint_handles(canvas, projection, surface_drag_id, surface_drag_vertex)
-	_draw_control_zones(canvas, projection)
+	_draw_phase_paths(canvas, course)
 	_draw_grid(canvas, world_bounds)
 
 
@@ -52,116 +44,36 @@ static func _draw_terrain(canvas: CanvasItem, course: ParkCourse) -> void:
 		canvas.draw_line(slope_start, slope_end, Color("ff5d52"), 6.0)
 
 
-static func _draw_control_zones(canvas: CanvasItem, projection: ParkProjection) -> void:
-	var course := projection.course
-	for zone in course.control_zones:
-		_draw_control_zone(
-			canvas, projection, zone.footprint, Color("64ffb2"), str(zone.id).to_upper()
-		)
-
-
-static func _draw_control_zone(
-	canvas: CanvasItem,
-	projection: ParkProjection,
-	footprint: PackedVector2Array,
-	color: Color,
-	label: String
-) -> void:
-	var screen_footprint := PackedVector2Array()
-	for point in footprint:
-		screen_footprint.append(projection.project_ground(point))
-	if screen_footprint.size() >= 3:
-		var fill := color
-		fill.a = 0.18
-		canvas.draw_colored_polygon(screen_footprint, fill)
-	for point_index in screen_footprint.size():
-		var point := screen_footprint[point_index]
-		canvas.draw_circle(point, TERRAIN_HANDLE_RADIUS, Color("010713ee"))
-		canvas.draw_circle(point, TERRAIN_HANDLE_RADIUS - 3.0, color)
-		if point_index > 0:
-			canvas.draw_line(screen_footprint[point_index - 1], point, color, 3.0)
-	if screen_footprint.size() >= 3:
-		canvas.draw_line(screen_footprint[-1], screen_footprint[0], color, 3.0)
+static func _draw_phase_paths(canvas: CanvasItem, course: ParkCourse) -> void:
+	for phase_path in course.phase_paths:
+		if phase_path.path_points.size() < 2:
+			continue
+		var color := _phase_color(phase_path.phase)
+		canvas.draw_polyline(phase_path.path_points, Color("010713ee"), 7.0)
+		canvas.draw_polyline(phase_path.path_points, color, 3.0)
 		canvas.draw_string(
 			ThemeDB.fallback_font,
-			_polygon_center(screen_footprint) + Vector2(0, -16),
-			label,
-			HORIZONTAL_ALIGNMENT_CENTER,
+			phase_path.path_points[0] + Vector2(0, -16),
+			str(phase_path.id).to_upper(),
+			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			16.0,
 			color
 		)
 
 
-static func surface_screen_footprint(
-	projection: ParkProjection, surface: ParkSurface
-) -> PackedVector2Array:
-	var points := PackedVector2Array()
-	for ground_point in surface.footprint:
-		points.append(projection.project_ground(ground_point))
-	return points
-
-
-static func surface_debug_color(role: int) -> Color:
-	match role:
-		ParkSurfaceScene.Role.APPROACH:
+static func _phase_color(phase: int) -> Color:
+	match phase:
+		ParkPhasePath.Phase.APPROACH:
 			return Color("64ffb2")
-		ParkSurfaceScene.Role.TAKEOFF:
+		ParkPhasePath.Phase.COMPRESSION:
+			return Color("ffe126")
+		ParkPhasePath.Phase.TAKEOFF:
 			return Color("68efff")
-		ParkSurfaceScene.Role.LANDING:
+		ParkPhasePath.Phase.LANDING:
 			return Color("73ff91")
 		_:
 			return Color("a9b7d0")
-
-
-static func _draw_surface_areas(canvas: CanvasItem, projection: ParkProjection) -> void:
-	var course := projection.course
-	for surface in course.surfaces:
-		var color := surface_debug_color(surface.role)
-		var footprint := surface_screen_footprint(projection, surface)
-		if footprint.size() < 3:
-			continue
-		var fill := color
-		fill.a = 0.22
-		canvas.draw_colored_polygon(footprint, fill)
-		_draw_surface_edge(canvas, footprint, color)
-		var label_position := _polygon_center(footprint) + Vector2(0, -16.0)
-		canvas.draw_string(
-			ThemeDB.fallback_font,
-			label_position,
-			str(surface.id).to_upper(),
-			HORIZONTAL_ALIGNMENT_CENTER,
-			-1,
-			16.0,
-			color
-		)
-
-
-static func _draw_surface_edge(
-	canvas: CanvasItem, points: PackedVector2Array, color: Color
-) -> void:
-	for point_index in points.size():
-		var edge_start := points[point_index]
-		var edge_end := points[(point_index + 1) % points.size()]
-		canvas.draw_line(edge_start, edge_end, Color("010713ee"), 7.0)
-		canvas.draw_line(edge_start, edge_end, color, 3.0)
-
-
-static func _draw_surface_footprint_handles(
-	canvas: CanvasItem,
-	projection: ParkProjection,
-	surface_drag_id: StringName,
-	surface_drag_vertex: int
-) -> void:
-	var course := projection.course
-	for surface in course.surfaces:
-		var color := surface_debug_color(surface.role)
-		for point_index in surface.footprint.size():
-			var is_dragged := surface.id == surface_drag_id and point_index == surface_drag_vertex
-			var screen_point := projection.project_ground(surface.footprint[point_index])
-			canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS, Color("010713ee"))
-			var handle_color := Color.WHITE if is_dragged else color
-			canvas.draw_circle(screen_point, TERRAIN_HANDLE_RADIUS - 3.0, handle_color)
 
 
 static func _draw_grid(canvas: CanvasItem, world_bounds: Rect2) -> void:
@@ -191,10 +103,3 @@ static func _draw_grid(canvas: CanvasItem, world_bounds: Rect2) -> void:
 			Color("68efff88"),
 			1.0
 		)
-
-
-static func _polygon_center(points: PackedVector2Array) -> Vector2:
-	var center := Vector2.ZERO
-	for point in points:
-		center += point
-	return center / points.size()
