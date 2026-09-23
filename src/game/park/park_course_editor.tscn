@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dwss16as27l0r" path="res://src/game/park/park_course_editor.gd" id="1_editor"]
 [ext_resource type="Texture2D" uid="uid://b8ff2wkpy6qyl" path="res://artwork/gameplay/gameplay_bg.png" id="2_background"]
-[ext_resource type="Script" uid="uid://ctqe7rh5pt3dt" path="res://src/game/park/park_approach_path.gd" id="3_rider_path"]
+[ext_resource type="Script" uid="uid://ctqe7rh5pt3dt" path="res://src/game/park/park_course_path.gd" id="3_rider_path"]
 
 [sub_resource type="Curve2D" id="Curve2D_ljxe1"]
 _data = {
@@ -21,6 +21,24 @@ _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 77, 210, 0, 0, 0, 0, 138, 279, 0, 0, 0, 0, 193, 314, 0, 0, 0, 0, 251, 349, 0, 0, 0, 0, 322, 365, 0, 0, 0, 0, 397, 377, 0, 0, 0, 0, 464, 407, 0, 0, 0, 0, 575, 461, 0, 0, 0, 0, 729, 502, 0, 0, 0, 0, 878, 551, 0, 0, 0, 0, 984, 569, 0, 0, 0, 0, 1188, 623)
 }
 point_count = 12
+
+[sub_resource type="Curve2D" id="Curve2D_fqnxt"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 1309, 375, 0, 0, 0, 0, 1422, 558, 0, 0, 0, 0, 1620, 601, 0, 0, 0, 0, 1762, 661)
+}
+point_count = 4
+
+[sub_resource type="Curve2D" id="Curve2D_i5xk0"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 1260, 380, 0, 0, 0, 0, 1360, 579, 0, 0, 0, 0, 1612, 642, 0, 0, 0, 0, 1756, 665)
+}
+point_count = 4
+
+[sub_resource type="Curve2D" id="Curve2D_ufw7q"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 1188, 623, 0, 0, 0, 0, 1407, 650, 0, 0, 0, 0, 1618, 670, 0, 0, 0, 0, 1761, 667)
+}
+point_count = 4
 
 [node name="ParkCourseEditor" type="Node2D" unique_id=1924169444]
 script = ExtResource("1_editor")
@@ -48,4 +66,25 @@ metadata/_edit_lock_ = true
 curve = SubResource("Curve2D_1k28o")
 script = ExtResource("3_rider_path")
 preview_color = Color(1, 0.73, 0.2, 1)
+metadata/_edit_lock_ = true
+
+[node name="UpperLandingPath" type="Path2D" parent="." unique_id=1162456477]
+curve = SubResource("Curve2D_fqnxt")
+script = ExtResource("3_rider_path")
+preview_color = Color(0.25, 0.7, 1, 1)
+preview_width = 5.0
+metadata/_edit_lock_ = true
+
+[node name="CenterLandingPath" type="Path2D" parent="." unique_id=585265923]
+curve = SubResource("Curve2D_i5xk0")
+script = ExtResource("3_rider_path")
+preview_color = Color(1, 0.23, 0.83, 1)
+preview_width = 5.0
+metadata/_edit_lock_ = true
+
+[node name="LowerLandingPath" type="Path2D" parent="." unique_id=304731975]
+curve = SubResource("Curve2D_ufw7q")
+script = ExtResource("3_rider_path")
+preview_color = Color(1, 0.73, 0.2, 1)
+preview_width = 5.0
 metadata/_edit_lock_ = true

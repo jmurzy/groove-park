@@ -28,8 +28,9 @@ static func from_actions() -> RiderInputFrame:
 		# The cabinet stick is digital. Normalizing makes every diagonal one of eight headings.
 		frame.heading = frame.heading.normalized()
 	# W/S choose the neighboring authored approach path once per press.
-	frame.approach_path_change = int(Input.is_action_just_pressed(&"move_down")) - int(
-		Input.is_action_just_pressed(&"move_up")
+	frame.approach_path_change = (
+		int(Input.is_action_just_pressed(&"move_down"))
+		- int(Input.is_action_just_pressed(&"move_up"))
 	)
 	frame.tuck_pressed = Input.is_action_pressed(&"action_a")
 	frame.grab_pressed = frame.tuck_pressed

@@ -1,6 +1,6 @@
 @tool
-## Editable, visible centerline for the approach zone.
-class_name ParkApproachPath
+## Editable, visible centerline for one approach or landing route.
+class_name ParkCoursePath
 extends Path2D
 
 @export var preview_color := Color("ff3bd4"):

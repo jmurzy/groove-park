@@ -72,6 +72,7 @@ typecheck: import
 
 [doc("Run headless park simulation checks.")]
 test:
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_park_course.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_approach_simulation.gd
 
 [doc("Check GitHub Actions workflows")]

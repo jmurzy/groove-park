@@ -1,32 +1,56 @@
 @tool
-## Authored terrain profile for the current approach-only course.
+## Authored terrain profiles for the three selectable park routes.
 class_name ParkCourse
 extends Resource
 
-@export var course_version := "park-course-v1"
+enum RouteKind { FLIGHT, GROUND_RUNOUT }
+
+const ROUTE_COUNT := 3
+
+@export var course_version := "park-course-v2"
 ## Three editor-authored routes ordered top-to-bottom.
 @export var approach_paths: Array[PackedVector2Array] = []
+## Matching landing/runout routes. Flight routes leave an intentional gap
+## between the approach endpoint (the lip) and the landing path.
+@export var landing_paths: Array[PackedVector2Array] = []
+@export
+var route_kinds: Array[RouteKind] = [RouteKind.FLIGHT, RouteKind.FLIGHT, RouteKind.GROUND_RUNOUT]
 @export var lane_min := -360.0
 @export var lane_max := 360.0
 
 
 func validation_errors() -> PackedStringArray:
 	var errors := PackedStringArray()
-	if approach_paths.size() != 3:
-		errors.append("ParkCourse needs exactly three approach paths when routes are authored.")
-		return errors
-	for path_index in approach_paths.size():
-		if approach_paths[path_index].size() < 2:
-			errors.append("Approach path %d needs at least two points." % path_index)
-			continue
-		for point_index in range(approach_paths[path_index].size() - 1):
-			if (
-				approach_paths[path_index][point_index + 1].x
-				<= approach_paths[path_index][point_index].x
-			):
-				errors.append(
-					"Approach path %d points must be strictly ordered by progress." % path_index
-				)
+	_append_path_errors(errors, approach_paths, "Approach")
+	_append_path_errors(errors, landing_paths, "Landing")
+	if route_kinds.size() != ROUTE_COUNT:
+		errors.append("ParkCourse needs exactly three route kinds.")
+	if (
+		approach_paths.size() == ROUTE_COUNT
+		and landing_paths.size() == ROUTE_COUNT
+		and route_kinds.size() == ROUTE_COUNT
+	):
+		for route_index in ROUTE_COUNT:
+			if approach_paths[route_index].is_empty() or landing_paths[route_index].is_empty():
+				continue
+			var approach_end := approach_paths[route_index][-1]
+			var landing_start := landing_paths[route_index][0]
+			match route_kinds[route_index]:
+				RouteKind.FLIGHT:
+					if landing_start.x <= approach_end.x:
+						errors.append(
+							"Flight route %d landing must start after its lip." % route_index
+						)
+				RouteKind.GROUND_RUNOUT:
+					if not landing_start.is_equal_approx(approach_end):
+						errors.append(
+							(
+								"Ground route %d landing must start at its approach endpoint."
+								% route_index
+							)
+						)
+				_:
+					errors.append("Route %d has an unknown route kind." % route_index)
 
 	if lane_min >= lane_max:
 		errors.append("ParkCourse lane_min must be less than lane_max.")
@@ -87,14 +111,15 @@ func route_start_at(route_position: float) -> float:
 	return lerpf(approach_paths[lower_index][0].x, approach_paths[upper_index][0].x, blend)
 
 
-func route_swept_terrain_intersection(
-	previous_position: Vector2, next_position: Vector2, route_position: float
+func landing_swept_terrain_intersection(
+	previous_position: Vector2, next_position: Vector2, route_index: int
 ) -> Dictionary:
-	# Return the earliest forward flight/terrain contact, including contacts at terrain seams.
+	# Only landing geometry participates, so a flight route has no collision across its gap.
 	if next_position.x <= previous_position.x:
 		return {}
-	var path_index := clampi(roundi(route_position), 0, approach_paths.size() - 1)
-	var path := approach_paths[path_index]
+	if route_index < 0 or route_index >= landing_paths.size():
+		return {}
+	var path := landing_paths[route_index]
 	var earliest_contact := {}
 	for point_index in range(path.size() - 1):
 		var terrain_start := path[point_index]
@@ -106,13 +131,30 @@ func route_swept_terrain_intersection(
 		)
 		if contact.is_empty():
 			continue
-		var contact_position: Vector2 = contact["position"]
 		if earliest_contact.is_empty() or float(contact["time"]) < float(earliest_contact["time"]):
 			earliest_contact = contact
 			var tangent := (terrain_end - terrain_start).normalized()
 			earliest_contact["tangent"] = tangent
 			earliest_contact["normal"] = Vector2(tangent.y, -tangent.x)
 	return earliest_contact
+
+
+func _append_path_errors(
+	errors: PackedStringArray, paths: Array[PackedVector2Array], label: String
+) -> void:
+	if paths.size() != ROUTE_COUNT:
+		errors.append("ParkCourse needs exactly three %s paths." % label.to_lower())
+		return
+	for path_index in paths.size():
+		if paths[path_index].size() < 2:
+			errors.append("%s path %d needs at least two points." % [label, path_index])
+			continue
+		for point_index in range(paths[path_index].size() - 1):
+			if paths[path_index][point_index + 1].x <= paths[path_index][point_index].x:
+				errors.append(
+					"%s path %d points must be strictly ordered by progress." % [label, path_index]
+				)
+				break
 
 
 func _path_surface_y_at(path: PackedVector2Array, course_progress: float) -> float:
