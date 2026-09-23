@@ -28,6 +28,11 @@ func play_preview(animation_name: StringName) -> void:
 	_play(animation_name)
 
 
+func set_preview_speed_scale(speed_scale: float) -> void:
+	if _sprite != null:
+		_sprite.speed_scale = speed_scale
+
+
 func screen_bounds() -> Rect2:
 	if _sprite == null:
 		return Rect2(position, Vector2.ZERO)

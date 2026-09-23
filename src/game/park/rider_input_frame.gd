@@ -1,4 +1,4 @@
-## One physics tick of phase-neutral player intent (stick heading, tuck/brake/edge,
+## One physics tick of phase-neutral player intent (stick heading, tuck/brake,
 ## pop, grab/tweak, landing prep). Example: `RiderInputFrame.from_actions()`.
 class_name RiderInputFrame
 extends RefCounted
@@ -10,7 +10,6 @@ var brake_pressed := false
 var pop_pressed := false
 var pop_just_pressed := false
 var pop_just_released := false
-var edge_pressed := false
 var grab_pressed := false
 var grab_just_pressed := false
 var tweak_pressed := false
@@ -39,7 +38,6 @@ static func from_actions() -> RiderInputFrame:
 	frame.pop_pressed = Input.is_action_pressed(&"action_x")
 	frame.pop_just_pressed = Input.is_action_just_pressed(&"action_x")
 	frame.pop_just_released = Input.is_action_just_released(&"action_x")
-	frame.edge_pressed = Input.is_action_pressed(&"action_y")
 	frame.tweak_pressed = Input.is_action_pressed(&"action_x")
 	frame.tweak_just_pressed = Input.is_action_just_pressed(&"action_x")
 	frame.landing_prep_pressed = Input.is_action_pressed(&"action_b")

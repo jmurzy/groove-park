@@ -29,7 +29,10 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 
 ### Approach
 
-- Existing approach movement, speed building, braking, tucking, edging, and path selection remain intact.
+- Existing approach movement, speed building, braking, tucking, and path selection remain intact.
+- Stick Up and Down select the neighboring authored approach path.
+- Moving fully from Right to Up or Down releases downhill input and naturally loses speed.
+- Holding Right while pressing Up-Right or Down-Right changes paths without releasing downhill input. This is an intentional, undocumented advanced technique rather than a How to Play instruction.
 - A rider does not need to pass an arbitrary takeoff-speed threshold.
 - Ramp geometry and momentum determine whether the rider reaches the lip.
 - A rider without enough momentum naturally stalls before crossing the endpoint.
@@ -50,13 +53,11 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 - Approach controls stop applying immediately at takeoff.
 - Flight follows deterministic ballistic movement using captured takeoff velocity, gravity, and air drag.
 - The rider cannot steer the flight trajectory after takeoff.
-- The six action-cluster buttons are `A`, `B`, `X`, `Y`, `LB`, and `RB`.
-- For now, all six buttons toggle one generic grab identity.
-- Pressing any grab button while not grabbing starts the generic grab.
-- Pressing any grab button while grabbing releases the generic grab.
-- The activating button is not recorded as a distinct trick identity.
-- `LT` and `RT` remain unused.
-- Rotations are available only while the generic grab is active.
+- `A` holds the standard grab.
+- `B` holds the tweak-grab variation.
+- Releasing the held grab button ends its grab immediately.
+- `X`, `Y`, `LB`, `RB`, `LT`, and `RT` have no flight role in the initial control set.
+- Rotations are available only while either grab is held.
 
 ### Rotation Gesture
 
@@ -285,13 +286,13 @@ previous_horizontal_input
 
 Behavior:
 
-- Grab activation initializes `WAITING_LEFT`.
+- Holding either grab button initializes `WAITING_LEFT`.
 - A fresh Left edge in `WAITING_LEFT` adds PI to `rotation_target`.
 - Orientation advances toward the target at `rotation_rate`.
 - Reaching the target enters `WAITING_RIGHT`.
 - A fresh Right edge in `WAITING_RIGHT` adds another PI.
 - Reaching that target increments `completed_rotations` and returns to `WAITING_LEFT`.
-- Grab release stops accepting rotation gestures.
+- Releasing both grab buttons stops accepting rotation gestures.
 - Releasing during either rotating state records an incomplete rotation.
 
 Initial speed mapping:
@@ -307,26 +308,30 @@ rotation_rate = lerp(min_rotation_rate, max_rotation_rate, speed_factor)
 
 All four bounds are exported in `RiderTuning` and adjusted through playtesting.
 
-## Generic Grab State
+## Grab State
 
-The initial implementation intentionally has no grab identity enum.
+The initial implementation supports two held grab presentations: the standard A grab and
+the B tweak grab.
 
 Required fields:
 
 ```text
 grab_active
+tweak_active
 grab_started_airtime
 grab_released_airtime
 grab_released_after_deadline
 ```
 
-Input sampling should expose one phase-neutral event:
+Input sampling should expose phase-neutral held intents:
 
 ```text
-grab_toggle_just_pressed
+grab_pressed
+tweak_pressed
 ```
 
-That event is true when any of `A/B/X/Y/LB/RB` is freshly pressed. Multiple simultaneous presses still produce one toggle event. Future work may replace it with a button-specific grab request without changing flight phase transitions.
+`grab_pressed` is true while A is held. `tweak_pressed` is true while B is held. Holding
+either control enables the Left-then-Right rotation gesture.
 
 ## Presentation Contract
 
@@ -335,7 +340,7 @@ That event is true when any of `A/B/X/Y/LB/RB` is freshly pressed. Multiple simu
 - Grounded approach uses existing glide, tuck, compression, and carve animations.
 - Early flight uses takeoff extension.
 - Flight without a grab uses neutral air.
-- Generic grab uses grab reach and grab hold.
+- A grab uses grab reach and grab hold; B uses the tweak-grab presentation.
 - Rotation is presented by rotating the rider view from authoritative orientation.
 - Clean contact uses deep landing followed by celebration.
 - Sketchy contact uses deep landing followed by recovery.
@@ -408,11 +413,11 @@ required_rotations
 rotation_incomplete
 ```
 
-Remove or leave unused old free-torque, tweak, compact, and landing-prep concepts until they have an approved gameplay role.
+Remove or leave unused old free-torque, compact, and landing-prep concepts until they have an approved gameplay role.
 
 ### `RiderInputFrame`
 
-Keep approach intent and add a single generic grab toggle event generated from the six action-cluster buttons. Flight reads horizontal joystick edges but ignores approach movement actions.
+Keep approach intent and add held A-grab and B-tweak-grab intents. Flight reads horizontal joystick edges but ignores approach movement actions.
 
 ### `RiderTuning`
 
@@ -485,7 +490,7 @@ Implementation:
 - Extended the visual editor to load and save landing paths.
 - Generalized the editor path component to `ParkCoursePath`.
 - Added landing-only swept collision queries.
-- Extended debug drawing with landing labels, lips, and ground join.
+- Extended debug drawing with landing labels and lips.
 - Added headless course-contract tests.
 
 Acceptance:
@@ -617,27 +622,27 @@ Manual acceptance:
 
 - No-pop, early-release, ideal-release, and held-through-lip arcs are visibly different.
 
-### Milestone 7: Generic Grab Toggle
+### Milestone 7: Held Grabs
 
 Implementation:
 
-- Sample fresh presses from `A/B/X/Y/LB/RB` into one toggle event.
-- Start or release one generic grab.
-- Ignore `LT` and `RT`.
-- Drive grab reach and hold presentation.
+- Sample A and B as held grab intents.
+- Hold A for the standard grab; hold B for the tweak-grab variation.
+- Release either button to end its corresponding grab.
+- Drive grab reach, hold, and tweak-grab presentation.
 - Reset grab state at takeoff and run restart.
 
 Automated acceptance:
 
-- Each of the six buttons starts the same generic grab.
-- Any of the six buttons releases the active generic grab.
-- Simultaneous presses produce one toggle.
-- Held approach actions do not trigger a grab after takeoff.
+- Holding A starts the standard grab.
+- Holding B starts the tweak grab.
+- Releasing a held grab button ends its grab.
+- Held approach buttons do not trigger a grab after takeoff.
 - Grounded button behavior remains unchanged.
 
 Manual acceptance:
 
-- Every action-cluster button produces identical grab behavior and animation.
+- A and B produce distinct, readable grab presentations.
 
 ### Milestone 8: Left-Right Rotation Gesture
 
@@ -768,7 +773,7 @@ just lint-check
 just format-check
 ```
 
-Course tests cover authoring invariants and collision geometry. Rider simulation tests cover deterministic state transitions, fixed-step kinematics, grab toggles, rotation gestures, deadlines, landing outcomes, and completion.
+Course tests cover authoring invariants and collision geometry. Rider simulation tests cover deterministic state transitions, fixed-step kinematics, held grabs, rotation gestures, deadlines, landing outcomes, and completion.
 
 Manual testing should use `--show-terrain` while geometry or collision is changing. Each milestone should be tested on upper, center, and lower routes even when the change primarily targets flight.
 
@@ -777,24 +782,25 @@ Manual testing should use `--show-terrain` while geometry or collision is changi
 The following work is intentionally excluded from this implementation sequence:
 
 - Score calculation and multipliers.
-- Button-specific grab identities.
-- Distinct grab animations.
+- Additional button-specific grab identities.
+- Additional distinct grab animations.
 - Grab-specific timing or difficulty.
 - Trick naming and result summaries.
 - Multiple rotation directions.
 - Free angular torque.
-- Tweak, compact, extend, or landing-prep controls.
+- Compact, extend, or landing-prep controls.
 - Multiplayer input-device separation.
 - Final results-screen navigation.
 
-Future distinct grabs can replace the generic toggle with a button-specific grab request. The flight state machine, deadline, landing rules, and rotation gesture do not need to change when that happens.
+Future grabs can add button-specific identities without changing the flight state machine,
+deadline, landing rules, or rotation gesture.
 
 ## Definition of Complete
 
 The gameplay loop is complete when:
 
 - All three approach routes are selectable and finish correctly.
-- Upper and center routes launch, fly, accept generic grabs and rotations, resolve landing, and complete.
+- Upper and center routes launch, fly, accept standard and tweak grabs with rotations, resolve landing, and complete.
 - Lower route joins automatic grounded runout and completes.
 - Takeoff speed controls both rotation rate and required rotation count.
 - The release deadline is visible and authoritative.

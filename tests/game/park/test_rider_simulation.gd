@@ -75,13 +75,13 @@ func _test_shipped_course_has_an_approach_line() -> void:
 
 
 func _test_downhill_input_starts_a_run() -> void:
-	var state := _run(Vector2.RIGHT, false, false, 60)
+	var state := _run(Vector2.RIGHT, false, 60)
 	_expect(state.course_progress > 20.0, "Downhill input should move through the approach.")
 	_expect(state.ground_velocity.x > 0.0, "Downhill input should build forward speed.")
 
 
 func _test_releasing_right_carves_to_a_stop() -> void:
-	var state := _run(Vector2.RIGHT, false, false, 60)
+	var state := _run(Vector2.RIGHT, false, 60)
 	var speed_before_release := state.ground_velocity.length()
 	for _tick in 600:
 		_step(state, Vector2.ZERO)
@@ -92,8 +92,8 @@ func _test_releasing_right_carves_to_a_stop() -> void:
 
 
 func _test_left_brakes_without_turning_uphill() -> void:
-	var centered := _run(Vector2.RIGHT, false, false, 60)
-	var left := _run(Vector2.RIGHT, false, false, 60)
+	var centered := _run(Vector2.RIGHT, false, 60)
+	var left := _run(Vector2.RIGHT, false, 60)
 	var starting_speed := centered.ground_velocity.length()
 	_step(centered, Vector2.ZERO)
 	_step(left, Vector2.LEFT)
@@ -107,8 +107,8 @@ func _test_left_brakes_without_turning_uphill() -> void:
 
 
 func _test_tuck_builds_more_speed() -> void:
-	var neutral := _run(Vector2.RIGHT, false, false, 120)
-	var tucked := _run(Vector2.RIGHT, true, false, 120)
+	var neutral := _run(Vector2.RIGHT, false, 120)
+	var tucked := _run(Vector2.RIGHT, true, 120)
 	_expect(
 		tucked.ground_velocity.length() > neutral.ground_velocity.length(),
 		"Tucking should reduce drag."
@@ -116,9 +116,9 @@ func _test_tuck_builds_more_speed() -> void:
 
 
 func _test_vertical_heading_does_not_free_carve() -> void:
-	var state := _run(Vector2.RIGHT, false, false, 30)
+	var state := _run(Vector2.RIGHT, false, 30)
 	for _tick in 60:
-		_step(state, Vector2.DOWN, false, true)
+		_step(state, Vector2.DOWN)
 	_expect(
 		is_zero_approx(state.lane_position), "W/S should select authored paths, not free-carve."
 	)
@@ -161,8 +161,8 @@ func _test_vertical_input_switches_approach_paths_smoothly() -> void:
 
 
 func _test_braking_reduces_speed() -> void:
-	var coasting := _run(Vector2.RIGHT, false, false, 120)
-	var braking := _run(Vector2.RIGHT, false, false, 120, true)
+	var coasting := _run(Vector2.RIGHT, false, 120)
+	var braking := _run(Vector2.RIGHT, false, 120, true)
 	_expect(
 		braking.ground_velocity.length() < coasting.ground_velocity.length(),
 		"Braking should reduce approach speed."
@@ -204,7 +204,7 @@ func _test_flight_route_transitions_at_lip() -> void:
 	)
 	var previous_position := Vector2(state.course_progress, state.vertical_position)
 	var captured_velocity := state.takeoff_velocity
-	_step(state, Vector2.LEFT, false, true, true)
+	_step(state, Vector2.LEFT, false, true)
 	_expect(
 		state.course_progress > previous_position.x,
 		"Flight should advance from captured takeoff momentum."
@@ -421,7 +421,6 @@ func _test_air_input_does_not_steer() -> void:
 	input.heading = Vector2(-1.0, 1.0).normalized()
 	input.tuck_pressed = true
 	input.brake_pressed = true
-	input.edge_pressed = true
 	input.pop_pressed = true
 	for _tick in 30:
 		_simulation.step(neutral, RiderInputFrameScene.new(), _course, _tuning, DELTA)
@@ -511,7 +510,6 @@ func _test_runout_ignores_input_and_completes() -> void:
 	input.heading = Vector2.LEFT
 	input.tuck_pressed = true
 	input.brake_pressed = true
-	input.edge_pressed = true
 	input.pop_pressed = true
 	_simulation.step(neutral, RiderInputFrameScene.new(), _course, _tuning, 0.5)
 	_simulation.step(controlled, input, _course, _tuning, 0.5)
@@ -755,31 +753,23 @@ func _test_route_tangent_follows_selected_path() -> void:
 	)
 
 
-func _run(heading: Vector2, tuck: bool, edge: bool, ticks: int, brake: bool = false) -> RiderState:
+func _run(heading: Vector2, tuck: bool, ticks: int, brake: bool = false) -> RiderState:
 	var state := _new_state()
 	for _tick in ticks:
-		_step(state, heading, tuck, edge, brake)
+		_step(state, heading, tuck, brake)
 	return state
 
 
-func _step(
-	state: RiderState, heading: Vector2, tuck := false, edge := false, brake := false
-) -> void:
-	_step_on(state, _course, heading, tuck, edge, brake)
+func _step(state: RiderState, heading: Vector2, tuck := false, brake := false) -> void:
+	_step_on(state, _course, heading, tuck, brake)
 
 
 func _step_on(
-	state: RiderState,
-	course: ParkCourse,
-	heading: Vector2,
-	tuck := false,
-	edge := false,
-	brake := false
+	state: RiderState, course: ParkCourse, heading: Vector2, tuck := false, brake := false
 ) -> void:
 	var input := RiderInputFrameScene.new()
 	input.heading = heading
 	input.tuck_pressed = tuck
-	input.edge_pressed = edge
 	input.brake_pressed = brake
 	_simulation.step(state, input, course, _tuning, DELTA)
 

@@ -1,17 +1,30 @@
 ## HOW TO PLAY overlay: cabinet diagram, approach/air control cards, live demo,
-## and footer hints. Emits `closed` on back; ticked to animate demo and controls.
+## and footer hints. SELECT toggles the active card; B emits `closed`.
+## Ticked to animate demo and controls.
 class_name HowToPlayScreen
 extends Control
 
 signal closed
 
+enum InfoCard { APPROACH, AIR }
+
 const PANEL_POSITION := Vector2(52, 34)
 const PANEL_SIZE := Vector2(1816, 1012)
 const CABINET_FRAME_POSITION := Vector2(565, 124)
 const CABINET_FRAME_SIZE := Vector2(686, 510)
+const CARD_FILL := Color("061325f2")
+const APPROACH_BORDER := Color("238bd4")
+const AIR_BORDER := Color("b000d4")
+const SELECTED_BORDER := Color("fff16a")
+const INACTIVE_BORDER := Color("238bd4")
+const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 
 var _controls_view: CabinetControlsView
 var _demo: RiderDemoPanel
+var _approach_card: Panel
+var _air_card: Panel
+var _selected_card: int = InfoCard.APPROACH
+var _switch_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -19,15 +32,19 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_switch_sound = AudioStreamPlayer.new()
+	_switch_sound.stream = SWITCH_SOUND
+	add_child(_switch_sound)
 	_build_shade()
 	_build_panel()
+	_update_card_selection()
 
 
 func _process(_delta: float) -> void:
 	if is_instance_valid(_controls_view):
 		_controls_view.tick()
 	if is_instance_valid(_demo):
-		_demo.tick()
+		_demo.tick(_delta)
 
 
 func _build_shade() -> void:
@@ -57,29 +74,24 @@ func _build_panel() -> void:
 	cabinet_frame.add_child(cabinet_label)
 	_controls_view = CabinetControlsView.new()
 	cabinet_frame.add_child(_controls_view)
-	_add_control_card(
+	_approach_card = _add_control_card(
 		panel,
 		"ON THE APPROACH",
 		(
-			"STICK       PICK YOUR LINE\nRIGHT       POINT DOWNHILL\nUP / DOWN   CARVE ACROSS SLOPE\n"
-			+ "A           TUCK FOR SPEED\nB           CHECK SPEED\nBLUE X      HOLD, RELEASE AT LIP\n"
-			+ "Y           STRONGER CARVE"
+			"UP / DOWN        PICK YOUR LINE\nRIGHT            BUILD SPEED\nLEFT / B         CHECK SPEED\n"
+			+ "A                TUCK FOR SPEED\nX                COMPRESS"
 		),
 		Vector2(80, 532),
 		Vector2(624, 270),
-		Color("238bd4")
+		APPROACH_BORDER
 	)
-	_add_control_card(
+	_air_card = _add_control_card(
 		panel,
 		"IN THE AIR",
-		(
-			"LEFT / RIGHT   ROTATE\nDOWN / UP      COMPACT / EXTEND\nA              SIGNATURE GRAB\n"
-			+ "B              SPOT THE LANDING\nBLUE X         TWEAK ACTIVE GRAB\n"
-			+ "Y / LB / RB    RESERVED\nLT / RT        RESERVED"
-		),
+		"LEFT, THEN RIGHT  ROTATE 360\nA                 GRAB\n" + "B                 TWEAK GRAB",
 		Vector2(1112, 532),
 		Vector2(624, 270),
-		Color("b000d4")
+		AIR_BORDER
 	)
 	_demo = RiderDemoPanel.new()
 	panel.add_child(_demo)
@@ -107,13 +119,11 @@ func _add_control_card(
 	position: Vector2,
 	card_size: Vector2,
 	border: Color
-) -> void:
+) -> Panel:
 	var card := Panel.new()
 	card.position = position
 	card.size = card_size
-	card.add_theme_stylebox_override(
-		"panel", ArcadeTheme.button_style(Color("061325f2"), border, 5, 6)
-	)
+	card.add_theme_stylebox_override("panel", ArcadeTheme.button_style(CARD_FILL, border, 5, 6))
 	panel.add_child(card)
 	var card_heading := ArcadeTheme.make_label(heading, 24, Color("fff16a"))
 	card_heading.position = Vector2(24, 18)
@@ -130,6 +140,40 @@ func _add_control_card(
 	controls.add_theme_constant_override("outline_size", 4)
 	controls.add_theme_constant_override("line_spacing", 7)
 	card.add_child(controls)
+	return card
+
+
+func _select_card(card_index: int) -> void:
+	var clamped_index := clampi(card_index, InfoCard.APPROACH, InfoCard.AIR)
+	if clamped_index == _selected_card and is_instance_valid(_approach_card):
+		return
+	_selected_card = clamped_index
+	_update_card_selection()
+	if is_instance_valid(_switch_sound):
+		_switch_sound.play()
+
+
+func _update_card_selection() -> void:
+	if not is_instance_valid(_approach_card) or not is_instance_valid(_air_card):
+		return
+	_apply_card_border(_approach_card, APPROACH_BORDER, _selected_card == InfoCard.APPROACH)
+	_apply_card_border(_air_card, AIR_BORDER, _selected_card == InfoCard.AIR)
+	if is_instance_valid(_demo):
+		var air_selected := _selected_card == InfoCard.AIR
+		_demo.set_airborne_lift(air_selected)
+		if air_selected:
+			_demo.set_speed_mph(0.0)
+
+
+func _apply_card_border(card: Panel, _base_border: Color, selected: bool) -> void:
+	if selected:
+		card.add_theme_stylebox_override(
+			"panel", ArcadeTheme.button_style(CARD_FILL, SELECTED_BORDER, 8, 12)
+		)
+	else:
+		card.add_theme_stylebox_override(
+			"panel", ArcadeTheme.button_style(CARD_FILL, INACTIVE_BORDER, 5, 6)
+		)
 
 
 func _add_footer(panel: Panel) -> void:
@@ -144,18 +188,29 @@ func _add_footer(panel: Panel) -> void:
 	cabinet_hint.size = Vector2(footer.size.x, 26)
 	footer.add_child(cabinet_hint)
 	var system := ArcadeTheme.make_label(
-		"START  PAUSE / RESUME     SELECT OR B  BACK     EXIT  HOLD TO QUIT", 17, Color("d4efff")
+		"SELECT  SWITCH CARD     B  BACK     EXIT  HOLD TO QUIT", 17, Color("d4efff")
 	)
 	system.position = Vector2(0, 53)
 	system.size = Vector2(footer.size.x, 26)
 	footer.add_child(system)
-	var dismiss := ArcadeTheme.make_label("PRESS SELECT OR B TO RETURN", 18, Color("fff7cf"))
+	var dismiss := ArcadeTheme.make_label(
+		"PRESS SELECT TO SWITCH   PRESS B TO RETURN", 18, Color("fff7cf")
+	)
 	dismiss.position = Vector2(0, 93)
 	dismiss.size = Vector2(footer.size.x, 28)
 	footer.add_child(dismiss)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"controller_back") or event.is_action_pressed(&"ui_cancel"):
+	if event.is_action_pressed(&"controller_back"):
+		_select_card(InfoCard.AIR if _selected_card == InfoCard.APPROACH else InfoCard.APPROACH)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_left"):
+		_select_card(InfoCard.APPROACH)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_right"):
+		_select_card(InfoCard.AIR)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_cancel"):
 		closed.emit()
 		get_viewport().set_input_as_handled()

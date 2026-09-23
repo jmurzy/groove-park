@@ -70,8 +70,6 @@ func _update_action_hint(delta: float, input: RiderInputFrame) -> void:
 	var action_message := "RIGHT / D: BUILD SPEED"
 	if input.brake_pressed:
 		action_message = "B  CHECKING SPEED"
-	elif input.edge_pressed:
-		action_message = "Y  STRONG EDGE"
 	elif input.tuck_pressed:
 		action_message = "A  TUCKING - LESS STEERING"
 	_action_label.text = action_message

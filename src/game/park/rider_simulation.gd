@@ -42,9 +42,7 @@ func _step_approach(
 	var left_braking := input.heading.x < 0.0
 	state.tuck_active = input.tuck_pressed
 	state.brake_active = input.brake_pressed or left_braking
-	state.edge_active = (
-		input.edge_pressed or (not downhill_held and not state.ground_velocity.is_zero_approx())
-	)
+	state.edge_active = not downhill_held and not state.ground_velocity.is_zero_approx()
 	_update_approach_path(state, input, course, tuning, delta)
 
 	if not steering_heading.is_zero_approx():
@@ -79,8 +77,6 @@ func _turn_toward_input(
 	var turn_rate := tuning.maximum_turn_rate
 	if input.tuck_pressed:
 		turn_rate *= tuning.tuck_steering_multiplier
-	if input.edge_pressed:
-		turn_rate *= tuning.strong_edge_turn_multiplier
 	if input.brake_pressed:
 		turn_rate *= tuning.brake_turn_multiplier
 	state.heading = state.heading.rotated(
@@ -123,8 +119,6 @@ func _apply_approach_forces(
 	drag += tuning.edge_drag * absf(state.heading.y)
 	if input.tuck_pressed:
 		drag *= tuning.tuck_drag_multiplier
-	if input.edge_pressed:
-		drag += tuning.strong_edge_drag
 	if input.brake_pressed or left_braking:
 		drag += tuning.brake_drag
 	if not downhill_held:

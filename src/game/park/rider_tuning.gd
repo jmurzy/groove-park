@@ -11,13 +11,11 @@ extends Resource
 @export var aerodynamic_drag := 0.00115
 @export var tuck_drag_multiplier := 0.38
 @export var edge_drag := 105.0
-@export var strong_edge_drag := 150.0
 @export var brake_drag := 820.0
 @export var release_carve_drag := 570.0
 @export var steering_response := 480.0
 @export var maximum_turn_rate := 3.8
 @export var tuck_steering_multiplier := 0.42
-@export var strong_edge_turn_multiplier := 1.55
 @export var brake_turn_multiplier := 1.85
 @export var turn_speed_penalty := 460.0
 @export var lane_boundary_margin := 90.0
