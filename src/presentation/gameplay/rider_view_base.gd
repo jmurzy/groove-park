@@ -68,9 +68,7 @@ func _landing_animation_for_state(state: RiderState) -> StringName:
 func _animation_for_state(state: RiderState) -> StringName:
 	var animation: StringName = &"neutral_glide"
 	if state.run_phase == RiderState.RunPhase.FLIGHT:
-		if state.airtime < 0.12:
-			animation = &"takeoff_extension"
-		elif state.landing_prep_active:
+		if state.landing_prep_active:
 			animation = &"landing_prep"
 		elif state.grab_reach_active:
 			animation = &"grab_reach"
@@ -78,6 +76,8 @@ func _animation_for_state(state: RiderState) -> StringName:
 			animation = &"grab_tweak"
 		elif state.trick_tracker.grab_active:
 			animation = &"grab_hold"
+		elif state.vertical_speed < 0.0:
+			animation = &"takeoff_extension"
 		else:
 			animation = &"neutral_air"
 	elif state.run_phase == RiderState.RunPhase.LANDING:
