@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 3 are complete. Flight and landing now have momentum-preserving entry transitions; airborne and runout integration remain intentionally paused until the next milestones.
+Milestones 1 through 4 are complete. Flight now follows deterministic ballistics with airborne presentation and terminal bounds; landing contact and runout integration remain intentionally deferred to Milestone 5.
 
 ## Goal
 
@@ -421,6 +421,7 @@ maximum_compression
 maximum_pop_impulse
 gravity
 air_drag
+flight_bounds_margin
 safe_no_rotation_speed
 speed_per_required_rotation
 min_rotation_speed
@@ -537,15 +538,16 @@ Manual acceptance:
 - Upper and center riders visibly leave their lips.
 - Lower rider stays grounded and enters automatic runout.
 
-### Milestone 4: Basic Ballistics
+### Milestone 4: Basic Ballistics - Complete
 
 Implementation:
 
-- Integrate flight velocity, gravity, and drag.
-- Update rider projection and airborne orientation.
-- Add flight-safe camera tracking.
-- Add out-of-bounds guards.
-- Do not add grabs or rotations yet.
+- Integrated flight velocity, scaled time, gravity, and non-reversing drag.
+- Integrated the unused fraction of the lip-crossing tick as flight time.
+- Updated rider projection, speed display, airborne orientation, and landing-path shadows.
+- Added flight-aware camera zoom and vertical tracking while keeping landing terrain visible.
+- Added horizontal and vertical out-of-bounds guards that resolve a terminal missed-flight crash.
+- Kept flight input inert; grabs and rotations remain deferred.
 
 Automated acceptance:
 

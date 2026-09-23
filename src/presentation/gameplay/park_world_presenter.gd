@@ -13,6 +13,8 @@ const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const ParkDebugOverlayScene := preload("res://src/presentation/gameplay/park_debug_overlay.gd")
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
+const FLIGHT_CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 640.0, DESIGN_SIZE.y / 640.0)
+const CAMERA_ZOOM_RESPONSE := 3.5
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
 
 var course: ParkCourse
@@ -39,11 +41,12 @@ func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: 
 	_update_rider_views(run_manager)
 	_update_rider_marker(run_manager, hud_occlusion)
 	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
-	_update_camera(run_manager)
+	_update_camera(run_manager, delta)
 
 
 func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -> void:
 	_snowboarder.reset_presentation()
+	_camera.zoom = CAMERA_ZOOM
 	update_from_run(run_manager, 0.0, hud_occlusion)
 
 
@@ -111,15 +114,18 @@ func _update_rider_views(run_manager: RiderRunManager) -> void:
 
 
 func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
-	view.update_from_state(
-		state,
-		_projection.project_rider(state),
+	var ground_rotation := (
 		course.route_tangent_at(state.course_progress, state.approach_path_position).angle()
 	)
+	if state.active_route_index >= 0 and state.run_phase != RiderState.RunPhase.APPROACH:
+		ground_rotation = (
+			course.landing_tangent_at(state.course_progress, state.active_route_index).angle()
+		)
+	view.update_from_state(state, _projection.project_rider(state), ground_rotation)
 
 
 func _update_rider_marker(run_manager: RiderRunManager, hud_occlusion: Callable) -> void:
-	var speed_mph := GameplayHud.speed_to_mph(run_manager.rider_state.ground_velocity.length())
+	var speed_mph := GameplayHud.speed_to_mph(run_manager.rider_state.movement_velocity().length())
 	if speed_mph == 0:
 		_rider_marker.hide()
 		return
@@ -139,11 +145,19 @@ func _update_rider_marker(run_manager: RiderRunManager, hud_occlusion: Callable)
 	_rider_marker.visible = not hud_occlusion.call(marker_rect)
 
 
-func _update_camera(run_manager: RiderRunManager) -> void:
-	var half_view_width := DESIGN_SIZE.x / CAMERA_ZOOM.x * 0.5
+func _update_camera(run_manager: RiderRunManager, delta: float) -> void:
+	var state := run_manager.rider_state
+	var is_flying := state.run_phase == RiderState.RunPhase.FLIGHT
+	var target_zoom := FLIGHT_CAMERA_ZOOM if is_flying else CAMERA_ZOOM
+	_camera.zoom = _camera.zoom.lerp(target_zoom, clampf(CAMERA_ZOOM_RESPONSE * delta, 0.0, 1.0))
+	var half_view_size := DESIGN_SIZE / _camera.zoom * 0.5
 	var target_x := clampf(
-		run_manager.rider_state.course_progress,
-		half_view_width,
-		GAMEPLAY_BG.get_width() - half_view_width
+		state.course_progress, half_view_size.x, GAMEPLAY_BG.get_width() - half_view_size.x
 	)
-	_camera.position = Vector2(target_x, GAMEPLAY_BG.get_height() * 0.5)
+	var target_y := GAMEPLAY_BG.get_height() * 0.5
+	if is_flying:
+		var rider_y := _projection.project_rider(state).y
+		var landing_y := _projection.project_rider_ground(state).y
+		target_y = (rider_y + landing_y) * 0.5
+	target_y = clampf(target_y, half_view_size.y, GAMEPLAY_BG.get_height() - half_view_size.y)
+	_camera.position = Vector2(target_x, target_y)

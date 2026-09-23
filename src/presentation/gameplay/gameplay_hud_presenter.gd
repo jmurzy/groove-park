@@ -38,7 +38,7 @@ func update(
 	_ready_label.text = (
 		"PRESS START OR R TO RESTART" if run_manager.is_crashed() else _ready_text(player_count)
 	)
-	_hud.set_speed(run_manager.rider_state.ground_velocity.length())
+	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
 	_update_action_hint(delta, input)
 
 

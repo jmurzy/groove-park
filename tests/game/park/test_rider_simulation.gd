@@ -31,6 +31,11 @@ func _init() -> void:
 	_test_braking_reduces_speed()
 	_test_flight_route_transitions_at_lip()
 	_test_lip_crossing_is_fixed_step_safe()
+	_test_ballistic_flight_matches_known_step()
+	_test_air_drag_cannot_reverse_velocity()
+	_test_air_input_does_not_steer()
+	_test_flight_projection_uses_landing_path()
+	_test_missed_flight_is_terminal()
 	_test_ground_route_transitions_to_landing()
 	_test_path_change_is_rejected_too_close_to_lip()
 	_test_route_tangent_follows_selected_path()
@@ -160,10 +165,7 @@ func _test_flight_route_transitions_at_lip() -> void:
 	state.ground_velocity = Vector2(600.0, 0.0)
 	state.has_ground_intent = true
 	_step(state, Vector2.RIGHT)
-	_expect(
-		is_equal_approx(state.course_progress, 3000.0),
-		"The rider should reach the exact authored lip."
-	)
+	_expect(state.course_progress >= 3000.0, "The rider should cross the exact authored lip.")
 	_expect(
 		state.run_phase == RiderState.RunPhase.FLIGHT,
 		"Crossing a flight-route lip should enter flight."
@@ -173,10 +175,10 @@ func _test_flight_route_transitions_at_lip() -> void:
 		state.takeoff_position.is_equal_approx(Vector2(3000.0, 1500.0)),
 		"Takeoff should capture the authored lip position."
 	)
-	_expect(state.ground_velocity.x > 0.0, "Takeoff must preserve approach momentum.")
+	_expect(state.takeoff_velocity.x > 0.0, "Takeoff must preserve approach momentum.")
 	_expect(
-		is_equal_approx(state.takeoff_velocity.x, state.ground_velocity.x),
-		"Takeoff conversion must preserve horizontal velocity."
+		is_equal_approx(state.takeoff_velocity.x, state.takeoff_course_speed),
+		"Takeoff should preserve its captured horizontal velocity."
 	)
 	_expect(
 		state.takeoff_velocity.y > 0.0,
@@ -190,16 +192,16 @@ func _test_flight_route_transitions_at_lip() -> void:
 		is_equal_approx(state.release_deadline_y, state.takeoff_position.y),
 		"Takeoff should capture lip height for the future release deadline."
 	)
-	var frozen_position := Vector2(state.course_progress, state.vertical_position)
-	var frozen_velocity := state.takeoff_velocity
+	var previous_position := Vector2(state.course_progress, state.vertical_position)
+	var captured_velocity := state.takeoff_velocity
 	_step(state, Vector2.LEFT, false, true, true)
 	_expect(
-		Vector2(state.course_progress, state.vertical_position).is_equal_approx(frozen_position),
-		"Flight should not fall back into approach integration."
+		state.course_progress > previous_position.x,
+		"Flight should advance from captured takeoff momentum."
 	)
 	_expect(
-		state.takeoff_velocity.is_equal_approx(frozen_velocity),
-		"The transition-only flight state should retain captured velocity."
+		state.takeoff_velocity.is_equal_approx(captured_velocity),
+		"Flight integration must not overwrite captured takeoff velocity."
 	)
 
 
@@ -250,11 +252,103 @@ func _test_lip_crossing_is_fixed_step_safe() -> void:
 	)
 	_expect(
 		(
-			is_equal_approx(fast_step_state.course_progress, 3000.0)
-			and is_equal_approx(slow_step_state.course_progress, 3000.0)
+			is_equal_approx(fast_step_state.takeoff_position.x, 3000.0)
+			and is_equal_approx(slow_step_state.takeoff_position.x, 3000.0)
 		),
-		"Lip crossing should clamp to the authored endpoint at every fixed-step size."
+		"Lip crossing should capture the authored endpoint at every fixed-step size."
 	)
+
+
+func _test_ballistic_flight_matches_known_step() -> void:
+	var state := _flight_state()
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 100.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
+	_expect(
+		is_equal_approx(state.course_progress, 3010.0),
+		"Ballistic flight should integrate horizontal velocity."
+	)
+	_expect(
+		(
+			is_equal_approx(state.vertical_speed, -40.0)
+			and is_equal_approx(state.vertical_position, 96.0)
+		),
+		"Ballistic flight should apply gravity before integrating vertical position."
+	)
+	_expect(is_equal_approx(state.airtime, 0.1), "Flight should advance scaled airtime.")
+
+
+func _test_air_drag_cannot_reverse_velocity() -> void:
+	var state := _flight_state()
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 100.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 1.0)
+	_expect(
+		is_zero_approx(state.course_speed) and is_zero_approx(state.vertical_speed),
+		"Air drag may stop flight velocity but must never reverse it."
+	)
+
+
+func _test_air_input_does_not_steer() -> void:
+	var neutral := _flight_state()
+	var controlled := _flight_state()
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2(-1.0, 1.0).normalized()
+	input.tuck_pressed = true
+	input.brake_pressed = true
+	input.edge_pressed = true
+	input.pop_pressed = true
+	for _tick in 30:
+		_simulation.step(neutral, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+		_simulation.step(controlled, input, _course, _tuning, DELTA)
+	_expect(
+		Vector2(neutral.course_progress, neutral.vertical_position).is_equal_approx(
+			Vector2(controlled.course_progress, controlled.vertical_position)
+		),
+		"Air input must not steer the ballistic trajectory."
+	)
+	_expect(
+		is_equal_approx(neutral.orientation, controlled.orientation),
+		"Air input must not rotate the rider before trick controls are implemented."
+	)
+
+
+func _test_flight_projection_uses_landing_path() -> void:
+	var state := _flight_state()
+	state.course_progress = 3500.0
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	var projection := ParkProjectionScene.new(_course)
+	_expect(
+		projection.project_rider_ground(state).is_equal_approx(
+			_course.landing_surface_position_at(state.course_progress, state.active_route_index)
+		),
+		"An airborne rider's ground projection should follow the selected landing path."
+	)
+
+
+func _test_missed_flight_is_terminal() -> void:
+	var state := _flight_state()
+	var landing_end := _course.landing_end_at(state.active_route_index)
+	state.course_progress = landing_end.x - 5.0
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.course_speed = 100.0
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
+	_expect(
+		(
+			state.run_phase == RiderState.RunPhase.LANDING
+			and state.landing_outcome == RiderState.LandingOutcome.CRASH
+		),
+		"Flight past the landing path must become a terminal crash."
+	)
+	_expect(state.movement_velocity().is_zero_approx(), "A terminal missed flight must stop.")
 
 
 func _test_path_change_is_rejected_too_close_to_lip() -> void:
@@ -340,10 +434,27 @@ func _new_state() -> RiderState:
 	return state
 
 
+func _flight_state() -> RiderState:
+	var state := RiderStateScene.new()
+	state.run_phase = RiderState.RunPhase.FLIGHT
+	state.active_route_index = 1
+	state.course_progress = 3000.0
+	state.vertical_position = 100.0
+	state.ground_position = Vector2(state.course_progress, 0.0)
+	state.course_speed = 100.0
+	state.vertical_speed = -50.0
+	state.takeoff_velocity = Vector2(state.course_speed, state.vertical_speed)
+	state.orientation = 0.25
+	return state
+
+
 func _approach_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
 	var path := PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
 	course.approach_paths = [path, path, path]
+	var flight_landing := PackedVector2Array([Vector2(3100, 1700), Vector2(6000, 2000)])
+	var ground_runout := PackedVector2Array([Vector2(3000, 1500), Vector2(6000, 1800)])
+	course.landing_paths = [flight_landing, flight_landing, ground_runout]
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course
@@ -355,6 +466,9 @@ func _roller_course() -> ParkCourse:
 		[Vector2(0, 400), Vector2(400, 560), Vector2(600, 360), Vector2(1000, 520)]
 	)
 	course.approach_paths = [path, path, path]
+	var flight_landing := PackedVector2Array([Vector2(1100, 600), Vector2(3000, 900)])
+	var ground_runout := PackedVector2Array([Vector2(1000, 520), Vector2(3000, 900)])
+	course.landing_paths = [flight_landing, flight_landing, ground_runout]
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course

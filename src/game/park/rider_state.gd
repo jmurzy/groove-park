@@ -323,3 +323,9 @@ var score_breakdown: Dictionary:
 		return jump.score_breakdown
 	set(value):
 		jump.score_breakdown = value
+
+
+func movement_velocity() -> Vector2:
+	if run_phase == RunPhase.FLIGHT:
+		return Vector2(course_speed, vertical_speed)
+	return ground_velocity

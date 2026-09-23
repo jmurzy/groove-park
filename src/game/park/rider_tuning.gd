@@ -30,6 +30,7 @@ extends Resource
 @export var gravity := 980.0
 @export var air_drag := 0.05
 @export var air_time_scale := 0.72
+@export var flight_bounds_margin := 240.0
 @export var air_torque := 25.0
 @export var maximum_angular_velocity := 12.0
 @export var air_angular_damping := 1.2

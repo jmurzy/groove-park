@@ -13,7 +13,9 @@ func step(
 	match state.run_phase:
 		RiderState.RunPhase.APPROACH:
 			_step_approach(state, input, course, tuning, delta)
-		RiderState.RunPhase.FLIGHT, RiderState.RunPhase.LANDING, RiderState.RunPhase.COMPLETE:
+		RiderState.RunPhase.FLIGHT:
+			_step_flight(state, course, tuning, delta)
+		RiderState.RunPhase.LANDING, RiderState.RunPhase.COMPLETE:
 			return
 
 
@@ -53,10 +55,12 @@ func _step_approach(
 
 	_turn_toward_input(state, steering_heading, input, tuning, delta)
 	_apply_approach_forces(state, input, course, tuning, delta, downhill_held, left_braking)
-	var crossed_endpoint := _move_within_approach(state, course, delta)
+	var remaining_delta := _move_within_approach(state, course, delta)
 	_sync_ground_state(state, course)
-	if crossed_endpoint:
+	if remaining_delta >= 0.0:
 		_cross_approach_endpoint(state, course)
+		if state.run_phase == RiderState.RunPhase.FLIGHT and remaining_delta > 0.0:
+			_step_flight(state, course, tuning, remaining_delta)
 
 
 func _turn_toward_input(
@@ -126,22 +130,23 @@ func _apply_approach_forces(
 		_stop_at_approach_edge(state)
 
 
-func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) -> bool:
+func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) -> float:
 	var next_position := (
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
 	var approach_end := _approach_end(state, course)
 	if next_position.x >= approach_end and state.ground_velocity.x > 0.0:
+		var time_to_endpoint := (approach_end - state.course_progress) / state.ground_velocity.x
 		state.course_progress = approach_end
 		state.lane_position = 0.0
-		return true
+		return maxf(delta - time_to_endpoint, 0.0)
 	state.course_progress = clampf(
 		next_position.x, course.route_start_at(state.approach_path_position), approach_end
 	)
 	state.lane_position = 0.0
 	if not is_equal_approx(state.course_progress, next_position.x):
 		_stop_at_approach_edge(state)
-	return false
+	return -1.0
 
 
 func _cross_approach_endpoint(state: RiderState, course: ParkCourse) -> void:
@@ -191,6 +196,47 @@ func _begin_flight(state: RiderState, course: ParkCourse, route_index: int) -> v
 	state.airtime = 0.0
 	state.landing_resolved = false
 	state.trick_tracker.reset(state.orientation)
+
+
+func _step_flight(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
+	var flight_delta := delta * tuning.air_time_scale
+	state.vertical_speed += tuning.gravity * flight_delta
+	var drag_factor := maxf(0.0, 1.0 - tuning.air_drag * flight_delta)
+	state.course_speed *= drag_factor
+	state.lane_speed *= drag_factor
+	state.vertical_speed *= drag_factor
+	state.course_progress += state.course_speed * flight_delta
+	state.lane_position += state.lane_speed * flight_delta
+	state.vertical_position += state.vertical_speed * flight_delta
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
+	state.airtime += flight_delta
+	if _flight_is_out_of_bounds(state, course, tuning):
+		_end_missed_flight(state)
+
+
+func _flight_is_out_of_bounds(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> bool:
+	var landing_path := course.landing_paths[state.active_route_index]
+	if state.course_progress > landing_path[-1].x:
+		return true
+	var maximum_landing_y := landing_path[0].y
+	for point in landing_path:
+		maximum_landing_y = maxf(maximum_landing_y, point.y)
+	return state.vertical_position > maximum_landing_y + tuning.flight_bounds_margin
+
+
+func _end_missed_flight(state: RiderState) -> void:
+	state.run_phase = RiderState.RunPhase.LANDING
+	state.landing_outcome = RiderState.LandingOutcome.CRASH
+	state.current_surface_id = &"landing"
+	state.landing_resolved = true
+	state.landing_label = "CRASH"
+	state.landing_quality = 0.0
+	state.landing_position = Vector2(state.course_progress, state.vertical_position)
+	state.ground_velocity = Vector2.ZERO
+	state.course_speed = 0.0
+	state.lane_speed = 0.0
+	state.vertical_speed = 0.0
 
 
 func _stop_at_approach_edge(state: RiderState) -> void:

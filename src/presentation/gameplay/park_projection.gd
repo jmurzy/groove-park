@@ -17,4 +17,6 @@ func project_rider(state: RiderState) -> Vector2:
 
 
 func project_rider_ground(state: RiderState) -> Vector2:
+	if state.active_route_index >= 0 and state.run_phase != RiderState.RunPhase.APPROACH:
+		return course.landing_surface_position_at(state.ground_position.x, state.active_route_index)
 	return course.route_surface_position_at(state.ground_position.x, state.approach_path_position)

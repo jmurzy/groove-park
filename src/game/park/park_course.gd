@@ -103,6 +103,29 @@ func route_lip_normal(route_index: int) -> Vector2:
 	return Vector2(tangent.y, -tangent.x)
 
 
+func landing_surface_y_at(course_progress: float, route_index: int) -> float:
+	var path := landing_paths[clampi(route_index, 0, landing_paths.size() - 1)]
+	return _path_surface_y_at(path, course_progress)
+
+
+func landing_surface_position_at(course_progress: float, route_index: int) -> Vector2:
+	return Vector2(course_progress, landing_surface_y_at(course_progress, route_index))
+
+
+func landing_tangent_at(course_progress: float, route_index: int) -> Vector2:
+	var path := landing_paths[clampi(route_index, 0, landing_paths.size() - 1)]
+	if course_progress <= path[0].x:
+		return (path[1] - path[0]).normalized()
+	for point_index in range(path.size() - 1):
+		if course_progress <= path[point_index + 1].x:
+			return (path[point_index + 1] - path[point_index]).normalized()
+	return (path[-1] - path[-2]).normalized()
+
+
+func landing_end_at(route_index: int) -> Vector2:
+	return landing_paths[clampi(route_index, 0, landing_paths.size() - 1)][-1]
+
+
 func route_end_at(route_position: float) -> float:
 	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
 	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
