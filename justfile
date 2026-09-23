@@ -71,10 +71,10 @@ typecheck: import
     for f in $(git ls-files --cached --others --exclude-standard -- '*.gd'); do [ -f "$f" ] || continue; "{{ godot_bin }}" --headless --path . --check-only --script "res://$f" || exit $?; done
 
 [doc("Run headless park simulation checks.")]
-test:
+test: import
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_park_course.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_run_state.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_approach_simulation.gd
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_simulation.gd
 
 [doc("Check GitHub Actions workflows")]
 actionlint-check:

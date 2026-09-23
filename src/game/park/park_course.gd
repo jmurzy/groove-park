@@ -93,6 +93,16 @@ func route_normal_at(course_progress: float, route_position: float) -> Vector2:
 	return Vector2(tangent.y, -tangent.x)
 
 
+func route_lip_tangent(route_index: int) -> Vector2:
+	var path := approach_paths[clampi(route_index, 0, approach_paths.size() - 1)]
+	return (path[-1] - path[-2]).normalized()
+
+
+func route_lip_normal(route_index: int) -> Vector2:
+	var tangent := route_lip_tangent(route_index)
+	return Vector2(tangent.y, -tangent.x)
+
+
 func route_end_at(route_position: float) -> float:
 	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
 	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)

@@ -1,5 +1,5 @@
 ## Steps the park run for both riders (snowboarder primary + skier ghost).
-## Owns the two RiderStates, the shared ApproachSimulation, and run lifecycle:
+## Owns the two RiderStates, the shared RiderSimulation, and run lifecycle:
 ## setup / step / restart / spawn placement. Presentation (views, HUD, camera)
 ## stays in GameplayScreen. Example: `run.step(input, course, tuning, delta)`.
 class_name RiderRunManager
@@ -9,11 +9,11 @@ var rider_state: RiderState
 var skier_state: RiderState
 var has_started_moving := false
 
-var _simulation: ApproachSimulation
+var _simulation: RiderSimulation
 
 
 func setup(course: ParkCourse) -> void:
-	_simulation = ApproachSimulation.new()
+	_simulation = RiderSimulation.new()
 	rider_state = RiderState.new()
 	rider_state.approach_path_target = 1
 	rider_state.approach_path_position = 1.0

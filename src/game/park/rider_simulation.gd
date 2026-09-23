@@ -1,6 +1,6 @@
-## Advances the rider through the authored approach zone only.
-## Future jump zones own their rules; a RunSimulation dispatcher will select them.
-class_name ApproachSimulation
+## Advances one rider according to the authoritative run phase.
+## Flight and landing integration are added incrementally behind this dispatcher.
+class_name RiderSimulation
 extends RefCounted
 
 const APPROACH_PATH_SWITCH_SPEED := 2.5
@@ -8,6 +8,16 @@ const COAST_PREDICTION_STEP := 1.0 / 60.0
 
 
 func step(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	match state.run_phase:
+		RiderState.RunPhase.APPROACH:
+			_step_approach(state, input, course, tuning, delta)
+		RiderState.RunPhase.FLIGHT, RiderState.RunPhase.LANDING, RiderState.RunPhase.COMPLETE:
+			return
+
+
+func _step_approach(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
 	if (
@@ -43,8 +53,10 @@ func step(
 
 	_turn_toward_input(state, steering_heading, input, tuning, delta)
 	_apply_approach_forces(state, input, course, tuning, delta, downhill_held, left_braking)
-	_move_within_approach(state, course, delta)
+	var crossed_endpoint := _move_within_approach(state, course, delta)
 	_sync_ground_state(state, course)
+	if crossed_endpoint:
+		_cross_approach_endpoint(state, course)
 
 
 func _turn_toward_input(
@@ -114,22 +126,79 @@ func _apply_approach_forces(
 		_stop_at_approach_edge(state)
 
 
-func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) -> void:
+func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) -> bool:
 	var next_position := (
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
 	)
+	var approach_end := _approach_end(state, course)
+	if next_position.x >= approach_end and state.ground_velocity.x > 0.0:
+		state.course_progress = approach_end
+		state.lane_position = 0.0
+		return true
 	state.course_progress = clampf(
-		next_position.x,
-		course.route_start_at(state.approach_path_position),
-		_approach_end(state, course)
+		next_position.x, course.route_start_at(state.approach_path_position), approach_end
 	)
 	state.lane_position = 0.0
 	if not is_equal_approx(state.course_progress, next_position.x):
 		_stop_at_approach_edge(state)
+	return false
+
+
+func _cross_approach_endpoint(state: RiderState, course: ParkCourse) -> void:
+	var route_index := clampi(
+		roundi(state.approach_path_position), 0, course.approach_paths.size() - 1
+	)
+	state.active_route_index = route_index
+	state.approach_path_target = route_index
+	state.approach_path_position = float(route_index)
+	var lip: Vector2 = course.approach_paths[route_index][-1]
+	state.course_progress = lip.x
+	state.lane_position = 0.0
+	state.ground_position = Vector2(lip.x, 0.0)
+	state.vertical_position = lip.y
+	_clear_approach_controls(state)
+	if course.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
+		_begin_flight(state, course, route_index)
+	else:
+		state.run_phase = RiderState.RunPhase.LANDING
+		state.current_surface_id = &"landing"
+
+
+func _begin_flight(state: RiderState, course: ParkCourse, route_index: int) -> void:
+	var lip_progress := state.course_progress
+	var tangent := course.route_lip_tangent(route_index)
+	var normal := course.route_lip_normal(route_index)
+	var surface_speed := state.ground_velocity.x / maxf(tangent.x, 0.001)
+	var takeoff_velocity := tangent * surface_speed
+	state.run_phase = RiderState.RunPhase.FLIGHT
+	state.current_surface_id = &"flight"
+	state.takeoff_position = Vector2(lip_progress, state.vertical_position)
+	state.takeoff_velocity = takeoff_velocity
+	state.takeoff_course_speed = takeoff_velocity.x
+	state.takeoff_lane_speed = state.ground_velocity.y
+	state.takeoff_vertical_speed = takeoff_velocity.y
+	state.takeoff_pop_impulse = 0.0
+	state.takeoff_tangent = tangent
+	state.takeoff_normal = normal
+	state.release_deadline_y = state.vertical_position
+	state.approach_speed = takeoff_velocity.length()
+	state.approach_speed_captured = true
+	state.course_speed = takeoff_velocity.x
+	state.lane_speed = state.ground_velocity.y
+	state.vertical_speed = takeoff_velocity.y
+	state.orientation = tangent.angle()
+	state.angular_velocity = 0.0
+	state.airtime = 0.0
+	state.landing_resolved = false
+	state.trick_tracker.reset(state.orientation)
 
 
 func _stop_at_approach_edge(state: RiderState) -> void:
 	state.ground_velocity = Vector2.ZERO
+	_clear_approach_controls(state)
+
+
+func _clear_approach_controls(state: RiderState) -> void:
 	state.has_ground_intent = false
 	state.tuck_active = false
 	state.brake_active = false
@@ -177,9 +246,13 @@ func _can_coast_through_path_change(
 	)
 	var simulated_progress := state.course_progress
 	var simulated_speed := maxf(state.ground_velocity.x, 0.0)
+	var simulated_route_position := state.approach_path_position
 	while remaining_transition_time > 0.0:
 		var step := minf(COAST_PREDICTION_STEP, remaining_transition_time)
-		var gradient := course.route_gradient_at(simulated_progress, state.approach_path_position)
+		simulated_route_position = move_toward(
+			simulated_route_position, float(requested_path), APPROACH_PATH_SWITCH_SPEED * step
+		)
+		var gradient := course.route_gradient_at(simulated_progress, simulated_route_position)
 		simulated_speed += (
 			tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient) * step
 		)
@@ -192,5 +265,7 @@ func _can_coast_through_path_change(
 		if simulated_speed <= 1.0:
 			return false
 		simulated_progress += simulated_speed * step
+		if simulated_progress >= course.route_end_at(simulated_route_position):
+			return false
 		remaining_transition_time -= step
 	return true

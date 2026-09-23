@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 and 2 are complete. Runtime gameplay remains approach-only while the remaining milestones are implemented and tested one at a time.
+Milestones 1 through 3 are complete. Flight and landing now have momentum-preserving entry transitions; airborne and runout integration remain intentionally paused until the next milestones.
 
 ## Goal
 
@@ -209,7 +209,7 @@ _step_landing
 _complete_run
 ```
 
-The current `ApproachSimulation` should be promoted or renamed to `RiderSimulation` once phase dispatch is introduced. Existing approach helpers should move with minimal behavioral changes.
+`RiderSimulation` now dispatches by run phase and retains the existing approach helpers with minimal behavioral changes.
 
 ## Takeoff Calculation
 
@@ -448,7 +448,7 @@ src/game/park/jump_state.gd
 src/game/park/rider_state.gd
 src/game/park/rider_input_frame.gd
 src/game/park/rider_tuning.gd
-src/game/park/approach_simulation.gd
+src/game/park/rider_simulation.gd
 src/game/park/rider_run_manager.gd
 src/presentation/gameplay/course_debug_draw.gd
 src/presentation/gameplay/park_projection.gd
@@ -462,7 +462,7 @@ Tests:
 
 ```text
 tests/game/park/test_park_course.gd
-tests/game/park/test_approach_simulation.gd
+tests/game/park/test_rider_simulation.gd
 tests/game/park/test_rider_simulation.gd
 ```
 
@@ -511,16 +511,17 @@ Manual acceptance:
 
 - Starting, moving, switching paths, stopping, and restarting look unchanged.
 
-### Milestone 3: Takeoff Transition
+### Milestone 3: Takeoff Transition - Complete
 
 Implementation:
 
-- Promote `ApproachSimulation` to phase-dispatched `RiderSimulation`.
-- Preserve momentum when crossing a flight-route endpoint.
-- Capture route, lip position, tangent, normal, and takeoff velocity.
-- Enter `FLIGHT` instead of stopping.
-- Transition the lower route directly into `LANDING` runout.
-- Reject path changes too close to the lip to finish blending before takeoff.
+- Promoted `ApproachSimulation` to phase-dispatched `RiderSimulation`.
+- Preserved momentum when crossing a flight-route endpoint.
+- Captured the frozen route, lip position, final-segment tangent, normal, and takeoff velocity.
+- Entered `FLIGHT` instead of stopping on the upper and center routes.
+- Transitioned the lower route directly into `LANDING` runout.
+- Rejected path changes too close to the lip to finish blending before takeoff.
+- Left flight and landing integration paused behind the dispatcher for Milestones 4 and 5.
 
 Automated acceptance:
 

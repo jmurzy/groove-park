@@ -65,8 +65,10 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.setup(ShippedParkCourse)
 	manager.rider_state.run_phase = RiderState.RunPhase.COMPLETE
 	manager.rider_state.landing_outcome = RiderState.LandingOutcome.CRASH
+	manager.rider_state.active_route_index = 2
 	manager.skier_state.run_phase = RiderState.RunPhase.FLIGHT
 	manager.skier_state.landing_outcome = RiderState.LandingOutcome.SKETCHY
+	manager.skier_state.active_route_index = 0
 	manager.has_started_moving = true
 	manager.reset_run(ShippedParkCourse)
 	_expect(
@@ -84,6 +86,13 @@ func _test_reset_restores_run_lifecycle() -> void:
 	_expect(
 		manager.skier_state.landing_outcome == RiderState.LandingOutcome.NONE,
 		"Reset must clear the skier landing outcome."
+	)
+	_expect(
+		(
+			manager.rider_state.active_route_index == -1
+			and manager.skier_state.active_route_index == -1
+		),
+		"Reset must clear each rider's frozen route."
 	)
 	_expect(not manager.has_started_moving, "Reset must clear the movement-started flag.")
 	_expect(not manager.is_crashed(), "Reset must clear the manager crash status.")

@@ -1,24 +1,24 @@
-## Headless checks for the approach-only rider controller.
+## Headless checks for approach movement and run-phase transitions.
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
-const ApproachSimulationScene := preload("res://src/game/park/approach_simulation.gd")
+const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
 
 const DELTA := 1.0 / 60.0
 var _failures := PackedStringArray()
 var _course: ParkCourse
-var _simulation: ApproachSimulation
+var _simulation: RiderSimulation
 var _tuning: RiderTuning
 
 
 func _init() -> void:
 	_course = _approach_course()
-	_simulation = ApproachSimulationScene.new()
+	_simulation = RiderSimulationScene.new()
 	_tuning = RiderTuningScene.new()
 	_test_neutral_input_does_not_start_a_run()
 	_test_shipped_course_has_an_approach_line()
@@ -29,14 +29,16 @@ func _init() -> void:
 	_test_vertical_heading_does_not_free_carve()
 	_test_vertical_input_switches_approach_paths_smoothly()
 	_test_braking_reduces_speed()
-	_test_approach_boundary_ends_the_run()
-	_test_lower_approach_path_owns_its_endpoint()
+	_test_flight_route_transitions_at_lip()
+	_test_lip_crossing_is_fixed_step_safe()
+	_test_ground_route_transitions_to_landing()
+	_test_path_change_is_rejected_too_close_to_lip()
 	_test_route_tangent_follows_selected_path()
 	_test_gradient_sign_matches_terrain_pitch()
 	_test_uphill_stalls_without_momentum()
 	_test_uphill_clears_with_momentum()
 	if _failures.is_empty():
-		print("Approach rider checks passed.")
+		print("Rider simulation checks passed.")
 		quit(0)
 		return
 	for failure in _failures:
@@ -152,7 +154,7 @@ func _test_braking_reduces_speed() -> void:
 	)
 
 
-func _test_approach_boundary_ends_the_run() -> void:
+func _test_flight_route_transitions_at_lip() -> void:
 	var state := _new_state()
 	state.course_progress = 2995.0
 	state.ground_velocity = Vector2(600.0, 0.0)
@@ -160,12 +162,48 @@ func _test_approach_boundary_ends_the_run() -> void:
 	_step(state, Vector2.RIGHT)
 	_expect(
 		is_equal_approx(state.course_progress, 3000.0),
-		"The rider should stop at the approach edge."
+		"The rider should reach the exact authored lip."
 	)
-	_expect(state.ground_velocity.is_zero_approx(), "Leaving the approach should clear velocity.")
+	_expect(
+		state.run_phase == RiderState.RunPhase.FLIGHT,
+		"Crossing a flight-route lip should enter flight."
+	)
+	_expect(state.active_route_index == 1, "Takeoff should freeze the selected route index.")
+	_expect(
+		state.takeoff_position.is_equal_approx(Vector2(3000.0, 1500.0)),
+		"Takeoff should capture the authored lip position."
+	)
+	_expect(state.ground_velocity.x > 0.0, "Takeoff must preserve approach momentum.")
+	_expect(
+		is_equal_approx(state.takeoff_velocity.x, state.ground_velocity.x),
+		"Takeoff conversion must preserve horizontal velocity."
+	)
+	_expect(
+		state.takeoff_velocity.y > 0.0,
+		"A downhill final segment should contribute downward launch velocity."
+	)
+	_expect(
+		state.takeoff_tangent.is_equal_approx(Vector2(2.0, 1.0).normalized()),
+		"Takeoff should use the final authored path segment as the lip tangent."
+	)
+	_expect(
+		is_equal_approx(state.release_deadline_y, state.takeoff_position.y),
+		"Takeoff should capture lip height for the future release deadline."
+	)
+	var frozen_position := Vector2(state.course_progress, state.vertical_position)
+	var frozen_velocity := state.takeoff_velocity
+	_step(state, Vector2.LEFT, false, true, true)
+	_expect(
+		Vector2(state.course_progress, state.vertical_position).is_equal_approx(frozen_position),
+		"Flight should not fall back into approach integration."
+	)
+	_expect(
+		state.takeoff_velocity.is_equal_approx(frozen_velocity),
+		"The transition-only flight state should retain captured velocity."
+	)
 
 
-func _test_lower_approach_path_owns_its_endpoint() -> void:
+func _test_ground_route_transitions_to_landing() -> void:
 	var routed_course := _approach_course()
 	routed_course.approach_paths = [
 		PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
@@ -183,6 +221,64 @@ func _test_lower_approach_path_owns_its_endpoint() -> void:
 		is_equal_approx(state.course_progress, 3200.0),
 		"The lower approach path must be rideable through its authored endpoint."
 	)
+	_expect(
+		state.run_phase == RiderState.RunPhase.LANDING,
+		"The grounded lower route should enter landing/runout without flight."
+	)
+	_expect(state.active_route_index == 2, "Grounded runout should freeze the lower route.")
+	_expect(state.ground_velocity.x > 0.0, "Grounded runout must preserve approach momentum.")
+
+
+func _test_lip_crossing_is_fixed_step_safe() -> void:
+	var fast_step_state := _new_state()
+	var slow_step_state := _new_state()
+	var states: Array[RiderState] = [fast_step_state, slow_step_state]
+	for state in states:
+		state.course_progress = 2995.0
+		state.ground_velocity = Vector2(600.0, 0.0)
+		state.has_ground_intent = true
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.RIGHT
+	_simulation.step(fast_step_state, input, _course, _tuning, 1.0 / 30.0)
+	_simulation.step(slow_step_state, input, _course, _tuning, 1.0 / 120.0)
+	_expect(
+		(
+			fast_step_state.run_phase == RiderState.RunPhase.FLIGHT
+			and slow_step_state.run_phase == RiderState.RunPhase.FLIGHT
+		),
+		"Lip crossing should transition at supported fixed-step sizes."
+	)
+	_expect(
+		(
+			is_equal_approx(fast_step_state.course_progress, 3000.0)
+			and is_equal_approx(slow_step_state.course_progress, 3000.0)
+		),
+		"Lip crossing should clamp to the authored endpoint at every fixed-step size."
+	)
+
+
+func _test_path_change_is_rejected_too_close_to_lip() -> void:
+	var routed_course := _approach_course()
+	routed_course.approach_paths = [
+		PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
+		PackedVector2Array([Vector2(0, 100), Vector2(100, 100)]),
+		PackedVector2Array([Vector2(0, 200), Vector2(100, 200)]),
+	]
+	var state := RiderStateScene.new()
+	state.approach_path_target = 1
+	state.approach_path_position = 1.0
+	state.course_progress = 95.0
+	state.ground_velocity = Vector2(600.0, 0.0)
+	state.has_ground_intent = true
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.RIGHT
+	input.approach_path_change = 1
+	_simulation.step(state, input, routed_course, _tuning, DELTA)
+	_expect(
+		state.approach_path_target == 1,
+		"A route change that cannot finish before the lip must be rejected."
+	)
+	_expect(state.active_route_index == 1, "Late route input must not change the takeoff route.")
 
 
 func _test_route_tangent_follows_selected_path() -> void:

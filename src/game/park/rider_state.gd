@@ -46,6 +46,11 @@ var approach_path_position: float:
 		return kinematics.approach_path_position
 	set(value):
 		kinematics.approach_path_position = value
+var active_route_index: int:
+	get:
+		return kinematics.active_route_index
+	set(value):
+		kinematics.active_route_index = value
 var ground_position: Vector2:
 	get:
 		return kinematics.ground_position
@@ -143,6 +148,16 @@ var compression_release_quality: float:
 		return jump.compression_release_quality
 	set(value):
 		jump.compression_release_quality = value
+var takeoff_position: Vector2:
+	get:
+		return jump.takeoff_position
+	set(value):
+		jump.takeoff_position = value
+var takeoff_velocity: Vector2:
+	get:
+		return jump.takeoff_velocity
+	set(value):
+		jump.takeoff_velocity = value
 var takeoff_course_speed: float:
 	get:
 		return jump.takeoff_course_speed
@@ -173,6 +188,11 @@ var takeoff_normal: Vector2:
 		return jump.takeoff_normal
 	set(value):
 		jump.takeoff_normal = value
+var release_deadline_y: float:
+	get:
+		return jump.release_deadline_y
+	set(value):
+		jump.release_deadline_y = value
 var approach_speed: float:
 	get:
 		return jump.approach_speed
