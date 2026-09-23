@@ -2,7 +2,7 @@
 class_name RiderDemoPanel
 extends Control
 
-enum AirRotationPhase { WAITING_LEFT, WAITING_RIGHT }
+enum AirRotationPhase {WAITING_LEFT, WAITING_RIGHT}
 
 const DEMO_POSITION := Vector2(60, 124)
 const DEMO_SIZE := Vector2(1696, 389)
@@ -13,11 +13,10 @@ const RIDER_POSITION := Vector2(144, 165)
 const RIDER_SCALE := 1.12
 const AIRBORNE_LIFT := Vector2(0, -50)
 const INITIAL_SPEED_MPH := 0.0
-const MAX_SPEED_MPH := 70.0
+const MAX_SPEED_MPH := 90.0
 const SPEED_BUILD_RATE_MPH := 20.0
 const SPEED_COAST_RATE_MPH := 15.0
 const SPEED_CHECK_RATE_MPH := 45.0
-const MAX_NEUTRAL_GLIDE_SPEED_SCALE := 3.0
 
 var _skier: SkierView
 var _snowboarder: SnowboarderView
@@ -137,7 +136,7 @@ func set_speed_mph(speed_mph: float) -> void:
 
 
 func _neutral_glide_speed_scale() -> float:
-	return MAX_NEUTRAL_GLIDE_SPEED_SCALE * inverse_lerp(0.0, MAX_SPEED_MPH, _speed_mph)
+	return RiderViewBase.neutral_glide_speed_scale_for_mph(_speed_mph)
 
 
 func _update_speed(delta: float) -> void:

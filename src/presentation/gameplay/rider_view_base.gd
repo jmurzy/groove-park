@@ -15,6 +15,7 @@ const CANVAS_SIZE := Vector2(1024, 1024)
 const SPRITE_SCALE := 0.0846
 const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
+const GLIDE_REFERENCE_SPEED_MPH := 25.0
 
 var _sprite: AnimatedSprite2D
 var _show_source_bounds := false
@@ -53,11 +54,29 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 		else ground_rotation
 	)
 	if state.landing_resolved or is_playing_landing_animation():
+		set_preview_speed_scale(1.0)
 		play_landing_animation(_landing_animation_for_state(state))
 		return
-	_play(_animation_for_state(state))
+	var animation := _animation_for_state(state)
+	_play(animation)
+	set_preview_speed_scale(
+		(
+			neutral_glide_speed_scale(state.ground_velocity.length())
+			if animation == &"neutral_glide"
+			else 1.0
+		)
+	)
 	if state.ground_velocity.is_zero_approx():
 		pause_idle_animation()
+
+
+static func neutral_glide_speed_scale(world_speed: float) -> float:
+	var speed_mph := float(GameConstants.speed_to_mph(world_speed))
+	return neutral_glide_speed_scale_for_mph(speed_mph)
+
+
+static func neutral_glide_speed_scale_for_mph(speed_mph: float) -> float:
+	return speed_mph / GLIDE_REFERENCE_SPEED_MPH
 
 
 func _landing_animation_for_state(state: RiderState) -> StringName:
