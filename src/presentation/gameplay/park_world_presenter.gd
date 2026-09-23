@@ -41,6 +41,7 @@ func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: 
 	_update_rider_views(run_manager)
 	_update_rider_marker(run_manager, hud_occlusion)
 	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
+	_update_debug_overlay(run_manager.rider_state)
 	_update_camera(run_manager, delta)
 
 
@@ -48,6 +49,10 @@ func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -
 	_snowboarder.reset_presentation()
 	_camera.zoom = CAMERA_ZOOM
 	update_from_run(run_manager, 0.0, hud_occlusion)
+
+
+func primary_rider_screen_bounds() -> Rect2:
+	return _snowboarder.screen_bounds()
 
 
 func _build_world() -> void:
@@ -143,6 +148,15 @@ func _update_rider_marker(run_manager: RiderRunManager, hud_occlusion: Callable)
 		. abs()
 	)
 	_rider_marker.visible = not hud_occlusion.call(marker_rect)
+
+
+func _update_debug_overlay(state: RiderState) -> void:
+	if _debug_overlay == null:
+		return
+	var route_index := state.active_route_index
+	if route_index < 0:
+		route_index = state.approach_path_target
+	_debug_overlay.set_active_route_index(route_index)
 
 
 func _update_camera(run_manager: RiderRunManager, delta: float) -> void:

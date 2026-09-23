@@ -30,12 +30,22 @@ func _init() -> void:
 	_test_vertical_input_switches_approach_paths_smoothly()
 	_test_braking_reduces_speed()
 	_test_flight_route_transitions_at_lip()
+	_test_arc_height_multiplier_steepens_uphill_launch()
+	_test_takeoff_speed_cap_shortens_fast_launches()
+	_test_arc_height_multiplier_preserves_flight_range()
 	_test_lip_crossing_is_fixed_step_safe()
 	_test_ballistic_flight_matches_known_step()
 	_test_air_drag_cannot_reverse_velocity()
 	_test_air_input_does_not_steer()
 	_test_flight_projection_uses_landing_path()
+	_test_swept_landing_contact_resolves_once()
+	_test_flight_only_hits_selected_landing_path()
+	_test_runout_ignores_input_and_completes()
+	_test_descending_below_abandon_line_enters_runout()
+	_test_ascending_below_abandon_line_can_recover()
+	_test_abandon_floor_does_not_preempt_landing_contact()
 	_test_missed_flight_is_terminal()
+	_test_shipped_routes_complete_cleanly()
 	_test_ground_route_transitions_to_landing()
 	_test_path_change_is_rejected_too_close_to_lip()
 	_test_route_tangent_follows_selected_path()
@@ -205,6 +215,108 @@ func _test_flight_route_transitions_at_lip() -> void:
 	)
 
 
+func _test_arc_height_multiplier_steepens_uphill_launch() -> void:
+	var routed_course := _approach_course()
+	var ramp := PackedVector2Array([Vector2(0, 100), Vector2(100, 0)])
+	routed_course.approach_paths = [ramp, ramp, ramp]
+	var state := RiderStateScene.new()
+	state.approach_path_target = 1
+	state.approach_path_position = 1.0
+	state.course_progress = 95.0
+	state.vertical_position = routed_course.route_surface_y_at(95.0, 1.0)
+	state.ground_velocity = Vector2(600.0, 0.0)
+	state.has_ground_intent = true
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.RIGHT
+	var tuning := RiderTuningScene.new()
+	tuning.flight_arc_height_multiplier = 1.5
+	tuning.maximum_takeoff_course_speed = 10_000.0
+	_simulation.step(state, input, routed_course, tuning, DELTA)
+	var unboosted_vertical_speed := (
+		state.takeoff_course_speed * state.takeoff_tangent.y / state.takeoff_tangent.x
+	)
+	_expect(
+		is_equal_approx(state.takeoff_vertical_speed, unboosted_vertical_speed * 1.5),
+		"Upward lip velocity should receive the configured takeoff multiplier."
+	)
+	_expect(
+		state.takeoff_vertical_speed < unboosted_vertical_speed,
+		"The takeoff multiplier should produce a steeper upward launch."
+	)
+
+
+func _test_takeoff_speed_cap_shortens_fast_launches() -> void:
+	var routed_course := _approach_course()
+	var ramp := PackedVector2Array([Vector2(0, 100), Vector2(100, 0)])
+	routed_course.approach_paths = [ramp, ramp, ramp]
+	var state := RiderStateScene.new()
+	state.approach_path_target = 1
+	state.approach_path_position = 1.0
+	state.course_progress = 95.0
+	state.vertical_position = routed_course.route_surface_y_at(95.0, 1.0)
+	state.ground_velocity = Vector2(900.0, 0.0)
+	state.has_ground_intent = true
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.RIGHT
+	var tuning := RiderTuningScene.new()
+	tuning.flight_arc_height_multiplier = 1.5
+	tuning.maximum_takeoff_course_speed = 300.0
+	_simulation.step(state, input, routed_course, tuning, DELTA)
+	_expect(
+		state.takeoff_course_speed <= 300.0,
+		"Fast approaches should respect the horizontal takeoff-speed cap."
+	)
+	_expect(
+		absf(state.takeoff_vertical_speed) > state.takeoff_course_speed,
+		"Capping distance must preserve the boosted upward launch velocity."
+	)
+
+
+func _test_arc_height_multiplier_preserves_flight_range() -> void:
+	var baseline := _flight_state()
+	baseline.vertical_position = 0.0
+	baseline.vertical_speed = -100.0
+	var boosted := _flight_state()
+	boosted.vertical_position = 0.0
+	boosted.vertical_speed = -150.0
+	var baseline_tuning := RiderTuningScene.new()
+	baseline_tuning.gravity = 100.0
+	baseline_tuning.air_drag = 0.0
+	baseline_tuning.air_time_scale = 1.0
+	baseline_tuning.flight_arc_height_multiplier = 1.0
+	var boosted_tuning := RiderTuningScene.new()
+	boosted_tuning.gravity = 100.0
+	boosted_tuning.air_drag = 0.0
+	boosted_tuning.air_time_scale = 1.0
+	boosted_tuning.flight_arc_height_multiplier = 1.5
+	var baseline_min_y := 0.0
+	var boosted_min_y := 0.0
+	var baseline_ticks := -1
+	var boosted_ticks := -1
+	for tick in 600:
+		if baseline_ticks < 0:
+			_simulation.step(baseline, RiderInputFrameScene.new(), _course, baseline_tuning, DELTA)
+			baseline_min_y = minf(baseline_min_y, baseline.vertical_position)
+			if baseline.vertical_speed > 0.0 and baseline.vertical_position >= 0.0:
+				baseline_ticks = tick
+		if boosted_ticks < 0:
+			_simulation.step(boosted, RiderInputFrameScene.new(), _course, boosted_tuning, DELTA)
+			boosted_min_y = minf(boosted_min_y, boosted.vertical_position)
+			if boosted.vertical_speed > 0.0 and boosted.vertical_position >= 0.0:
+				boosted_ticks = tick
+		if baseline_ticks >= 0 and boosted_ticks >= 0:
+			break
+	_expect(boosted_min_y < baseline_min_y, "The boosted arc should reach a higher apex.")
+	_expect(
+		absi(baseline_ticks - boosted_ticks) <= 1,
+		"Scaling launch velocity and gravity together should preserve flight duration."
+	)
+	_expect(
+		absf(baseline.course_progress - boosted.course_progress) <= 2.0,
+		"A taller arc should preserve horizontal flight range."
+	)
+
+
 func _test_ground_route_transitions_to_landing() -> void:
 	var routed_course := _approach_course()
 	routed_course.approach_paths = [
@@ -220,7 +332,7 @@ func _test_ground_route_transitions_to_landing() -> void:
 	state.has_ground_intent = true
 	_step_on(state, routed_course, Vector2.RIGHT)
 	_expect(
-		is_equal_approx(state.course_progress, 3200.0),
+		state.course_progress >= 3200.0,
 		"The lower approach path must be rideable through its authored endpoint."
 	)
 	_expect(
@@ -229,6 +341,14 @@ func _test_ground_route_transitions_to_landing() -> void:
 	)
 	_expect(state.active_route_index == 2, "Grounded runout should freeze the lower route.")
 	_expect(state.ground_velocity.x > 0.0, "Grounded runout must preserve approach momentum.")
+	_expect(
+		(
+			state.landing_outcome == RiderState.LandingOutcome.ABANDON
+			and state.landing_label == "ABANDON"
+			and is_equal_approx(state.landing_position.x, 3200.0)
+		),
+		"Grounded runout should abandon at the approach endpoint."
+	)
 
 
 func _test_lip_crossing_is_fixed_step_safe() -> void:
@@ -265,6 +385,7 @@ func _test_ballistic_flight_matches_known_step() -> void:
 	tuning.gravity = 100.0
 	tuning.air_drag = 0.0
 	tuning.air_time_scale = 1.0
+	tuning.flight_arc_height_multiplier = 1.0
 	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
 	_expect(
 		is_equal_approx(state.course_progress, 3010.0),
@@ -330,6 +451,190 @@ func _test_flight_projection_uses_landing_path() -> void:
 	)
 
 
+func _test_swept_landing_contact_resolves_once() -> void:
+	var state := _landing_contact_state()
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.2)
+	_expect(
+		(
+			state.run_phase == RiderState.RunPhase.LANDING
+			and state.landing_outcome == RiderState.LandingOutcome.CLEAN
+		),
+		"Swept flight contact should resolve a clean landing."
+	)
+	_expect(state.landing_resolved, "Landing contact must resolve exactly once.")
+	_expect(
+		state.landing_position.x > 3100.0 and state.landing_position.x < 3130.0,
+		"Swept collision should catch terrain crossed between physics positions."
+	)
+	var first_contact := state.landing_position
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.5)
+	_expect(
+		state.landing_position.is_equal_approx(first_contact),
+		"Automatic runout must not resolve landing contact again."
+	)
+
+
+func _test_flight_only_hits_selected_landing_path() -> void:
+	var routed_course := _approach_course()
+	routed_course.landing_paths = [
+		PackedVector2Array([Vector2(100, 10), Vector2(200, 10)]),
+		PackedVector2Array([Vector2(100, 100), Vector2(200, 100)]),
+		PackedVector2Array([Vector2(100, 200), Vector2(200, 200)]),
+	]
+	var state := RiderStateScene.new()
+	state.run_phase = RiderState.RunPhase.FLIGHT
+	state.active_route_index = 1
+	state.course_progress = 90.0
+	state.vertical_position = 0.0
+	state.ground_position = Vector2(90.0, 0.0)
+	state.course_speed = 100.0
+	state.vertical_speed = 100.0
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), routed_course, tuning, 0.2)
+	_expect(
+		state.run_phase == RiderState.RunPhase.FLIGHT,
+		"Flight must ignore terrain belonging to another route."
+	)
+
+
+func _test_runout_ignores_input_and_completes() -> void:
+	var neutral := _runout_state()
+	var controlled := _runout_state()
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.LEFT
+	input.tuck_pressed = true
+	input.brake_pressed = true
+	input.edge_pressed = true
+	input.pop_pressed = true
+	_simulation.step(neutral, RiderInputFrameScene.new(), _course, _tuning, 0.5)
+	_simulation.step(controlled, input, _course, _tuning, 0.5)
+	_expect(
+		is_equal_approx(neutral.course_progress, controlled.course_progress),
+		"Landing input must not affect automatic runout."
+	)
+	neutral.course_progress = _course.landing_end_at(neutral.active_route_index).x - 5.0
+	neutral.vertical_position = _course.landing_surface_y_at(
+		neutral.course_progress, neutral.active_route_index
+	)
+	_simulation.step(neutral, input, _course, _tuning, 1.0)
+	_expect(
+		neutral.run_phase == RiderState.RunPhase.COMPLETE,
+		"Runout should complete at the selected landing endpoint."
+	)
+	var completed_position := Vector2(neutral.course_progress, neutral.vertical_position)
+	_simulation.step(neutral, input, _course, _tuning, 1.0)
+	_expect(
+		Vector2(neutral.course_progress, neutral.vertical_position).is_equal_approx(
+			completed_position
+		),
+		"A completed run must remain frozen."
+	)
+
+
+func _test_descending_below_abandon_line_enters_runout() -> void:
+	var state := _flight_state()
+	state.course_progress = 3050.0
+	state.vertical_position = (
+		_course.flight_abandon_trigger_y_at(state.course_progress, state.active_route_index) + 10.0
+	)
+	state.ground_position = Vector2(state.course_progress, 0.0)
+	state.course_speed = 10.0
+	state.vertical_speed = 50.0
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
+	_expect(
+		(
+			state.run_phase == RiderState.RunPhase.LANDING
+			and state.landing_outcome == RiderState.LandingOutcome.ABANDON
+			and state.landing_label == "ABANDON"
+			and state.current_surface_id == &"abandon"
+		),
+		"A descending rider below the abandon line should enter automatic runout."
+	)
+	_expect(
+		is_equal_approx(
+			state.vertical_position,
+			_course.flight_abandon_trigger_y_at(state.course_progress, state.active_route_index)
+		),
+		"An airborne abandon should snap onto the active abandon line."
+	)
+	var previous_progress := state.course_progress
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.5)
+	_expect(state.course_progress > previous_progress, "An abandon should auto-advance.")
+	_expect(
+		is_equal_approx(
+			state.vertical_position,
+			_course.flight_abandon_trigger_y_at(state.course_progress, state.active_route_index)
+		),
+		"Airborne abandon runout should continue along the abandon line."
+	)
+	var projection := ParkProjectionScene.new(_course)
+	_expect(
+		projection.project_rider_ground(state).is_equal_approx(
+			Vector2(state.course_progress, state.vertical_position)
+		),
+		"Abandon projection should follow the abandon line."
+	)
+
+
+func _test_ascending_below_abandon_line_can_recover() -> void:
+	var state := _flight_state()
+	state.course_progress = 3050.0
+	state.vertical_position = (
+		_course.flight_abandon_trigger_y_at(state.course_progress, state.active_route_index) + 50.0
+	)
+	state.ground_position = Vector2(state.course_progress, 0.0)
+	state.course_speed = 10.0
+	state.vertical_speed = -100.0
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
+	_expect(
+		state.run_phase == RiderState.RunPhase.FLIGHT,
+		"The abandon line should only trigger while the rider is descending."
+	)
+
+
+func _test_abandon_floor_does_not_preempt_landing_contact() -> void:
+	var routed_course := _approach_course()
+	routed_course.flight_abandon_y = 100.0
+	routed_course.landing_paths[1] = PackedVector2Array([Vector2(100, 0), Vector2(200, 200)])
+	var state := RiderStateScene.new()
+	state.run_phase = RiderState.RunPhase.FLIGHT
+	state.active_route_index = 1
+	state.course_progress = 90.0
+	state.vertical_position = 90.0
+	state.ground_position = Vector2(90.0, 0.0)
+	state.course_speed = 60.0
+	state.vertical_speed = 60.0
+	var tuning := RiderTuningScene.new()
+	tuning.gravity = 0.0
+	tuning.air_drag = 0.0
+	tuning.air_time_scale = 1.0
+	_simulation.step(state, RiderInputFrameScene.new(), routed_course, tuning, 1.0)
+	_expect(
+		state.run_phase == RiderState.RunPhase.FLIGHT,
+		"Crossing the nominal floor must not fail a still-landable trajectory."
+	)
+	_simulation.step(state, RiderInputFrameScene.new(), routed_course, tuning, 1.0)
+	_expect(
+		state.landing_outcome == RiderState.LandingOutcome.CLEAN,
+		"A later selected-path intersection must resolve cleanly before terminal bounds."
+	)
+
+
 func _test_missed_flight_is_terminal() -> void:
 	var state := _flight_state()
 	var landing_end := _course.landing_end_at(state.active_route_index)
@@ -340,6 +645,7 @@ func _test_missed_flight_is_terminal() -> void:
 	tuning.gravity = 0.0
 	tuning.air_drag = 0.0
 	tuning.air_time_scale = 1.0
+	tuning.crash_completion_delay = 0.5
 	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
 	_expect(
 		(
@@ -349,6 +655,59 @@ func _test_missed_flight_is_terminal() -> void:
 		"Flight past the landing path must become a terminal crash."
 	)
 	_expect(state.movement_velocity().is_zero_approx(), "A terminal missed flight must stop.")
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.2)
+	_expect(
+		state.run_phase == RiderState.RunPhase.LANDING,
+		"A missed flight should remain in crash presentation until its delay expires."
+	)
+	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.3)
+	_expect(
+		state.run_phase == RiderState.RunPhase.COMPLETE,
+		"A missed-flight crash should complete after its deterministic delay."
+	)
+
+
+func _test_shipped_routes_complete_cleanly() -> void:
+	for route_index in ParkCourse.ROUTE_COUNT:
+		var state := RiderStateScene.new()
+		state.approach_path_target = route_index
+		state.approach_path_position = float(route_index)
+		state.course_progress = ShippedParkCourse.approach_paths[route_index][-1].x - 5.0
+		state.vertical_position = ShippedParkCourse.route_surface_y_at(
+			state.course_progress, state.approach_path_position
+		)
+		state.ground_velocity = Vector2(500.0, 0.0)
+		state.has_ground_intent = true
+		var input := RiderInputFrameScene.new()
+		input.heading = Vector2.RIGHT
+		for _tick in 3000:
+			_simulation.step(state, input, ShippedParkCourse, _tuning, DELTA)
+			if state.run_phase == RiderState.RunPhase.COMPLETE:
+				break
+		_expect(
+			state.run_phase == RiderState.RunPhase.COMPLETE,
+			"Shipped route %d should reach terminal completion." % route_index
+		)
+		var outcome_is_valid := state.landing_outcome == RiderState.LandingOutcome.ABANDON
+		if ShippedParkCourse.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
+			outcome_is_valid = (
+				outcome_is_valid or (state.landing_outcome == RiderState.LandingOutcome.CLEAN)
+			)
+		_expect(
+			outcome_is_valid,
+			(
+				(
+					"Shipped route %d should resolve its expected outcome; outcome=%d, "
+					+ "takeoff=%s, terminal=%s."
+				)
+				% [
+					route_index,
+					state.landing_outcome,
+					state.takeoff_velocity,
+					state.landing_position
+				]
+			)
+		)
 
 
 func _test_path_change_is_rejected_too_close_to_lip() -> void:
@@ -448,6 +807,34 @@ func _flight_state() -> RiderState:
 	return state
 
 
+func _landing_contact_state() -> RiderState:
+	var state := RiderStateScene.new()
+	state.run_phase = RiderState.RunPhase.FLIGHT
+	state.active_route_index = 1
+	state.course_progress = 3090.0
+	state.vertical_position = 1600.0
+	state.ground_position = Vector2(state.course_progress, 0.0)
+	state.course_speed = 200.0
+	state.vertical_speed = 1000.0
+	return state
+
+
+func _runout_state() -> RiderState:
+	var state := RiderStateScene.new()
+	state.run_phase = RiderState.RunPhase.LANDING
+	state.landing_outcome = RiderState.LandingOutcome.CLEAN
+	state.landing_resolved = true
+	state.active_route_index = 1
+	state.course_progress = 3200.0
+	state.vertical_position = _course.landing_surface_y_at(
+		state.course_progress, state.active_route_index
+	)
+	state.ground_position = Vector2(state.course_progress, 0.0)
+	state.ground_velocity = Vector2(200.0, 0.0)
+	state.course_speed = 200.0
+	return state
+
+
 func _approach_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
 	var path := PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
@@ -455,6 +842,7 @@ func _approach_course() -> ParkCourse:
 	var flight_landing := PackedVector2Array([Vector2(3100, 1700), Vector2(6000, 2000)])
 	var ground_runout := PackedVector2Array([Vector2(3000, 1500), Vector2(6000, 1800)])
 	course.landing_paths = [flight_landing, flight_landing, ground_runout]
+	course.flight_abandon_y = 1800.0
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course

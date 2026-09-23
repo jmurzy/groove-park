@@ -32,6 +32,10 @@ func _test_new_rider_starts_approaching() -> void:
 		state.landing_outcome == RiderState.LandingOutcome.NONE,
 		"A new rider must not have a landing outcome."
 	)
+	_expect(
+		is_zero_approx(state.completion_time_remaining),
+		"A new rider must not have a completion countdown."
+	)
 
 
 func _test_manager_setup_initializes_both_riders() -> void:
@@ -66,10 +70,12 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.rider_state.run_phase = RiderState.RunPhase.COMPLETE
 	manager.rider_state.landing_outcome = RiderState.LandingOutcome.CRASH
 	manager.rider_state.active_route_index = 2
+	manager.rider_state.completion_time_remaining = 1.0
 	manager.skier_state.run_phase = RiderState.RunPhase.FLIGHT
 	manager.skier_state.landing_outcome = RiderState.LandingOutcome.SKETCHY
 	manager.skier_state.active_route_index = 0
 	manager.has_started_moving = true
+	_expect(manager.is_complete(), "A complete primary phase must mark the manager complete.")
 	manager.reset_run(ShippedParkCourse)
 	_expect(
 		manager.rider_state.run_phase == RiderState.RunPhase.APPROACH,
@@ -96,6 +102,11 @@ func _test_reset_restores_run_lifecycle() -> void:
 	)
 	_expect(not manager.has_started_moving, "Reset must clear the movement-started flag.")
 	_expect(not manager.is_crashed(), "Reset must clear the manager crash status.")
+	_expect(not manager.is_complete(), "Reset must clear the manager completion status.")
+	_expect(
+		is_zero_approx(manager.rider_state.completion_time_remaining),
+		"Reset must clear the completion countdown."
+	)
 
 
 func _expect(condition: bool, message: String) -> void:

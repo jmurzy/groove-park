@@ -12,6 +12,7 @@ enum RunPhase {
 }
 enum LandingOutcome {
 	NONE = RiderRunState.LandingOutcome.NONE,
+	ABANDON = RiderRunState.LandingOutcome.ABANDON,
 	CLEAN = RiderRunState.LandingOutcome.CLEAN,
 	SKETCHY = RiderRunState.LandingOutcome.SKETCHY,
 	CRASH = RiderRunState.LandingOutcome.CRASH,
@@ -127,6 +128,11 @@ var recovery_time_remaining: float:
 		return run.recovery_time_remaining
 	set(value):
 		run.recovery_time_remaining = value
+var completion_time_remaining: float:
+	get:
+		return run.completion_time_remaining
+	set(value):
+		run.completion_time_remaining = value
 
 var compression_active: bool:
 	get:

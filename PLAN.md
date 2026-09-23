@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 4 are complete. Flight now follows deterministic ballistics with airborne presentation and terminal bounds; landing contact and runout integration remain intentionally deferred to Milestone 5.
+Milestones 1 through 5 are complete. Every shipped route now has a deterministic start-to-finish movement loop; compression, grabs, rotations, and final landing judgment remain incremental later milestones.
 
 ## Goal
 
@@ -23,7 +23,8 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 - The final point of a flight approach path is its lip.
 - The lower route is a grounded route and joins directly to its runout.
 - Each approach path has a corresponding landing path.
-- Flight-route landing paths begin after the lip, leaving a real collision-free gap.
+- Flight-route landing paths are independently authored.
+- A flight route's landing path starts strictly down-course from its lip.
 - The active route is frozen at takeoff and selects the matching landing path.
 
 ### Approach
@@ -116,12 +117,14 @@ Otherwise                   -> CLEAN
 ```
 
 - A clean landing enters automatic runout with celebration presentation.
+- An abandon enters automatic runout with deep-landing presentation and no celebration.
+- An airborne abandon follows the active route's curved abandon line; the lower grounded route follows its authored runout path.
 - A sketchy landing enters automatic runout with recovery presentation.
 - A crash stops or settles the rider and completes after a deterministic delay.
 - Landing controls are always disabled.
 - Clean and sketchy runouts preserve contact momentum but are advanced automatically.
 - The run completes at the selected landing path endpoint.
-- The lower grounded route enters the same automatic runout without a flight or trick requirement.
+- The lower grounded route resolves as `ABANDON` and enters the same automatic runout without a flight or trick requirement.
 
 ## Authoritative State Model
 
@@ -137,6 +140,7 @@ enum RunPhase {
 
 enum LandingOutcome {
     NONE,
+    ABANDON,
     CLEAN,
     SKETCHY,
     CRASH,
@@ -169,11 +173,10 @@ Course validation guarantees:
 - Exactly three route kinds.
 - Every path has at least two points.
 - Every path is strictly ordered by increasing X progress.
-- A flight landing begins after its approach endpoint.
+- A flight landing starts after its approach endpoint.
 - A grounded runout begins exactly at its approach endpoint.
 - Lane bounds are valid.
-
-The gap is represented by the absence of terrain between the approach endpoint and landing start. No hidden segment may connect those points for collision.
+- Flight collision tests only explicitly authored landing-path segments.
 
 ## Simulation Architecture
 
@@ -353,11 +356,12 @@ That event is true when any of `A/B/X/Y/LB/RB` is freshly pressed. Multiple simu
 - The warning becomes urgent while a grab is active.
 - Landing shows clean, sketchy, or crash feedback.
 - Complete shows a restart prompt.
+- The metric HUD hides while the primary rider's rendered bounds overlap its frame, then returns when clear.
 
 ### Debug Overlay
 
 - Approach and landing paths remain visible under `--show-terrain`.
-- Flight routes label the collision-free `AIR GAP`.
+- Flight routes shade an abandon zone between their virtual miss boundaries and curved zone floors; the authoritative `ABANDON LINE` runs through the center.
 - The lower route labels its `GROUND JOIN`.
 - Future flight debugging should add velocity vectors, predicted trajectory, release deadline, and first contact.
 
@@ -419,9 +423,10 @@ compression_window_distance
 compression_rate
 maximum_compression
 maximum_pop_impulse
+flight_arc_height_multiplier
+maximum_takeoff_course_speed
 gravity
 air_drag
-flight_bounds_margin
 safe_no_rotation_speed
 speed_per_required_rotation
 min_rotation_speed
@@ -475,20 +480,21 @@ Implementation:
 
 - Added `landing_paths` to `ParkCourse`.
 - Added route kinds for two flight routes and one grounded route.
-- Added disconnected flight-gap and continuous ground-join validation.
+- Added down-course flight landing and continuous ground-join validation.
 - Added initial upper, center, and lower landing geometry.
 - Extended the visual editor to load and save landing paths.
 - Generalized the editor path component to `ParkCoursePath`.
 - Added landing-only swept collision queries.
-- Extended debug drawing with landing labels, lips, gap markers, and ground join.
+- Extended debug drawing with landing labels, lips, and ground join.
 - Added headless course-contract tests.
 
 Acceptance:
 
 - The shipped course validates.
-- Upper and center landing paths begin after their lips.
+- Upper and center landing paths are independently editable.
+- Upper and center landing paths start after their lips.
 - Lower landing begins exactly at the lower approach endpoint.
-- Swept collision ignores empty gaps and detects landing geometry.
+- Swept collision detects explicitly authored landing geometry.
 - Existing approach simulation tests continue to pass.
 
 ### Milestone 2: Run State Model - Complete
@@ -561,17 +567,21 @@ Manual acceptance:
 - Both flight routes produce stable, readable arcs.
 - The rider remains visible throughout ascent and descent.
 
-### Milestone 5: Landing Contact and Automatic Runout
+### Milestone 5: Landing Contact and Automatic Runout - Complete
 
 Implementation:
 
-- Sweep every flight tick against the selected landing path.
-- Resolve the earliest contact exactly once.
-- Initially classify every valid contact as clean.
-- Project contact velocity onto the landing tangent.
-- Disable input and auto-advance to the landing endpoint.
-- Mark the run `COMPLETE` at the endpoint.
-- Complete crashes caused by missing terrain after a deterministic delay.
+- Swept every flight tick against only the frozen route's landing path.
+- Resolved the earliest contact exactly once and preserved its measurements.
+- Initially classified every valid contact as clean.
+- Projected contact velocity onto the landing tangent.
+- Continued unused contact-frame time through automatic runout.
+- Disabled input and auto-advanced clean landings and the grounded lower route.
+- Marked the run `COMPLETE` at the selected landing endpoint.
+- Completed missed-flight crashes after a deterministic simulation-owned delay.
+- Added an automatic runout handoff when a descending rider falls below the visible center abandon line.
+- Added matching shaded warning zones, miss boundaries, and crash-floor lines to `--show-terrain`.
+- Added end-to-end clean completion coverage for all three shipped routes at baseline speed.
 
 Automated acceptance:
 

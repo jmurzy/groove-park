@@ -28,10 +28,24 @@ func play_preview(animation_name: StringName) -> void:
 	_play(animation_name)
 
 
+func screen_bounds() -> Rect2:
+	if _sprite == null:
+		return Rect2(position, Vector2.ZERO)
+	var local_rect := Rect2(_sprite.position, CANVAS_SIZE * SPRITE_SCALE)
+	var canvas_transform := get_global_transform_with_canvas()
+	var bounds := Rect2(canvas_transform * local_rect.position, Vector2.ZERO)
+	bounds = bounds.expand(canvas_transform * Vector2(local_rect.end.x, local_rect.position.y))
+	bounds = bounds.expand(canvas_transform * local_rect.end)
+	bounds = bounds.expand(canvas_transform * Vector2(local_rect.position.x, local_rect.end.y))
+	return bounds
+
+
 func update_from_state(state: RiderState, world_position: Vector2, ground_rotation: float) -> void:
 	position = world_position
 	rotation = (
-		state.orientation if state.run_phase == RiderState.RunPhase.FLIGHT else ground_rotation
+		state.orientation
+		if state.run_phase == RiderState.RunPhase.FLIGHT or state.current_surface_id == &"abandon"
+		else ground_rotation
 	)
 	if state.landing_resolved or is_playing_landing_animation():
 		play_landing_animation(_landing_animation_for_state(state))
@@ -46,6 +60,8 @@ func _landing_animation_for_state(state: RiderState) -> StringName:
 		return &"crash"
 	if state.landing_outcome == RiderState.LandingOutcome.SKETCHY:
 		return &"sketchy_recovery"
+	if state.landing_outcome == RiderState.LandingOutcome.ABANDON:
+		return &"deep_landing"
 	return &"celebration"
 
 
@@ -70,6 +86,8 @@ func _animation_for_state(state: RiderState) -> StringName:
 				animation = &"crash"
 			RiderState.LandingOutcome.SKETCHY:
 				animation = &"sketchy_recovery"
+			RiderState.LandingOutcome.ABANDON:
+				animation = &"deep_landing"
 			_:
 				animation = &"deep_landing"
 	elif state.compression_active:

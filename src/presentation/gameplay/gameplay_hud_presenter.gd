@@ -49,12 +49,17 @@ func set_score(score: int) -> void:
 func reset(player_count: int) -> void:
 	_action_hint_time = 0.0
 	_action_label.hide()
+	_hud.show()
 	_hud.set_speed(0.0)
 	_ready_label.text = _ready_text(player_count)
 
 
 func is_occluded(rect: Rect2) -> bool:
 	return _hud.is_occluded(rect)
+
+
+func update_rider_occlusion(rider_rect: Rect2) -> void:
+	_hud.visible = not _hud.is_occluded(rider_rect)
 
 
 func _ready_text(player_count: int) -> String:

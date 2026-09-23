@@ -55,6 +55,7 @@ func _ready() -> void:
 	add_child(_world_presenter)
 	_world_presenter.setup(_course, show_terrain)
 	_world_presenter.update_from_run(_run_manager, 0.0, _hud_presenter.is_occluded)
+	_update_hud_occlusion()
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)
 	_pause_flow.abandon_requested.connect(_confirm_return_to_title)
@@ -77,6 +78,7 @@ func _physics_process(delta: float) -> void:
 	var input := _input_controller.sample_frame()
 	game_session.step_run(input, _course, _rider_tuning, delta)
 	_world_presenter.update_from_run(_run_manager, delta, _hud_presenter.is_occluded)
+	_update_hud_occlusion()
 
 
 func request_exit_confirmation() -> void:
@@ -107,6 +109,11 @@ func _restart_run() -> void:
 	game_session.restart_run(_course)
 	_hud_presenter.reset(game_session.player_count)
 	_world_presenter.reset_presentation(_run_manager, _hud_presenter.is_occluded)
+	_update_hud_occlusion()
+
+
+func _update_hud_occlusion() -> void:
+	_hud_presenter.update_rider_occlusion(_world_presenter.primary_rider_screen_bounds())
 
 
 func _confirm_return_to_title() -> void:

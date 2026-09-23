@@ -3,7 +3,7 @@ class_name RiderRunState
 extends RefCounted
 
 enum RunPhase { APPROACH, FLIGHT, LANDING, COMPLETE }
-enum LandingOutcome { NONE, CLEAN, SKETCHY, CRASH }
+enum LandingOutcome { NONE, ABANDON, CLEAN, SKETCHY, CRASH }
 
 var run_phase := RunPhase.APPROACH
 var landing_outcome := LandingOutcome.NONE
@@ -13,3 +13,4 @@ var tuck_active := false
 var brake_active := false
 var edge_active := false
 var recovery_time_remaining := 0.0
+var completion_time_remaining := 0.0

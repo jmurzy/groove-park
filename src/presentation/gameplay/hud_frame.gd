@@ -19,9 +19,16 @@ func _ready() -> void:
 
 
 func is_occluded(rect: Rect2) -> bool:
-	var hud_rect := HUD_RECT
-	hud_rect.position += position
-	return rect.intersects(hud_rect)
+	return rect.intersects(screen_bounds())
+
+
+func screen_bounds() -> Rect2:
+	var canvas_transform := get_global_transform_with_canvas()
+	var bounds := Rect2(canvas_transform * HUD_RECT.position, Vector2.ZERO)
+	bounds = bounds.expand(canvas_transform * Vector2(HUD_RECT.end.x, HUD_RECT.position.y))
+	bounds = bounds.expand(canvas_transform * HUD_RECT.end)
+	bounds = bounds.expand(canvas_transform * Vector2(HUD_RECT.position.x, HUD_RECT.end.y))
+	return bounds
 
 
 func _draw() -> void:

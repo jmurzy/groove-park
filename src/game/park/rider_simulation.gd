@@ -15,7 +15,9 @@ func step(
 			_step_approach(state, input, course, tuning, delta)
 		RiderState.RunPhase.FLIGHT:
 			_step_flight(state, course, tuning, delta)
-		RiderState.RunPhase.LANDING, RiderState.RunPhase.COMPLETE:
+		RiderState.RunPhase.LANDING:
+			_step_landing(state, course, tuning, delta)
+		RiderState.RunPhase.COMPLETE:
 			return
 
 
@@ -58,9 +60,11 @@ func _step_approach(
 	var remaining_delta := _move_within_approach(state, course, delta)
 	_sync_ground_state(state, course)
 	if remaining_delta >= 0.0:
-		_cross_approach_endpoint(state, course)
+		_cross_approach_endpoint(state, course, tuning)
 		if state.run_phase == RiderState.RunPhase.FLIGHT and remaining_delta > 0.0:
 			_step_flight(state, course, tuning, remaining_delta)
+		elif state.run_phase == RiderState.RunPhase.LANDING and remaining_delta > 0.0:
+			_step_landing(state, course, tuning, remaining_delta)
 
 
 func _turn_toward_input(
@@ -149,7 +153,7 @@ func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) 
 	return -1.0
 
 
-func _cross_approach_endpoint(state: RiderState, course: ParkCourse) -> void:
+func _cross_approach_endpoint(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> void:
 	var route_index := clampi(
 		roundi(state.approach_path_position), 0, course.approach_paths.size() - 1
 	)
@@ -163,18 +167,22 @@ func _cross_approach_endpoint(state: RiderState, course: ParkCourse) -> void:
 	state.vertical_position = lip.y
 	_clear_approach_controls(state)
 	if course.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
-		_begin_flight(state, course, route_index)
+		_begin_flight(state, course, tuning, route_index)
 	else:
-		state.run_phase = RiderState.RunPhase.LANDING
-		state.current_surface_id = &"landing"
+		_begin_ground_runout(state, course)
 
 
-func _begin_flight(state: RiderState, course: ParkCourse, route_index: int) -> void:
+func _begin_flight(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, route_index: int
+) -> void:
 	var lip_progress := state.course_progress
 	var tangent := course.route_lip_tangent(route_index)
 	var normal := course.route_lip_normal(route_index)
 	var surface_speed := state.ground_velocity.x / maxf(tangent.x, 0.001)
 	var takeoff_velocity := tangent * surface_speed
+	if takeoff_velocity.y < 0.0:
+		takeoff_velocity.y *= tuning.flight_arc_height_multiplier
+	takeoff_velocity.x = minf(takeoff_velocity.x, tuning.maximum_takeoff_course_speed)
 	state.run_phase = RiderState.RunPhase.FLIGHT
 	state.current_surface_id = &"flight"
 	state.takeoff_position = Vector2(lip_progress, state.vertical_position)
@@ -200,32 +208,212 @@ func _begin_flight(state: RiderState, course: ParkCourse, route_index: int) -> v
 
 func _step_flight(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
 	var flight_delta := delta * tuning.air_time_scale
-	state.vertical_speed += tuning.gravity * flight_delta
+	var previous_position := Vector2(state.course_progress, state.vertical_position)
+	var previous_lane_position := state.lane_position
+	var previous_course_speed := state.course_speed
+	var previous_lane_speed := state.lane_speed
+	var previous_vertical_speed := state.vertical_speed
+	var next_vertical_speed := (
+		previous_vertical_speed
+		+ tuning.gravity * tuning.flight_arc_height_multiplier * flight_delta
+	)
 	var drag_factor := maxf(0.0, 1.0 - tuning.air_drag * flight_delta)
-	state.course_speed *= drag_factor
-	state.lane_speed *= drag_factor
-	state.vertical_speed *= drag_factor
-	state.course_progress += state.course_speed * flight_delta
-	state.lane_position += state.lane_speed * flight_delta
-	state.vertical_position += state.vertical_speed * flight_delta
+	var next_course_speed := previous_course_speed * drag_factor
+	var next_lane_speed := previous_lane_speed * drag_factor
+	next_vertical_speed *= drag_factor
+	var next_position := (
+		previous_position + Vector2(next_course_speed, next_vertical_speed) * flight_delta
+	)
+	var next_lane_position := previous_lane_position + next_lane_speed * flight_delta
+	var contact := course.landing_swept_terrain_intersection(
+		previous_position, next_position, state.active_route_index
+	)
+	if not contact.is_empty():
+		var contact_time := float(contact["time"])
+		state.course_speed = lerpf(previous_course_speed, next_course_speed, contact_time)
+		state.lane_speed = lerpf(previous_lane_speed, next_lane_speed, contact_time)
+		state.vertical_speed = lerpf(previous_vertical_speed, next_vertical_speed, contact_time)
+		state.lane_position = lerpf(previous_lane_position, next_lane_position, contact_time)
+		state.airtime += flight_delta * contact_time
+		_resolve_landing_contact(state, contact)
+		var remaining_delta := delta * (1.0 - contact_time)
+		if remaining_delta > 0.0:
+			_step_landing(state, course, tuning, remaining_delta)
+		return
+	state.course_speed = next_course_speed
+	state.lane_speed = next_lane_speed
+	state.vertical_speed = next_vertical_speed
+	state.course_progress = next_position.x
+	state.lane_position = next_lane_position
+	state.vertical_position = next_position.y
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
 	state.airtime += flight_delta
-	if _flight_is_out_of_bounds(state, course, tuning):
-		_end_missed_flight(state)
+	if _flight_has_overshot_landing(state, course):
+		_end_missed_flight(state, tuning)
+	elif _flight_should_abandon(state, course):
+		_begin_abandoned_runout(state, course)
 
 
-func _flight_is_out_of_bounds(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> bool:
+func _resolve_landing_contact(state: RiderState, contact: Dictionary) -> void:
+	if state.landing_resolved:
+		return
+	var contact_position: Vector2 = contact["position"]
+	var tangent: Vector2 = contact["tangent"]
+	var normal: Vector2 = contact["normal"]
+	var flight_velocity := Vector2(state.course_speed, state.vertical_speed)
+	var landing_speed := maxf(flight_velocity.dot(tangent), 0.0)
+	state.run_phase = RiderState.RunPhase.LANDING
+	state.landing_outcome = RiderState.LandingOutcome.CLEAN
+	state.current_surface_id = &"landing"
+	state.landing_resolved = true
+	state.landing_label = "CLEAN"
+	state.landing_quality = 1.0
+	state.landing_position = contact_position
+	state.landing_tangent = tangent
+	state.landing_normal = normal
+	state.landing_velocity_alignment = flight_velocity.normalized().dot(tangent)
+	state.landing_normal_impact = absf(flight_velocity.dot(normal))
+	state.landing_in_zone = true
+	state.course_progress = contact_position.x
+	state.vertical_position = contact_position.y
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.ground_velocity = Vector2(landing_speed * tangent.x, 0.0)
+	state.course_speed = state.ground_velocity.x
+	state.lane_speed = 0.0
+	state.vertical_speed = 0.0
+	state.orientation = tangent.angle()
+	state.angular_velocity = 0.0
+	state.completion_time_remaining = 0.0
+
+
+func _begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
+	var tangent := course.landing_tangent_at(state.course_progress, state.active_route_index)
+	state.run_phase = RiderState.RunPhase.LANDING
+	state.landing_outcome = RiderState.LandingOutcome.ABANDON
+	state.current_surface_id = &"landing"
+	state.landing_resolved = true
+	state.landing_label = "ABANDON"
+	state.landing_quality = 0.0
+	state.landing_position = Vector2(state.course_progress, state.vertical_position)
+	state.landing_tangent = tangent
+	state.landing_normal = Vector2(tangent.y, -tangent.x)
+	state.landing_in_zone = false
+	state.vertical_speed = 0.0
+	state.orientation = tangent.angle()
+	state.angular_velocity = 0.0
+	state.completion_time_remaining = 0.0
+
+
+func _begin_abandoned_runout(state: RiderState, course: ParkCourse) -> void:
 	var landing_path := course.landing_paths[state.active_route_index]
-	if state.course_progress > landing_path[-1].x:
-		return true
-	var maximum_landing_y := landing_path[0].y
-	for point in landing_path:
-		maximum_landing_y = maxf(maximum_landing_y, point.y)
-	return state.vertical_position > maximum_landing_y + tuning.flight_bounds_margin
+	var lip_progress := course.approach_paths[state.active_route_index][-1].x
+	state.course_progress = clampf(state.course_progress, lip_progress, landing_path[-1].x)
+	state.vertical_position = course.flight_abandon_trigger_y_at(
+		state.course_progress, state.active_route_index
+	)
+	var tangent := _abandon_tangent_at(state, course)
+	var forward_speed := maxf(Vector2(state.course_speed, state.vertical_speed).dot(tangent), 0.0)
+	state.run_phase = RiderState.RunPhase.LANDING
+	state.landing_outcome = RiderState.LandingOutcome.ABANDON
+	state.current_surface_id = &"abandon"
+	state.landing_resolved = true
+	state.landing_label = "ABANDON"
+	state.landing_quality = 0.0
+	state.landing_position = Vector2(state.course_progress, state.vertical_position)
+	state.landing_tangent = tangent
+	state.landing_normal = Vector2(tangent.y, -tangent.x)
+	state.landing_in_zone = false
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.ground_velocity = Vector2(forward_speed * tangent.x, 0.0)
+	state.course_speed = state.ground_velocity.x
+	state.lane_speed = 0.0
+	state.vertical_speed = 0.0
+	state.orientation = tangent.angle()
+	state.angular_velocity = 0.0
+	state.completion_time_remaining = 0.0
 
 
-func _end_missed_flight(state: RiderState) -> void:
+func _step_landing(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	if state.landing_outcome == RiderState.LandingOutcome.CRASH:
+		state.completion_time_remaining = maxf(state.completion_time_remaining - delta, 0.0)
+		if is_zero_approx(state.completion_time_remaining):
+			_complete_run(state)
+		return
+	var runout_end := course.landing_end_at(state.active_route_index)
+	if state.course_progress >= runout_end.x:
+		_complete_run(state)
+		return
+	var tangent := _runout_tangent_at(state, course)
+	var progress_speed := maxf(state.ground_velocity.x, 0.0)
+	progress_speed += tuning.slope_gravity * tangent.y * delta
+	progress_speed = move_toward(progress_speed, 0.0, tuning.runout_drag * delta)
+	progress_speed = maxf(progress_speed, tuning.minimum_runout_speed)
+	state.course_progress = minf(state.course_progress + progress_speed * delta, runout_end.x)
+	state.vertical_position = _runout_surface_y_at(state, course)
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	tangent = _runout_tangent_at(state, course)
+	state.orientation = tangent.angle()
+	state.ground_velocity = Vector2(progress_speed, 0.0)
+	state.course_speed = progress_speed
+	state.lane_speed = 0.0
+	state.vertical_speed = 0.0
+	if is_equal_approx(state.course_progress, runout_end.x):
+		_complete_run(state)
+
+
+func _runout_surface_y_at(state: RiderState, course: ParkCourse) -> float:
+	if state.current_surface_id == &"abandon":
+		return course.flight_abandon_trigger_y_at(state.course_progress, state.active_route_index)
+	return course.landing_surface_y_at(state.course_progress, state.active_route_index)
+
+
+func _runout_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
+	if state.current_surface_id == &"abandon":
+		return _abandon_tangent_at(state, course)
+	return course.landing_tangent_at(state.course_progress, state.active_route_index)
+
+
+func _abandon_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
+	var route_index := state.active_route_index
+	var start_x := course.approach_paths[route_index][-1].x
+	var end_x := course.landing_paths[route_index][-1].x
+	var before_x := maxf(state.course_progress - 1.0, start_x)
+	var after_x := minf(state.course_progress + 1.0, end_x)
+	if is_equal_approx(before_x, after_x):
+		return Vector2.RIGHT
+	var before_y := course.flight_abandon_trigger_y_at(before_x, route_index)
+	var after_y := course.flight_abandon_trigger_y_at(after_x, route_index)
+	return Vector2(after_x - before_x, after_y - before_y).normalized()
+
+
+func _complete_run(state: RiderState) -> void:
+	state.run_phase = RiderState.RunPhase.COMPLETE
+	state.ground_velocity = Vector2.ZERO
+	state.course_speed = 0.0
+	state.lane_speed = 0.0
+	state.vertical_speed = 0.0
+	state.completion_time_remaining = 0.0
+
+
+func _flight_has_overshot_landing(state: RiderState, course: ParkCourse) -> bool:
+	var landing_path := course.landing_paths[state.active_route_index]
+	return state.course_progress > landing_path[-1].x
+
+
+func _flight_should_abandon(state: RiderState, course: ParkCourse) -> bool:
+	return (
+		state.vertical_speed > 0.0
+		and (
+			state.vertical_position
+			> course.flight_abandon_trigger_y_at(state.course_progress, state.active_route_index)
+		)
+	)
+
+
+func _end_missed_flight(state: RiderState, tuning: RiderTuning) -> void:
 	state.run_phase = RiderState.RunPhase.LANDING
 	state.landing_outcome = RiderState.LandingOutcome.CRASH
 	state.current_surface_id = &"landing"
@@ -233,6 +421,7 @@ func _end_missed_flight(state: RiderState) -> void:
 	state.landing_label = "CRASH"
 	state.landing_quality = 0.0
 	state.landing_position = Vector2(state.course_progress, state.vertical_position)
+	state.completion_time_remaining = tuning.crash_completion_delay
 	state.ground_velocity = Vector2.ZERO
 	state.course_speed = 0.0
 	state.lane_speed = 0.0

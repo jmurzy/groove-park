@@ -6,15 +6,18 @@ extends Resource
 enum RouteKind { FLIGHT, GROUND_RUNOUT }
 
 const ROUTE_COUNT := 3
+const FLIGHT_ABANDON_CLEARANCE := 0.0
+const FLIGHT_ABANDON_CURVE_SEGMENTS := 24
+const FLIGHT_ABANDON_TRIGGER_RATIO := 0.5
 
 @export var course_version := "park-course-v2"
 ## Three editor-authored routes ordered top-to-bottom.
 @export var approach_paths: Array[PackedVector2Array] = []
-## Matching landing/runout routes. Flight routes leave an intentional gap
-## between the approach endpoint (the lip) and the landing path.
+## Matching landing/runout routes ordered top-to-bottom.
 @export var landing_paths: Array[PackedVector2Array] = []
 @export
 var route_kinds: Array[RouteKind] = [RouteKind.FLIGHT, RouteKind.FLIGHT, RouteKind.GROUND_RUNOUT]
+@export var flight_abandon_y := 624.0
 @export var lane_min := -360.0
 @export var lane_max := 360.0
 
@@ -88,11 +91,6 @@ func route_tangent_at(course_progress: float, route_position: float) -> Vector2:
 	return Vector2(1.0, route_gradient_at(course_progress, route_position, 1.0)).normalized()
 
 
-func route_normal_at(course_progress: float, route_position: float) -> Vector2:
-	var tangent := route_tangent_at(course_progress, route_position)
-	return Vector2(tangent.y, -tangent.x)
-
-
 func route_lip_tangent(route_index: int) -> Vector2:
 	var path := approach_paths[clampi(route_index, 0, approach_paths.size() - 1)]
 	return (path[-1] - path[-2]).normalized()
@@ -126,15 +124,57 @@ func landing_end_at(route_index: int) -> Vector2:
 	return landing_paths[clampi(route_index, 0, landing_paths.size() - 1)][-1]
 
 
+func flight_miss_boundary_y_at(course_progress: float, route_index: int) -> float:
+	return _path_surface_y_at(flight_miss_boundary_points(route_index), course_progress)
+
+
+func flight_miss_boundary_points(route_index: int) -> PackedVector2Array:
+	var clamped_index := clampi(route_index, 0, landing_paths.size() - 1)
+	var landing_path := landing_paths[clamped_index]
+	var points := PackedVector2Array([approach_paths[clamped_index][-1]])
+	points.append_array(landing_path)
+	return points
+
+
+func _flight_abandon_y_at(route_index: int) -> float:
+	var landing_path := landing_paths[clampi(route_index, 0, landing_paths.size() - 1)]
+	var lowest_landing_y := landing_path[0].y
+	for point in landing_path:
+		lowest_landing_y = maxf(lowest_landing_y, point.y)
+	return maxf(flight_abandon_y, lowest_landing_y + FLIGHT_ABANDON_CLEARANCE)
+
+
+func flight_abandon_floor_points(route_index: int) -> PackedVector2Array:
+	var miss_boundary := flight_miss_boundary_points(route_index)
+	var abandon_floor := PackedVector2Array()
+	var start := miss_boundary[0]
+	var end := Vector2(miss_boundary[-1].x, _flight_abandon_y_at(route_index))
+	var span := end - start
+	for sample_index in range(FLIGHT_ABANDON_CURVE_SEGMENTS + 1):
+		var angle := float(sample_index) / FLIGHT_ABANDON_CURVE_SEGMENTS * PI * 0.5
+		abandon_floor.append(
+			Vector2(start.x + span.x * (1.0 - cos(angle)), start.y + span.y * sin(angle))
+		)
+	return abandon_floor
+
+
+func flight_abandon_floor_y_at(course_progress: float, route_index: int) -> float:
+	return _path_surface_y_at(flight_abandon_floor_points(route_index), course_progress)
+
+
+func flight_abandon_trigger_y_at(course_progress: float, route_index: int) -> float:
+	return lerpf(
+		flight_miss_boundary_y_at(course_progress, route_index),
+		flight_abandon_floor_y_at(course_progress, route_index),
+		FLIGHT_ABANDON_TRIGGER_RATIO
+	)
+
+
 func route_end_at(route_position: float) -> float:
 	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
 	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
 	var blend := clampf(route_position - lower_index, 0.0, 1.0)
 	return lerpf(approach_paths[lower_index][-1].x, approach_paths[upper_index][-1].x, blend)
-
-
-func lane_bounds_at(_course_progress: float) -> Vector2:
-	return Vector2(lane_min, lane_max)
 
 
 func route_start_at(route_position: float) -> float:
@@ -147,7 +187,7 @@ func route_start_at(route_position: float) -> float:
 func landing_swept_terrain_intersection(
 	previous_position: Vector2, next_position: Vector2, route_index: int
 ) -> Dictionary:
-	# Only landing geometry participates, so a flight route has no collision across its gap.
+	# Only explicitly authored landing segments participate in flight collision.
 	if next_position.x <= previous_position.x:
 		return {}
 	if route_index < 0 or route_index >= landing_paths.size():

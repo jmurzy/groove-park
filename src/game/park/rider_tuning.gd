@@ -27,10 +27,11 @@ extends Resource
 @export var maximum_compression := 1.0
 @export var pop_release_window := 220.0
 @export var maximum_pop_impulse := 260.0
+@export var flight_arc_height_multiplier := 1.25
+@export var maximum_takeoff_course_speed := 500.0
 @export var gravity := 980.0
 @export var air_drag := 0.05
 @export var air_time_scale := 0.72
-@export var flight_bounds_margin := 240.0
 @export var air_torque := 25.0
 @export var maximum_angular_velocity := 12.0
 @export var air_angular_damping := 1.2
@@ -52,6 +53,9 @@ extends Resource
 @export var minimum_landing_alignment := 0.35
 @export var landing_recovery_duration := 0.45
 @export var sketchy_recovery_duration := 0.9
+@export var runout_drag := 48.0
+@export var minimum_runout_speed := 120.0
+@export var crash_completion_delay := 1.2
 @export var score_approach_speed_cap := 900.0
 @export var score_approach_max := 250
 @export var score_takeoff_max := 175

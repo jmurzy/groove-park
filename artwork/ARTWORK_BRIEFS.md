@@ -24,7 +24,7 @@ Generate one approval sample before each complete set. Keep approved rider desig
 
 **Asset: `heavenly_big_air_course_set`**
 
-> Using the relevant attached HEAVENLY reference images from the `artwork/` folder, create modular side-view pixel-art snow terrain for three big-air features: a forgiving table jump, a long technical gap, and an Olympic-scale final kicker. Include separate approach, lip, knuckle, landing, and runout pieces with quiet snow texture and readable edges. Deliver tile-compatible PNG layers without riders, crowds, logos, text, UI, collision guides, scanlines, or CRT effect.
+> Using the relevant attached HEAVENLY reference images from the `artwork/` folder, create modular side-view pixel-art snow terrain for three big-air features: a forgiving table jump, a long technical jump, and an Olympic-scale final kicker. Include separate approach, lip, knuckle, landing, and runout pieces with quiet snow texture and readable edges. Deliver tile-compatible PNG layers without riders, crowds, logos, text, UI, collision guides, scanlines, or CRT effect.
 
 **Asset: `heavenly_park_dressing_set`**
 

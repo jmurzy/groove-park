@@ -50,6 +50,10 @@ func is_crashed() -> bool:
 	return rider_state.landing_outcome == RiderState.LandingOutcome.CRASH
 
 
+func is_complete() -> bool:
+	return rider_state.run_phase == RiderState.RunPhase.COMPLETE
+
+
 func _reset_skier_state(course: ParkCourse) -> void:
 	skier_state = RiderState.new()
 	skier_state.approach_path_target = 1
