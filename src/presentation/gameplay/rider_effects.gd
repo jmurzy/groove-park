@@ -25,7 +25,7 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, 38.0 + height * 0.05, Color(0.0, 0.05, 0.12, shadow_alpha))
 	draw_set_transform(Vector2.ZERO)
 
-	if _state.phase != RiderState.Phase.GROUNDED or _state.ground_velocity.length() < 45.0:
+	if _state.run_phase != RiderState.RunPhase.APPROACH or _state.ground_velocity.length() < 45.0:
 		return
 	var spray_strength := 0.0
 	if _state.brake_active:

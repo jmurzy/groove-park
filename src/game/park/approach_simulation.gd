@@ -17,9 +17,7 @@ func step(
 		_stop_at_approach_edge(state)
 		return
 
-	state.phase = RiderState.Phase.GROUNDED
-	state.current_control_zone_id = &"approach"
-	state.control_mode = RiderState.ControlMode.APPROACH
+	state.run_phase = RiderState.RunPhase.APPROACH
 	state.current_surface_id = StringName()
 	var steering_heading := Vector2(input.heading.x, 0.0)
 	# The approach only permits downhill and across-slope steering, never uphill travel.

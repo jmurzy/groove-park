@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1, landing-path authoring, is complete. Runtime gameplay remains approach-only while the remaining milestones are implemented and tested one at a time.
+Milestones 1 and 2 are complete. Runtime gameplay remains approach-only while the remaining milestones are implemented and tested one at a time.
 
 ## Goal
 
@@ -490,14 +490,15 @@ Acceptance:
 - Swept collision ignores empty gaps and detects landing geometry.
 - Existing approach simulation tests continue to pass.
 
-### Milestone 2: Run State Model
+### Milestone 2: Run State Model - Complete
 
 Implementation:
 
-- Add `RunPhase` and `LandingOutcome`.
-- Migrate presentation checks from old motion phases.
-- Remove `ControlMode` and control-zone state after all references are replaced.
-- Keep runtime behavior approach-only during this milestone.
+- Added `RunPhase` and `LandingOutcome`.
+- Migrated simulation, manager, effects, and rider presentation to the new lifecycle state.
+- Removed `MotionPhase`, `ControlMode`, and control-zone state after replacing all references.
+- Added setup, crash-status, and reset coverage for both managed riders.
+- Kept runtime behavior approach-only during this milestone.
 
 Automated acceptance:
 

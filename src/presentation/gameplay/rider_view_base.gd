@@ -30,7 +30,9 @@ func play_preview(animation_name: StringName) -> void:
 
 func update_from_state(state: RiderState, world_position: Vector2, ground_rotation: float) -> void:
 	position = world_position
-	rotation = state.orientation if state.phase == RiderState.Phase.AIRBORNE else ground_rotation
+	rotation = (
+		state.orientation if state.run_phase == RiderState.RunPhase.FLIGHT else ground_rotation
+	)
 	if state.landing_resolved or is_playing_landing_animation():
 		play_landing_animation(_landing_animation_for_state(state))
 		return
@@ -40,22 +42,16 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 
 
 func _landing_animation_for_state(state: RiderState) -> StringName:
-	if state.phase == RiderState.Phase.CRASHED:
+	if state.landing_outcome == RiderState.LandingOutcome.CRASH:
 		return &"crash"
-	if state.phase == RiderState.Phase.RECOVERING:
+	if state.landing_outcome == RiderState.LandingOutcome.SKETCHY:
 		return &"sketchy_recovery"
 	return &"celebration"
 
 
 func _animation_for_state(state: RiderState) -> StringName:
 	var animation: StringName = &"neutral_glide"
-	if state.phase == RiderState.Phase.CRASHED:
-		animation = &"crash"
-	elif state.phase == RiderState.Phase.RECOVERING:
-		animation = &"sketchy_recovery"
-	elif state.phase == RiderState.Phase.LANDED:
-		animation = &"deep_landing"
-	elif state.phase == RiderState.Phase.AIRBORNE:
+	if state.run_phase == RiderState.RunPhase.FLIGHT:
 		if state.airtime < 0.12:
 			animation = &"takeoff_extension"
 		elif state.landing_prep_active:
@@ -68,6 +64,14 @@ func _animation_for_state(state: RiderState) -> StringName:
 			animation = &"grab_hold"
 		else:
 			animation = &"neutral_air"
+	elif state.run_phase == RiderState.RunPhase.LANDING:
+		match state.landing_outcome:
+			RiderState.LandingOutcome.CRASH:
+				animation = &"crash"
+			RiderState.LandingOutcome.SKETCHY:
+				animation = &"sketchy_recovery"
+			_:
+				animation = &"deep_landing"
 	elif state.compression_active:
 		animation = &"compression"
 	elif state.tuck_active:

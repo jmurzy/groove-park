@@ -4,20 +4,17 @@
 class_name RiderState
 extends RefCounted
 
-enum Phase {
-	GROUNDED = RiderRunState.MotionPhase.GROUNDED,
-	AIRBORNE = RiderRunState.MotionPhase.AIRBORNE,
-	LANDED = RiderRunState.MotionPhase.LANDED,
-	CRASHED = RiderRunState.MotionPhase.CRASHED,
-	RECOVERING = RiderRunState.MotionPhase.RECOVERING,
+enum RunPhase {
+	APPROACH = RiderRunState.RunPhase.APPROACH,
+	FLIGHT = RiderRunState.RunPhase.FLIGHT,
+	LANDING = RiderRunState.RunPhase.LANDING,
+	COMPLETE = RiderRunState.RunPhase.COMPLETE,
 }
-enum ControlMode {
-	APPROACH = RiderRunState.ControlMode.APPROACH,
-	COMPRESSION = RiderRunState.ControlMode.COMPRESSION,
-	TAKEOFF = RiderRunState.ControlMode.TAKEOFF,
-	FLIGHT = RiderRunState.ControlMode.FLIGHT,
-	LANDING = RiderRunState.ControlMode.LANDING,
-	RUNOUT = RiderRunState.ControlMode.RUNOUT,
+enum LandingOutcome {
+	NONE = RiderRunState.LandingOutcome.NONE,
+	CLEAN = RiderRunState.LandingOutcome.CLEAN,
+	SKETCHY = RiderRunState.LandingOutcome.SKETCHY,
+	CRASH = RiderRunState.LandingOutcome.CRASH,
 }
 
 var kinematics := RiderKinematics.new()
@@ -85,26 +82,21 @@ var desired_heading: Vector2:
 	set(value):
 		kinematics.desired_heading = value
 
-var phase: int:
+var run_phase: int:
 	get:
-		return run.motion_phase
+		return run.run_phase
 	set(value):
-		run.motion_phase = value
+		run.run_phase = value
+var landing_outcome: int:
+	get:
+		return run.landing_outcome
+	set(value):
+		run.landing_outcome = value
 var current_surface_id: StringName:
 	get:
 		return run.current_surface_id
 	set(value):
 		run.current_surface_id = value
-var current_control_zone_id: StringName:
-	get:
-		return run.current_control_zone_id
-	set(value):
-		run.current_control_zone_id = value
-var control_mode: int:
-	get:
-		return run.control_mode
-	set(value):
-		run.control_mode = value
 var has_ground_intent: bool:
 	get:
 		return run.has_ground_intent

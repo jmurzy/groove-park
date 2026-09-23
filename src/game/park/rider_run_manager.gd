@@ -47,7 +47,7 @@ func reset_run(course: ParkCourse) -> void:
 
 
 func is_crashed() -> bool:
-	return rider_state.phase == RiderState.Phase.CRASHED
+	return rider_state.landing_outcome == RiderState.LandingOutcome.CRASH
 
 
 func _reset_skier_state(course: ParkCourse) -> void:
