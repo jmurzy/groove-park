@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 5 are complete. Every shipped route now has a deterministic start-to-finish movement loop; compression, grabs, rotations, and final landing judgment remain incremental later milestones.
+Milestones 1 through 6 are complete. Grabs, rotations, and final landing judgment remain incremental later milestones.
 
 ## Goal
 
@@ -45,7 +45,7 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 - X charges compression inside a configurable pre-lip window.
 - Releasing near the lip converts charge and timing quality into upward pop.
 - Reaching the lip without compression still launches from ramp geometry.
-- Holding X through the lip auto-releases the stored compression at takeoff.
+- Holding X through the lip auto-releases the stored compression at takeoff with 70% timing quality.
 - A held approach button never activates a grab in flight; grab activation requires a fresh press after takeoff.
 
 ### Flight
@@ -600,15 +600,17 @@ Manual acceptance:
 
 - Every route now has a complete start-to-finish loop.
 
-### Milestone 6: Compression and Pop
+### Milestone 6: Compression and Pop - Complete
 
 Implementation:
 
-- Activate compression only within the pre-lip window.
-- Charge while X is held.
-- Record release timing quality.
-- Add pop impulse along the lip normal.
-- Auto-release held compression at the lip.
+- Activated compression only within the configurable pre-lip window.
+- Charged compression while X is held, capped at the configured maximum.
+- Recorded release progress and distance-based timing quality.
+- Added normalized pop impulse along the authored lip normal.
+- Auto-released held compression at the exact lip with 70% timing quality.
+- Kept X compression separate from the future B tweak-grab intent.
+- Added flashing compression feedback in a second marker below the rider.
 
 Automated acceptance:
 
@@ -616,6 +618,7 @@ Automated acceptance:
 - Charge caps at the configured maximum.
 - No compression still permits takeoff.
 - Ideal release produces the maximum configured pop.
+- Held-through-lip auto-release preserves charge with reduced timing quality.
 - Held X does not activate a flight grab without a fresh press.
 
 Manual acceptance:

@@ -12,13 +12,16 @@ const MISS_ZONE_FILL := Color("ff304580")
 const MISS_ZONE_LINE := Color("ff5d52dd")
 const ABANDON_FLOOR_LINE := Color("fff16add")
 const ABANDON_TRIGGER_LINE := Color("ffffffff")
+const COMPRESSION_FILL_ALPHA := 0.28
+const COMPRESSION_ACTIVE_ALPHA := 0.72
 
 
 static func draw_course_debug(
 	canvas: CanvasItem,
 	projection: ParkProjection,
 	background_size: Vector2,
-	active_route_index: int
+	active_route_index: int,
+	compression_window_distance: float
 ) -> void:
 	var course := projection.course
 	var world_bounds := Rect2(Vector2.ZERO, background_size)
@@ -27,6 +30,7 @@ static func draw_course_debug(
 	_draw_grid(canvas, world_bounds)
 	_draw_abandon_zone(canvas, course, world_bounds, active_route_index)
 	_draw_paths(canvas, course.approach_paths, APPROACH_PATH_NAMES, 6.0)
+	_draw_compression_windows(canvas, course, active_route_index, compression_window_distance)
 	_draw_paths(canvas, course.landing_paths, LANDING_PATH_NAMES, 5.0)
 	_draw_route_transitions(canvas, course)
 
@@ -103,6 +107,38 @@ static func _draw_route_transitions(canvas: CanvasItem, course: ParkCourse) -> v
 			(approach_end + landing_start) * 0.5 + Vector2(0, -18),
 			"GROUND JOIN",
 			HORIZONTAL_ALIGNMENT_CENTER,
+			-1.0,
+			14.0,
+			color
+		)
+
+
+static func _draw_compression_windows(
+	canvas: CanvasItem, course: ParkCourse, active_route_index: int, window_distance: float
+) -> void:
+	if window_distance <= 0.0:
+		return
+	for route_index in course.approach_paths.size():
+		var path := course.approach_paths[route_index]
+		if path.size() < 2:
+			continue
+		var lip := path[-1]
+		var start_x := maxf(path[0].x, lip.x - window_distance)
+		var start := Vector2(start_x, course.route_surface_y_at(start_x, float(route_index)))
+		var points := PackedVector2Array([start])
+		for point in path:
+			if point.x > start_x:
+				points.append(point)
+		var color: Color = APPROACH_PATH_COLORS[route_index % APPROACH_PATH_COLORS.size()]
+		var is_active := route_index == active_route_index
+		color.a = COMPRESSION_ACTIVE_ALPHA if is_active else COMPRESSION_FILL_ALPHA
+		canvas.draw_polyline(points, color, 18.0 if is_active else 12.0)
+		canvas.draw_dashed_line(start + Vector2(0, -28), start + Vector2(0, 28), color, 3.0, 7.0)
+		canvas.draw_string(
+			ThemeDB.fallback_font,
+			start + Vector2(10, -24),
+			"COMPRESSION",
+			HORIZONTAL_ALIGNMENT_LEFT,
 			-1.0,
 			14.0,
 			color

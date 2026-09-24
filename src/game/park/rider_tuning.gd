@@ -23,8 +23,9 @@ extends Resource
 @export var lane_boundary_damping := 6.0
 @export var compression_rate := 1.8
 @export var maximum_compression := 1.0
-@export var pop_release_window := 220.0
+@export var compression_window_distance := 220.0
 @export var maximum_pop_impulse := 260.0
+@export_range(0.0, 1.0) var compression_auto_release_quality := 0.7
 @export var flight_arc_height_multiplier := 1.25
 @export var maximum_takeoff_course_speed := 500.0
 @export var gravity := 980.0

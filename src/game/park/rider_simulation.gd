@@ -44,6 +44,7 @@ func _step_approach(
 	state.brake_active = input.brake_pressed or left_braking
 	state.edge_active = not downhill_held and not state.ground_velocity.is_zero_approx()
 	_update_approach_path(state, input, course, tuning, delta)
+	_update_compression(state, input, course, tuning, delta)
 
 	if not steering_heading.is_zero_approx():
 		state.desired_heading = steering_heading
@@ -128,6 +129,44 @@ func _apply_approach_forces(
 		_stop_at_approach_edge(state)
 
 
+func _update_compression(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	var distance_to_lip := maxf(_approach_end(state, course) - state.course_progress, 0.0)
+	var in_window := distance_to_lip <= maxf(tuning.compression_window_distance, 0.0)
+	if input.pop_pressed and in_window and not state.compression_active:
+		state.compression_active = true
+		if input.pop_just_pressed:
+			state.compression_amount = 0.0
+			state.compression_release_progress = -1.0
+			state.compression_release_quality = 0.0
+			state.compression_auto_released = false
+	if state.compression_active and input.pop_pressed:
+		state.compression_amount = minf(
+			state.compression_amount + tuning.compression_rate * delta,
+			maxf(tuning.maximum_compression, 0.0)
+		)
+	if state.compression_active and input.pop_just_released:
+		_release_compression(state, course, tuning, state.course_progress)
+
+
+func _release_compression(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, release_progress: float
+) -> void:
+	state.compression_active = false
+	state.compression_auto_released = false
+	state.compression_release_progress = release_progress
+	var window_distance := maxf(tuning.compression_window_distance, 0.0)
+	if is_zero_approx(window_distance):
+		state.compression_release_quality = (
+			1.0 if is_equal_approx(release_progress, _approach_end(state, course)) else 0.0
+		)
+		return
+	state.compression_release_quality = clampf(
+		1.0 - (_approach_end(state, course) - release_progress) / window_distance, 0.0, 1.0
+	)
+
+
 func _move_within_approach(state: RiderState, course: ParkCourse, delta: float) -> float:
 	var next_position := (
 		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
@@ -159,6 +198,12 @@ func _cross_approach_endpoint(state: RiderState, course: ParkCourse, tuning: Rid
 	state.lane_position = 0.0
 	state.ground_position = Vector2(lip.x, 0.0)
 	state.vertical_position = lip.y
+	if state.compression_active:
+		_release_compression(state, course, tuning, lip.x)
+		state.compression_auto_released = true
+		state.compression_release_quality = clampf(
+			tuning.compression_auto_release_quality, 0.0, 1.0
+		)
 	_clear_approach_controls(state)
 	if course.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
 		_begin_flight(state, course, tuning, route_index)
@@ -177,6 +222,13 @@ func _begin_flight(
 	if takeoff_velocity.y < 0.0:
 		takeoff_velocity.y *= tuning.flight_arc_height_multiplier
 	takeoff_velocity.x = minf(takeoff_velocity.x, tuning.maximum_takeoff_course_speed)
+	var charge_fraction := 0.0
+	if tuning.maximum_compression > 0.0:
+		charge_fraction = clampf(state.compression_amount / tuning.maximum_compression, 0.0, 1.0)
+	var pop_impulse := (
+		charge_fraction * state.compression_release_quality * tuning.maximum_pop_impulse
+	)
+	takeoff_velocity += normal * pop_impulse
 	state.run_phase = RiderState.RunPhase.FLIGHT
 	state.current_surface_id = &"flight"
 	state.takeoff_position = Vector2(lip_progress, state.vertical_position)
@@ -184,7 +236,7 @@ func _begin_flight(
 	state.takeoff_course_speed = takeoff_velocity.x
 	state.takeoff_lane_speed = state.ground_velocity.y
 	state.takeoff_vertical_speed = takeoff_velocity.y
-	state.takeoff_pop_impulse = 0.0
+	state.takeoff_pop_impulse = pop_impulse
 	state.takeoff_tangent = tangent
 	state.takeoff_normal = normal
 	state.release_deadline_y = state.vertical_position
@@ -283,6 +335,7 @@ func _resolve_landing_contact(state: RiderState, contact: Dictionary) -> void:
 
 func _begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
 	var tangent := course.landing_tangent_at(state.course_progress, state.active_route_index)
+	state.takeoff_pop_impulse = 0.0
 	state.run_phase = RiderState.RunPhase.LANDING
 	state.landing_outcome = RiderState.LandingOutcome.ABANDON
 	state.current_surface_id = &"landing"

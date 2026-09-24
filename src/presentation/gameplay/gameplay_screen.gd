@@ -53,7 +53,7 @@ func _ready() -> void:
 	_hud_presenter.build(_ui_layer, game_session.player_count)
 	_world_presenter = ParkWorldPresenterScene.new()
 	add_child(_world_presenter)
-	_world_presenter.setup(_course, show_terrain)
+	_world_presenter.setup(_course, show_terrain, _rider_tuning.compression_window_distance)
 	_world_presenter.update_from_run(_run_manager, 0.0, _hud_presenter.is_occluded)
 	_update_hud_occlusion()
 	_pause_flow = PauseFlowControllerScene.new()

@@ -10,36 +10,44 @@ const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboard
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
+const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const ParkDebugOverlayScene := preload("res://src/presentation/gameplay/park_debug_overlay.gd")
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const FLIGHT_CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 640.0, DESIGN_SIZE.y / 640.0)
 const CAMERA_ZOOM_RESPONSE := 3.5
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
+const PERFORMANCE_MARKER_BOTTOM_OFFSET := Vector2(0, 30)
 
 var course: ParkCourse
 var show_terrain := false
+var compression_window_distance := 0.0
 var _snowboarder: SnowboarderView
 var _skier: SkierView
 var _rider_marker: RiderMarker
+var _performance_marker: PerformanceMarker
 var _rider_effects: RiderEffects
 var _camera: Camera2D
 var _projection: ParkProjection
 var _debug_overlay: ParkDebugOverlay
+var _observed_compression_release_progress := -1.0
 
 
-func setup(next_course: ParkCourse, next_show_terrain: bool) -> void:
+func setup(
+	next_course: ParkCourse, next_show_terrain: bool, next_compression_window_distance: float
+) -> void:
 	name = "ParkWorld"
 	z_index = -1
 	course = next_course
 	_projection = ParkProjectionScene.new(course)
 	show_terrain = next_show_terrain
+	compression_window_distance = next_compression_window_distance
 	_build_world()
 
 
 func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: Callable) -> void:
 	_update_rider_views(run_manager)
-	_update_rider_marker(run_manager, hud_occlusion)
+	_update_rider_marker(run_manager, hud_occlusion, delta)
 	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
 	_update_debug_overlay(run_manager.rider_state)
 	_update_camera(run_manager, delta)
@@ -47,6 +55,8 @@ func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: 
 
 func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -> void:
 	_snowboarder.reset_presentation()
+	_performance_marker.reset_feedback()
+	_observed_compression_release_progress = -1.0
 	_camera.zoom = CAMERA_ZOOM
 	update_from_run(run_manager, 0.0, hud_occlusion)
 
@@ -80,6 +90,8 @@ func _build_world() -> void:
 	add_child(_skier)
 	_rider_marker = RiderMarkerScene.new()
 	add_child(_rider_marker)
+	_performance_marker = PerformanceMarkerScene.new()
+	add_child(_performance_marker)
 	_camera = Camera2D.new()
 	_camera.name = "ParkCamera"
 	_camera.zoom = CAMERA_ZOOM
@@ -94,7 +106,7 @@ func _build_world() -> void:
 		_debug_overlay = ParkDebugOverlayScene.new()
 		_debug_overlay.name = "ParkDebugOverlay"
 		_debug_overlay.z_index = 3
-		_debug_overlay.setup(_projection)
+		_debug_overlay.setup(_projection, compression_window_distance)
 		add_child(_debug_overlay)
 		_debug_overlay.refresh()
 
@@ -129,25 +141,61 @@ func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
 	view.update_from_state(state, _projection.project_rider(state), ground_rotation)
 
 
-func _update_rider_marker(run_manager: RiderRunManager, hud_occlusion: Callable) -> void:
-	var speed_mph := GameplayHud.speed_to_mph(run_manager.rider_state.movement_velocity().length())
+func _update_rider_marker(
+	run_manager: RiderRunManager, hud_occlusion: Callable, delta: float
+) -> void:
+	var state := run_manager.rider_state
+	_show_new_compression_feedback(state)
+	var rider_position := _projection.project_rider(state)
+	_update_performance_marker(rider_position, hud_occlusion, delta)
+	var speed_mph := GameplayHud.speed_to_mph(state.movement_velocity().length())
 	if speed_mph == 0:
 		_rider_marker.hide()
 		return
-	_rider_marker.update_from_rider(
-		_projection.project_rider(run_manager.rider_state) + RIDER_MARKER_TOP_OFFSET,
-		"%d MPH" % speed_mph
+	_rider_marker.update_from_rider(rider_position + RIDER_MARKER_TOP_OFFSET, "%d MPH" % speed_mph)
+	_rider_marker.visible = not hud_occlusion.call(
+		_marker_screen_rect(_rider_marker, _rider_marker.local_bounds())
 	)
-	var marker_transform := _rider_marker.get_global_transform_with_canvas()
-	var marker_bounds := _rider_marker.local_bounds()
-	var marker_rect := (
+
+
+func _update_performance_marker(
+	rider_position: Vector2, hud_occlusion: Callable, delta: float
+) -> void:
+	_performance_marker.update_from_rider(rider_position + PERFORMANCE_MARKER_BOTTOM_OFFSET, delta)
+	if _performance_marker.is_feedback_active():
+		_performance_marker.visible = not hud_occlusion.call(
+			_marker_screen_rect(_performance_marker, _performance_marker.local_bounds())
+		)
+
+
+func _marker_screen_rect(marker: Control, marker_bounds: Rect2) -> Rect2:
+	var marker_transform := marker.get_global_transform_with_canvas()
+	return (
 		Rect2(
 			marker_transform * marker_bounds.position,
 			marker_transform * marker_bounds.end - marker_transform * marker_bounds.position
 		)
 		. abs()
 	)
-	_rider_marker.visible = not hud_occlusion.call(marker_rect)
+
+
+func _show_new_compression_feedback(state: RiderState) -> void:
+	if state.compression_release_progress < 0.0:
+		_observed_compression_release_progress = -1.0
+		return
+	if is_equal_approx(state.compression_release_progress, _observed_compression_release_progress):
+		return
+	_observed_compression_release_progress = state.compression_release_progress
+	if is_zero_approx(state.compression_amount):
+		return
+	if state.compression_auto_released:
+		_performance_marker.show_feedback("AUTO POP")
+	elif state.compression_release_quality >= 0.9:
+		_performance_marker.show_feedback("PERFECT POP!")
+	elif state.compression_release_quality >= 0.5:
+		_performance_marker.show_feedback("GOOD POP")
+	else:
+		_performance_marker.show_feedback("EARLY POP")
 
 
 func _update_debug_overlay(state: RiderState) -> void:

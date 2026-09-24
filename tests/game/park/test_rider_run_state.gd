@@ -71,6 +71,12 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.rider_state.landing_outcome = RiderState.LandingOutcome.CRASH
 	manager.rider_state.active_route_index = 2
 	manager.rider_state.completion_time_remaining = 1.0
+	manager.rider_state.compression_active = true
+	manager.rider_state.compression_amount = 1.0
+	manager.rider_state.compression_release_progress = 100.0
+	manager.rider_state.compression_release_quality = 1.0
+	manager.rider_state.compression_auto_released = true
+	manager.rider_state.takeoff_pop_impulse = 260.0
 	manager.skier_state.run_phase = RiderState.RunPhase.FLIGHT
 	manager.skier_state.landing_outcome = RiderState.LandingOutcome.SKETCHY
 	manager.skier_state.active_route_index = 0
@@ -106,6 +112,17 @@ func _test_reset_restores_run_lifecycle() -> void:
 	_expect(
 		is_zero_approx(manager.rider_state.completion_time_remaining),
 		"Reset must clear the completion countdown."
+	)
+	_expect(
+		(
+			not manager.rider_state.compression_active
+			and is_zero_approx(manager.rider_state.compression_amount)
+			and manager.rider_state.compression_release_progress < 0.0
+			and is_zero_approx(manager.rider_state.compression_release_quality)
+			and not manager.rider_state.compression_auto_released
+			and is_zero_approx(manager.rider_state.takeoff_pop_impulse)
+		),
+		"Reset must clear compression and pop state."
 	)
 
 

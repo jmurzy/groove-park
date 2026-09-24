@@ -39,7 +39,7 @@ func update(
 		"PRESS START OR R TO RESTART" if run_manager.is_crashed() else _ready_text(player_count)
 	)
 	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
-	_update_action_hint(delta, input)
+	_update_action_hint(delta, input, run_manager.rider_state)
 
 
 func set_score(score: int) -> void:
@@ -66,9 +66,11 @@ func _ready_text(player_count: int) -> String:
 	return "%d PLAYER%s READY" % [player_count, "" if player_count == 1 else "S"]
 
 
-func _update_action_hint(delta: float, input: RiderInputFrame) -> void:
+func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState) -> void:
 	var action_message := "RIGHT / D: BUILD SPEED"
-	if input.brake_pressed:
+	if state.compression_active:
+		action_message = "X  COMPRESSING"
+	elif input.brake_pressed:
 		action_message = "B  CHECKING SPEED"
 	elif input.tuck_pressed:
 		action_message = "A  TUCKING - LESS STEERING"

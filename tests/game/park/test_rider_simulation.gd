@@ -29,6 +29,11 @@ func _init() -> void:
 	_test_vertical_heading_does_not_free_carve()
 	_test_vertical_input_switches_approach_paths_smoothly()
 	_test_braking_reduces_speed()
+	_test_compression_only_charges_near_lip()
+	_test_compression_charge_caps_at_maximum()
+	_test_compression_release_records_timing_quality()
+	_test_ideal_release_adds_maximum_pop()
+	_test_held_compression_auto_releases_at_lip()
 	_test_flight_route_transitions_at_lip()
 	_test_arc_height_multiplier_steepens_uphill_launch()
 	_test_takeoff_speed_cap_shortens_fast_launches()
@@ -167,6 +172,106 @@ func _test_braking_reduces_speed() -> void:
 		braking.ground_velocity.length() < coasting.ground_velocity.length(),
 		"Braking should reduce approach speed."
 	)
+
+
+func _test_compression_only_charges_near_lip() -> void:
+	var state := _new_state()
+	state.course_progress = 2700.0
+	var input := RiderInputFrameScene.new()
+	input.pop_pressed = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(
+		is_zero_approx(state.compression_amount),
+		"X outside the pre-lip window must not charge compression."
+	)
+
+
+func _test_compression_charge_caps_at_maximum() -> void:
+	var state := _new_state()
+	state.course_progress = 2900.0
+	var input := RiderInputFrameScene.new()
+	input.pop_pressed = true
+	for _tick in 120:
+		_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(
+		is_equal_approx(state.compression_amount, _tuning.maximum_compression),
+		"Compression charge must cap at the configured maximum."
+	)
+
+
+func _test_compression_release_records_timing_quality() -> void:
+	var state := _new_state()
+	state.course_progress = 2890.0
+	state.compression_active = true
+	state.compression_amount = 0.5
+	var input := RiderInputFrameScene.new()
+	input.pop_just_released = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(not state.compression_active, "Releasing X must end active compression.")
+	_expect(
+		is_equal_approx(state.compression_release_progress, 2890.0),
+		"Compression release must capture course progress."
+	)
+	_expect(
+		is_equal_approx(state.compression_release_quality, 0.5),
+		"Release quality must increase linearly through the pre-lip window."
+	)
+
+
+func _test_ideal_release_adds_maximum_pop() -> void:
+	var baseline := _new_state()
+	var popped := _new_state()
+	var states: Array[RiderState] = [baseline, popped]
+	for state in states:
+		state.course_progress = 3000.0
+		state.ground_velocity = Vector2(600.0, 0.0)
+		state.has_ground_intent = true
+	popped.compression_active = true
+	popped.compression_amount = _tuning.maximum_compression
+	var neutral_input := RiderInputFrameScene.new()
+	neutral_input.heading = Vector2.RIGHT
+	var release_input := RiderInputFrameScene.new()
+	release_input.heading = Vector2.RIGHT
+	release_input.pop_just_released = true
+	_simulation.step(baseline, neutral_input, _course, _tuning, DELTA)
+	_simulation.step(popped, release_input, _course, _tuning, DELTA)
+	_expect(
+		is_zero_approx(baseline.takeoff_pop_impulse),
+		"Takeoff without compression must remain valid and add no pop."
+	)
+	_expect(
+		is_equal_approx(popped.takeoff_pop_impulse, _tuning.maximum_pop_impulse),
+		"A full ideal release must produce the maximum configured pop."
+	)
+	_expect(
+		popped.takeoff_velocity.is_equal_approx(
+			baseline.takeoff_velocity + popped.takeoff_normal * _tuning.maximum_pop_impulse
+		),
+		"Pop must add impulse along the authored lip normal."
+	)
+
+
+func _test_held_compression_auto_releases_at_lip() -> void:
+	var state := _new_state()
+	state.course_progress = 2995.0
+	state.ground_velocity = Vector2(600.0, 0.0)
+	state.has_ground_intent = true
+	state.compression_active = true
+	state.compression_amount = _tuning.maximum_compression
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.RIGHT
+	input.pop_pressed = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(not state.compression_active, "Compression held through the lip must auto-release.")
+	_expect(
+		is_equal_approx(state.compression_release_progress, 3000.0),
+		"Auto-release must capture the exact authored lip."
+	)
+	var quality := _tuning.compression_auto_release_quality
+	var pop := _tuning.maximum_pop_impulse * quality
+	_expect(state.compression_auto_released, "Lip release must be marked automatic.")
+	_expect(is_equal_approx(state.compression_release_quality, quality), "Wrong auto quality.")
+	_expect(is_equal_approx(state.takeoff_pop_impulse, pop), "Wrong auto-release pop.")
 
 
 func _test_flight_route_transitions_at_lip() -> void:

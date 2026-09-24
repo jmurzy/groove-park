@@ -2,7 +2,7 @@
 class_name RiderDemoPanel
 extends Control
 
-enum AirRotationPhase {WAITING_LEFT, WAITING_RIGHT}
+enum AirRotationPhase { WAITING_LEFT, WAITING_RIGHT }
 
 const DEMO_POSITION := Vector2(60, 124)
 const DEMO_SIZE := Vector2(1696, 389)

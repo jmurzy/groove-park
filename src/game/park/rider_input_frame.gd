@@ -38,7 +38,7 @@ static func from_actions() -> RiderInputFrame:
 	frame.pop_pressed = Input.is_action_pressed(&"action_x")
 	frame.pop_just_pressed = Input.is_action_just_pressed(&"action_x")
 	frame.pop_just_released = Input.is_action_just_released(&"action_x")
-	frame.tweak_pressed = Input.is_action_pressed(&"action_x")
-	frame.tweak_just_pressed = Input.is_action_just_pressed(&"action_x")
+	frame.tweak_pressed = frame.brake_pressed
+	frame.tweak_just_pressed = Input.is_action_just_pressed(&"action_b")
 	frame.landing_prep_pressed = Input.is_action_pressed(&"action_b")
 	return frame

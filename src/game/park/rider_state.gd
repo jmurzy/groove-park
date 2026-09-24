@@ -154,6 +154,11 @@ var compression_release_quality: float:
 		return jump.compression_release_quality
 	set(value):
 		jump.compression_release_quality = value
+var compression_auto_released: bool:
+	get:
+		return jump.compression_auto_released
+	set(value):
+		jump.compression_auto_released = value
 var takeoff_position: Vector2:
 	get:
 		return jump.takeoff_position

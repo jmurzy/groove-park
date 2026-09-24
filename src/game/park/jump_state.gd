@@ -9,6 +9,7 @@ var compression_active := false
 var compression_amount := 0.0
 var compression_release_progress := -1.0
 var compression_release_quality := 0.0
+var compression_auto_released := false
 var takeoff_position := Vector2.ZERO
 var takeoff_velocity := Vector2.ZERO
 var takeoff_course_speed := 0.0
