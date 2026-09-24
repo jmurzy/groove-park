@@ -77,6 +77,10 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.rider_state.compression_release_quality = 1.0
 	manager.rider_state.compression_auto_released = true
 	manager.rider_state.takeoff_pop_impulse = 260.0
+	manager.rider_state.trick_tracker.start_grab()
+	manager.rider_state.grab_reach_active = true
+	manager.rider_state.tweak_active = true
+	manager.rider_state.grab_started_airtime = 1.0
 	manager.skier_state.run_phase = RiderState.RunPhase.FLIGHT
 	manager.skier_state.landing_outcome = RiderState.LandingOutcome.SKETCHY
 	manager.skier_state.active_route_index = 0
@@ -123,6 +127,15 @@ func _test_reset_restores_run_lifecycle() -> void:
 			and is_zero_approx(manager.rider_state.takeoff_pop_impulse)
 		),
 		"Reset must clear compression and pop state."
+	)
+	_expect(
+		(
+			not manager.rider_state.trick_tracker.grab_active
+			and not manager.rider_state.grab_reach_active
+			and not manager.rider_state.tweak_active
+			and manager.rider_state.grab_started_airtime < 0.0
+		),
+		"Reset must clear grab state."
 	)
 
 

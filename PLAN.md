@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 6 are complete. Grabs, rotations, and final landing judgment remain incremental later milestones.
+Milestones 1 through 7 are complete. Rotations and final landing judgment remain incremental later milestones.
 
 ## Goal
 
@@ -474,7 +474,7 @@ Tests:
 ```text
 tests/game/park/test_park_course.gd
 tests/game/park/test_rider_simulation.gd
-tests/game/park/test_rider_simulation.gd
+tests/game/park/test_rider_grabs.gd
 ```
 
 ## Milestones
@@ -625,15 +625,17 @@ Manual acceptance:
 
 - No-pop, early-release, ideal-release, and held-through-lip arcs are visibly different.
 
-### Milestone 7: Held Grabs
+### Milestone 7: Held Grabs - Complete
 
 Implementation:
 
-- Sample A and B as held grab intents.
-- Hold A for the standard grab; hold B for the tweak-grab variation.
-- Release either button to end its corresponding grab.
-- Drive grab reach, hold, and tweak-grab presentation.
-- Reset grab state at takeoff and run restart.
+- Sampled A and B as phase-neutral held and fresh-press grab intents.
+- Activated standard A grabs through reach and hold presentation states.
+- Activated B grabs through the distinct tweak-grab presentation state.
+- Released each grab immediately when its corresponding button was released.
+- Prevented approach-held buttons and the unused takeoff-tick fraction from activating grabs.
+- Reset transient grab state at takeoff and run restart.
+- Added a dedicated headless held-grab acceptance suite.
 
 Automated acceptance:
 

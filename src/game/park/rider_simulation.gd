@@ -14,7 +14,7 @@ func step(
 		RiderState.RunPhase.APPROACH:
 			_step_approach(state, input, course, tuning, delta)
 		RiderState.RunPhase.FLIGHT:
-			_step_flight(state, course, tuning, delta)
+			_step_flight(state, input, course, tuning, delta)
 		RiderState.RunPhase.LANDING:
 			_step_landing(state, course, tuning, delta)
 		RiderState.RunPhase.COMPLETE:
@@ -61,7 +61,8 @@ func _step_approach(
 	if remaining_delta >= 0.0:
 		_cross_approach_endpoint(state, course, tuning)
 		if state.run_phase == RiderState.RunPhase.FLIGHT and remaining_delta > 0.0:
-			_step_flight(state, course, tuning, remaining_delta)
+			# Approach-held buttons cannot become grabs during the takeoff tick.
+			_step_flight(state, RiderInputFrame.new(), course, tuning, remaining_delta)
 		elif state.run_phase == RiderState.RunPhase.LANDING and remaining_delta > 0.0:
 			_step_landing(state, course, tuning, remaining_delta)
 
@@ -248,12 +249,20 @@ func _begin_flight(
 	state.orientation = tangent.angle()
 	state.angular_velocity = 0.0
 	state.airtime = 0.0
+	state.grab_reach_active = false
+	state.tweak_active = false
+	state.grab_started_airtime = -1.0
+	state.grab_active_at_landing = false
 	state.landing_resolved = false
 	state.trick_tracker.reset(state.orientation)
+	state.trick_call = ""
 
 
-func _step_flight(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
+func _step_flight(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
 	var flight_delta := delta * tuning.air_time_scale
+	_update_grab_input(state, input, tuning)
 	var previous_position := Vector2(state.course_progress, state.vertical_position)
 	var previous_lane_position := state.lane_position
 	var previous_course_speed := state.course_speed
@@ -280,6 +289,7 @@ func _step_flight(state: RiderState, course: ParkCourse, tuning: RiderTuning, de
 		state.lane_speed = lerpf(previous_lane_speed, next_lane_speed, contact_time)
 		state.vertical_speed = lerpf(previous_vertical_speed, next_vertical_speed, contact_time)
 		state.lane_position = lerpf(previous_lane_position, next_lane_position, contact_time)
+		_advance_grab(state, tuning, flight_delta * contact_time)
 		state.airtime += flight_delta * contact_time
 		_resolve_landing_contact(state, contact)
 		var remaining_delta := delta * (1.0 - contact_time)
@@ -294,11 +304,46 @@ func _step_flight(state: RiderState, course: ParkCourse, tuning: RiderTuning, de
 	state.vertical_position = next_position.y
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
+	_advance_grab(state, tuning, flight_delta)
 	state.airtime += flight_delta
 	if _flight_has_overshot_landing(state, course):
 		_end_missed_flight(state, tuning)
 	elif _flight_should_abandon(state, course):
 		_begin_abandoned_runout(state, course)
+
+
+func _update_grab_input(state: RiderState, input: RiderInputFrame, tuning: RiderTuning) -> void:
+	if state.trick_tracker.grab_active:
+		var active_button_held := input.tweak_pressed if state.tweak_active else input.grab_pressed
+		if not active_button_held:
+			_release_grab(state, tuning)
+		return
+	if input.grab_just_pressed and input.grab_pressed:
+		_start_grab(state, false)
+	elif input.tweak_just_pressed and input.tweak_pressed:
+		_start_grab(state, true)
+
+
+func _start_grab(state: RiderState, tweak: bool) -> void:
+	state.trick_tracker.start_grab()
+	state.grab_started_airtime = state.airtime
+	state.grab_reach_active = not tweak
+	state.tweak_active = tweak
+
+
+func _release_grab(state: RiderState, tuning: RiderTuning) -> void:
+	state.trick_tracker.release_grab(state.airtime, tuning.minimum_grab_duration)
+	state.grab_reach_active = false
+	state.tweak_active = false
+
+
+func _advance_grab(state: RiderState, tuning: RiderTuning, delta: float) -> void:
+	state.trick_tracker.step_grab(delta, state.tweak_active)
+	if (
+		state.grab_reach_active
+		and state.airtime + delta - state.grab_started_airtime >= tuning.grab_reach_duration
+	):
+		state.grab_reach_active = false
 
 
 func _resolve_landing_contact(state: RiderState, contact: Dictionary) -> void:

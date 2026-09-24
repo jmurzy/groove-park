@@ -254,6 +254,11 @@ var tweak_active: bool:
 		return jump.tweak_active
 	set(value):
 		jump.tweak_active = value
+var grab_started_airtime: float:
+	get:
+		return jump.grab_started_airtime
+	set(value):
+		jump.grab_started_airtime = value
 var grab_active_at_landing: bool:
 	get:
 		return jump.grab_active_at_landing
