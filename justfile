@@ -76,6 +76,7 @@ test: import
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_run_state.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_simulation.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_grabs.gd
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_rotation.gd
 
 [doc("Check GitHub Actions workflows")]
 actionlint-check:

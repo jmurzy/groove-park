@@ -78,8 +78,11 @@ func _build_panel() -> void:
 		panel,
 		"ON THE APPROACH",
 		(
-			"UP / DOWN        PICK YOUR LINE\nRIGHT            BUILD SPEED\nLEFT / B         CHECK SPEED\n"
-			+ "A                TUCK FOR SPEED\nX                COMPRESS"
+			"RIGHT     BUILD SPEED\n"
+			+ "LEFT/B    CHECK SPEED\n"
+			+ "UP/DOWN   PICK YOUR LINE\n"
+			+ "A         TUCK FOR SPEED\n"
+			+ "X         COMPRESS"
 		),
 		Vector2(80, 532),
 		Vector2(624, 270),
@@ -88,7 +91,15 @@ func _build_panel() -> void:
 	_air_card = _add_control_card(
 		panel,
 		"IN THE AIR",
-		"LEFT, THEN RIGHT  ROTATE 360\nA                 GRAB\n" + "B                 TWEAK GRAB",
+		# Control fields are space-padded to equal widths; the arcade font is
+		# monospace, so equal character counts keep descriptions aligned.
+		(
+			"A           GRAB\n"
+			+ "B           TWEAK GRAB\n"
+			+ "A/B+LT 2X   LEFT/BACKSIDE 360\n"
+			+ "A/B+RT 2X   RIGHT/FRONTSIDE 360\n"
+			+ "X           HOLD TO LAND"
+		),
 		Vector2(1112, 532),
 		Vector2(624, 270),
 		AIR_BORDER

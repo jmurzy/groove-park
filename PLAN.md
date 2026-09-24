@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 7 are complete. Rotations and final landing judgment remain incremental later milestones.
+Milestones 1 through 8 are complete. Rotation requirements and final landing judgment remain incremental later milestones.
 
 ## Goal
 
@@ -56,23 +56,61 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 - `A` holds the standard grab.
 - `B` holds the tweak-grab variation.
 - Releasing the held grab button ends its grab immediately.
-- `X`, `Y`, `LB`, `RB`, `LT`, and `RT` have no flight role in the initial control set.
-- Rotations are available only while either grab is held.
+- `X`, `Y`, `LB`, and `RB` have no flight role in the initial control set.
+- `LT` and `RT` trigger spins. Rotations are available only while either grab is held.
 
 ### Rotation Gesture
 
-- One 360 uses a strict Left-then-Right joystick gesture.
-- Left starts the first 180 degrees.
-- Right starts the second 180 degrees after the first half-turn finishes.
-- Completing the second half-turn returns the rider to the takeoff orientation and counts one 360.
-- Another Left-then-Right sequence performs another 360.
-- Right before Left does nothing.
-- Holding a direction does not repeat input.
-- A new half-turn is accepted only after the previous half-turn reaches its target.
-- Releasing the grab during an unfinished half-turn leaves the rotation incomplete.
-- Takeoff speed determines how quickly each half-turn can finish.
-- Faster takeoff speed therefore allows more complete rotations before the release deadline.
+- A 360 is a horizontal aerial spin represented by authored side-view artwork; it never rotates the rider node in the screen plane.
+- Rotations are available only while either grab is held.
+- The spin uses same-trigger two-tap gestures with arcade `2X` wording on the How to Play card: `A/B+LT 2X` and `A/B+RT 2X`.
+- `LT` selects the left/backside direction: skier-left, snowboarder-backside.
+- `RT` selects the right/frontside direction: skier-right, snowboarder-frontside.
+- The first fresh trigger press starts an automatic first 180-degree half-turn. Releasing the trigger does not cancel or rewind it.
+- The rider holds the dedicated 180-degree pose after the first half-turn completes.
+- Both triggers must be released (re-armed) before the second press of the same trigger starts the second automatic 180-degree half-turn. Holding through does not auto-complete.
+- `LT, release, LT` completes a left/backside 360. `RT, release, RT` completes a right/frontside 360.
+- Pressing the opposite trigger mid-spin is ignored; it neither completes nor cancels the active spin.
+- A completed turn returns to that direction set's authored 000-degree pose and counts one 360. The player must release the triggers again before beginning another turn.
+- Held triggers do not repeat input, and a new half-turn is accepted only after the previous half-turn reaches its target.
+- Releasing the active grab during either moving half-turn freezes the current spin pose and records an incomplete rotation.
+- Takeoff speed determines how quickly each half-turn advances. Faster takeoff speed therefore allows more complete rotations before the release deadline.
 - Rotations do not modify linear flight velocity or the ballistic trajectory.
+- Skier directions are labelled `LEFT` and `RIGHT`. Snowboarder directions are labelled `BACKSIDE` (LT) and `FRONTSIDE` (RT).
+
+### Rotation Artwork
+
+- Each spin set is self-contained with its own authored 000-degree pose. Rotation artwork never reuses the stationary `grab_hold` or `grab_tweak` frames at runtime, and direction sets never share frames with each other.
+- Eight direction-specific sets of eight poses each (64 files total). Every set contains authored 000, 045, 090, 135, 180, 225, 270, and 315 degree poses. A completed 360 returns to that set's authored 000-degree pose.
+- Each direction plays its own clip forward; reverse playback of another direction's clip is not used.
+- The stationary grab clips remain the presentation for an active grab before a spin begins and after it ends. The 000-degree spin poses only need to be visually close to them, not pixel-identical.
+- The 180-degree pose is a stable held pose shown while waiting for the re-armed second trigger press.
+
+| Rider | Grab style | Direction set | Authored files |
+| --- | --- | --- | --- |
+| Skier | Regular | Left | `skier_spin_regular_left_000.png` through `skier_spin_regular_left_315.png`, in 45-degree increments |
+| Skier | Regular | Right | `skier_spin_regular_right_000.png` through `skier_spin_regular_right_315.png`, in 45-degree increments |
+| Skier | Tweak | Left | `skier_spin_tweak_left_000.png` through `skier_spin_tweak_left_315.png`, in 45-degree increments |
+| Skier | Tweak | Right | `skier_spin_tweak_right_000.png` through `skier_spin_tweak_right_315.png`, in 45-degree increments |
+| Snowboarder | Regular | Backside | `snowboarder_spin_regular_backside_000.png` through `snowboarder_spin_regular_backside_315.png`, in 45-degree increments |
+| Snowboarder | Regular | Frontside | `snowboarder_spin_regular_frontside_000.png` through `snowboarder_spin_regular_frontside_315.png`, in 45-degree increments |
+| Snowboarder | Tweak | Backside | `snowboarder_spin_tweak_backside_000.png` through `snowboarder_spin_tweak_backside_315.png`, in 45-degree increments |
+| Snowboarder | Tweak | Frontside | `snowboarder_spin_tweak_frontside_000.png` through `snowboarder_spin_tweak_frontside_315.png`, in 45-degree increments |
+
+Pose roles are identical across sets; body mechanics are authored per rider, grab style, and direction:
+
+| Pose | Spin state | Authoring intent |
+| ---: | --- | --- |
+| 000° | Start / finished 360 | Direction-specific grabbed takeoff-facing pose; entry pose on first press and completion pose at end of second half. |
+| 045° | Early first half | Shoulders, hips, and skis or board begin turning into that set's direction. |
+| 090° | Quarter turn | Most side-on to the camera; front- or back-facing depends on direction and stance. |
+| 135° | Late first half | Continues toward opposite-facing while preserving the grab hand-to-equipment hold. |
+| 180° | Half-turn hold | Stable opposite-facing grabbed pose, held until the re-armed second press. Must read as a rest pose. |
+| 225° | Early second half | Leaves the held 180° pose toward landing-facing. |
+| 270° | Three-quarter turn | Second side-on view; must differ from the 090° pose in body lead, head check, and equipment movement. |
+| 315° | Final approach | Spots and squares into the set's own 000° completion pose; must transition seamlessly into it. |
+
+All 64 direction-specific sprites are authored and integrated. The obsolete non-directional spin files have been removed. Future replacements must preserve the shared 1024x1024 canvas, true alpha, stable equipment/pivot anchors, readable 180° holds, and seamless 315°-to-000° transitions defined in `artwork/ARTWORK_BRIEFS.md`.
 
 ### Required Rotations
 
@@ -265,9 +303,9 @@ Add a small deterministic gesture state:
 
 ```gdscript
 enum RotationGesturePhase {
-    WAITING_LEFT,
+    WAITING_DIRECTION,
     ROTATING_FIRST_HALF,
-    WAITING_RIGHT,
+    WAITING_SECOND_PRESS,
     ROTATING_SECOND_HALF,
 }
 ```
@@ -276,24 +314,26 @@ Required fields include:
 
 ```text
 rotation_gesture_phase
+spin_direction
+spin_rearmed
+spin_progress
 rotation_target
 rotation_rate
 completed_rotations
 required_rotations
 rotation_incomplete
-previous_horizontal_input
 ```
 
 Behavior:
 
-- Holding either grab button initializes `WAITING_LEFT`.
-- A fresh Left edge in `WAITING_LEFT` adds PI to `rotation_target`.
-- Orientation advances toward the target at `rotation_rate`.
-- Reaching the target enters `WAITING_RIGHT`.
-- A fresh Right edge in `WAITING_RIGHT` adds another PI.
-- Reaching that target increments `completed_rotations` and returns to `WAITING_LEFT`.
+- Holding either grab button arms `WAITING_DIRECTION`.
+- A fresh `LT` edge selects direction -1 (left/backside); a fresh `RT` edge selects direction +1 (right/frontside). The first edge starts the first half-turn toward its 180-degree target.
+- Spin progress advances toward the target at `rotation_rate`.
+- Reaching the half-turn target enters `WAITING_SECOND_PRESS` and holds the 180-degree pose.
+- Both triggers must be released (`spin_rearmed`) before a fresh press of the same trigger starts the second half-turn.
+- Reaching the full-turn target increments `completed_rotations` and returns to `WAITING_DIRECTION`.
 - Releasing both grab buttons stops accepting rotation gestures.
-- Releasing during either rotating state records an incomplete rotation.
+- Releasing the active grab during either rotating state freezes progress and records an incomplete rotation.
 
 Initial speed mapping:
 
@@ -331,7 +371,9 @@ tweak_pressed
 ```
 
 `grab_pressed` is true while A is held. `tweak_pressed` is true while B is held. Holding
-either control enables the Left-then-Right rotation gesture.
+either control enables the same-trigger LT/RT `2X` rotation gesture. `spin_lt_pressed` is
+true while LT is held and `spin_rt_pressed` is true while RT is held, with matching
+`just_pressed` edge intents for starting each half-turn.
 
 ## Presentation Contract
 
@@ -341,7 +383,7 @@ either control enables the Left-then-Right rotation gesture.
 - Early flight uses takeoff extension.
 - Flight without a grab uses neutral air.
 - A grab uses grab reach and grab hold; B uses the tweak-grab presentation.
-- Rotation is presented by rotating the rider view from authoritative orientation.
+- Rotation is presented by selecting frames from the matching direction-specific spin set using authoritative spin progress. The rider node is never rotated for spin.
 - Clean contact uses deep landing followed by celebration.
 - Sketchy contact uses deep landing followed by recovery.
 - Crash uses the crash sequence.
@@ -406,6 +448,9 @@ release_deadline_y
 release_deadline_crossed
 grab_released_after_deadline
 rotation_gesture_phase
+spin_direction
+spin_rearmed
+spin_progress
 rotation_target
 rotation_rate
 completed_rotations
@@ -417,7 +462,7 @@ Remove or leave unused old free-torque, compact, and landing-prep concepts until
 
 ### `RiderInputFrame`
 
-Keep approach intent and add held A-grab and B-tweak-grab intents. Flight reads horizontal joystick edges but ignores approach movement actions.
+Keep approach intent and add held A-grab and B-tweak-grab intents plus held and edge LT/RT spin intents. Flight reads fresh LT/RT trigger edges for spins but ignores approach movement actions.
 
 ### `RiderTuning`
 
@@ -649,30 +694,37 @@ Manual acceptance:
 
 - A and B produce distinct, readable grab presentations.
 
-### Milestone 8: Left-Right Rotation Gesture
+### Milestone 8: Horizontal Spin Gesture and Presentation - Complete
 
 Implementation:
 
-- Add the rotation gesture state machine.
-- Detect fresh horizontal direction edges.
-- Advance authoritative orientation toward half-turn targets.
-- Count only finished Left-then-Right pairs.
-- Scale rotation rate from takeoff speed.
-- Record incomplete rotation on early grab release.
+- Replaced screen-plane rider rotation with eight authored direction- and grab-specific horizontal-spin clips.
+- Added same-trigger two-tap gestures: `LT, release, LT` spins left/backside; `RT, release, RT` spins right/frontside.
+- Selected direction from the initial trigger edge and required both triggers released (re-armed) before the same-trigger second press.
+- Ignored the opposite trigger while a spin waits for its second press.
+- Advanced authoritative spin progress to half-turn targets at the takeoff-speed-scaled rate.
+- Held the dedicated 180-degree pose while waiting for the second input.
+- Counted only finished full turns and preserved incomplete rotation after early grab release.
+- Kept terrain pitch and ballistic movement independent of horizontal spin progress.
+- Migrated How to Play, gameplay simulation, rider views, and automated acceptance coverage.
 
 Automated acceptance:
 
-- Right-first does nothing.
-- Left completes exactly 180 degrees.
-- Right then completes exactly 360 degrees.
-- Held directions do not repeat.
+- `LT, release, LT` and `RT, release, RT` each complete exactly 360 degrees in opposite directions.
+- The first half-turn completes and holds at exactly 180 degrees while waiting for the re-armed second press.
+- A second press without release does not complete the turn.
+- The opposite trigger mid-spin is ignored.
+- Held triggers do not repeat.
 - A second pair counts a second rotation.
 - Faster takeoff speed completes turns faster.
 - Rotation input without an active grab does nothing.
+- Standard and tweak grabs select their corresponding directional spin clips.
+- Rotation input does not change rider pitch or the ballistic trajectory.
 
 Manual acceptance:
 
-- The gesture feels discrete and readable on the eight-way cabinet stick.
+- Each tap feels discrete and readable on the cabinet triggers.
+- The 180-degree hold and its prompt read clearly before the second tap.
 
 ### Milestone 9: Rotation Requirement and HUD
 
@@ -791,7 +843,6 @@ The following work is intentionally excluded from this implementation sequence:
 - Additional distinct grab animations.
 - Grab-specific timing or difficulty.
 - Trick naming and result summaries.
-- Multiple rotation directions.
 - Free angular torque.
 - Compact, extend, or landing-prep controls.
 - Multiplayer input-device separation.

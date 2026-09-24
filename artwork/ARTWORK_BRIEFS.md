@@ -6,6 +6,8 @@ Attach the relevant supplied HEAVENLY reference images from the `artwork/` folde
 
 > Match the attached game-screen reference exactly. The new asset must look native to that game, not like an interpretation of it. Do not add text, logos, watermarks, UI, or a background unless requested. Isolated assets must use true alpha transparency: every non-sprite pixel must be fully transparent (alpha 0). Never simulate transparency with a painted gray-and-white checkerboard, grid, gradient, vignette, floor, or any other fake background pattern. Do not bake scanlines or CRT effects into isolated sprites; the game applies those globally.
 
+> Never draw, render, or bake a fake checkerboard into an isolated asset. A checkerboard is not transparency. Leave all non-sprite pixels empty with true alpha 0; the output must contain no visible background pixels at all.
+
 Generate one approval sample before each complete set. Keep approved rider design, side-view camera, scale, palette, pixel density, lighting, outlines, and equipment anchors consistent across later generations.
 
 ### Priority 1 — riders
@@ -53,6 +55,9 @@ Generate one approval sample before each complete set. Keep approved rider desig
 - Confirm all background pixels are truly transparent (alpha 0). Reject a
   solid background copied from a marquee reference, as well as painted
   checkerboards, grids, gradients, vignettes, or other fake transparency.
+- If a generation delivers a fake checkerboard or any opaque background, retain
+  the file for review and request a corrected replacement; do not delete it
+  unless explicitly instructed.
 - Reject art that hides the lip, landing tangent, equipment, or rider orientation.
 - Reject art that shares only a general winter theme rather than the supplied HEAVENLY style.
 - Check transparency, pixel grid, scale, palette, outlines, and nearest-neighbor scaling in-engine.

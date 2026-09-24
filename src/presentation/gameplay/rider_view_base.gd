@@ -29,6 +29,14 @@ func play_preview(animation_name: StringName) -> void:
 	_play(animation_name)
 
 
+func play_preview_frame(animation_name: StringName, frame: int) -> void:
+	_play(animation_name)
+	if _sprite == null:
+		return
+	_sprite.pause()
+	_sprite.frame = clampi(frame, 0, _sprite.sprite_frames.get_frame_count(animation_name) - 1)
+
+
 func set_preview_speed_scale(speed_scale: float) -> void:
 	if _sprite != null:
 		_sprite.speed_scale = speed_scale
@@ -56,6 +64,10 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 	if state.landing_resolved or is_playing_landing_animation():
 		set_preview_speed_scale(1.0)
 		play_landing_animation(_landing_animation_for_state(state))
+		return
+	if _spin_is_visible(state):
+		play_preview_frame(_spin_animation_for_state(state), _spin_frame(state.spin_progress))
+		set_preview_speed_scale(1.0)
 		return
 	var animation := _animation_for_state(state)
 	_play(animation)
@@ -125,6 +137,27 @@ func _animation_for_state(state: RiderState) -> StringName:
 
 func _carve_animation(_state: RiderState) -> StringName:
 	return &"neutral_glide"
+
+
+func _spin_animation_for_state(_state: RiderState) -> StringName:
+	return &"neutral_air"
+
+
+func _spin_is_visible(state: RiderState) -> bool:
+	return (
+		state.run_phase == RiderState.RunPhase.FLIGHT
+		and state.spin_direction != 0
+		and (
+			state.rotation_incomplete
+			or state.rotation_gesture_phase != JumpState.RotationGesturePhase.WAITING_DIRECTION
+			or is_equal_approx(state.spin_progress, TAU)
+		)
+	)
+
+
+func _spin_frame(progress: float) -> int:
+	var step := mini(roundi(clampf(progress / TAU, 0.0, 1.0) * 8.0), 8)
+	return 0 if step >= 8 else step
 
 
 func play_landing_animation(animation_name: StringName) -> void:

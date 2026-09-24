@@ -248,6 +248,15 @@ func _begin_flight(
 	state.vertical_speed = takeoff_velocity.y
 	state.orientation = tangent.angle()
 	state.angular_velocity = 0.0
+	state.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_DIRECTION
+	state.spin_direction = 0
+	state.spin_rearmed = true
+	state.spin_progress = 0.0
+	state.spin_target = 0.0
+	state.spin_grab_tweak = false
+	state.rotation_rate = _rotation_rate_for_speed(takeoff_velocity.length(), tuning)
+	state.completed_rotations = 0
+	state.rotation_incomplete = false
 	state.airtime = 0.0
 	state.grab_reach_active = false
 	state.tweak_active = false
@@ -263,6 +272,7 @@ func _step_flight(
 ) -> void:
 	var flight_delta := delta * tuning.air_time_scale
 	_update_grab_input(state, input, tuning)
+	_update_rotation_gesture_input(state, input)
 	var previous_position := Vector2(state.course_progress, state.vertical_position)
 	var previous_lane_position := state.lane_position
 	var previous_course_speed := state.course_speed
@@ -290,6 +300,7 @@ func _step_flight(
 		state.vertical_speed = lerpf(previous_vertical_speed, next_vertical_speed, contact_time)
 		state.lane_position = lerpf(previous_lane_position, next_lane_position, contact_time)
 		_advance_grab(state, tuning, flight_delta * contact_time)
+		_advance_rotation(state, flight_delta * contact_time)
 		state.airtime += flight_delta * contact_time
 		_resolve_landing_contact(state, contact)
 		var remaining_delta := delta * (1.0 - contact_time)
@@ -305,6 +316,7 @@ func _step_flight(
 	state.ground_position = Vector2(state.course_progress, state.lane_position)
 	state.ground_velocity = Vector2(state.course_speed, state.lane_speed)
 	_advance_grab(state, tuning, flight_delta)
+	_advance_rotation(state, flight_delta)
 	state.airtime += flight_delta
 	if _flight_has_overshot_landing(state, course):
 		_end_missed_flight(state, tuning)
@@ -344,6 +356,85 @@ func _advance_grab(state: RiderState, tuning: RiderTuning, delta: float) -> void
 		and state.airtime + delta - state.grab_started_airtime >= tuning.grab_reach_duration
 	):
 		state.grab_reach_active = false
+
+
+func _update_rotation_gesture_input(state: RiderState, input: RiderInputFrame) -> void:
+	if not input.spin_lt_pressed and not input.spin_rt_pressed:
+		state.spin_rearmed = true
+	if not state.trick_tracker.grab_active:
+		if _rotation_is_advancing(state):
+			state.rotation_incomplete = true
+			state.spin_target = state.spin_progress
+		state.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_DIRECTION
+		state.angular_velocity = 0.0
+		return
+	match state.rotation_gesture_phase:
+		JumpState.RotationGesturePhase.WAITING_DIRECTION:
+			if (
+				state.spin_rearmed
+				and state.spin_direction != 0
+				and is_equal_approx(state.spin_progress, TAU)
+				and not input.spin_lt_just_pressed
+				and not input.spin_rt_just_pressed
+			):
+				state.spin_direction = 0
+				state.spin_progress = 0.0
+				state.spin_target = 0.0
+			if state.spin_rearmed and (input.spin_lt_just_pressed or input.spin_rt_just_pressed):
+				state.spin_direction = -1 if input.spin_lt_just_pressed else 1
+				state.spin_rearmed = false
+				state.spin_progress = 0.0
+				state.spin_target = PI
+				state.spin_grab_tweak = state.tweak_active
+				state.rotation_gesture_phase = JumpState.RotationGesturePhase.ROTATING_FIRST_HALF
+		JumpState.RotationGesturePhase.WAITING_SECOND_PRESS:
+			var same_trigger_pressed := (
+				(input.spin_lt_just_pressed and state.spin_direction < 0)
+				or (input.spin_rt_just_pressed and state.spin_direction > 0)
+			)
+			if state.spin_rearmed and same_trigger_pressed:
+				state.spin_rearmed = false
+				state.spin_target = TAU
+				state.rotation_gesture_phase = JumpState.RotationGesturePhase.ROTATING_SECOND_HALF
+
+
+func _advance_rotation(state: RiderState, delta: float) -> void:
+	if not state.trick_tracker.grab_active or not _rotation_is_advancing(state):
+		state.angular_velocity = 0.0
+		return
+	state.angular_velocity = state.rotation_rate * state.spin_direction
+	state.spin_progress = move_toward(
+		state.spin_progress, state.spin_target, state.rotation_rate * delta
+	)
+	if not is_equal_approx(state.spin_progress, state.spin_target):
+		return
+	state.angular_velocity = 0.0
+	if state.rotation_gesture_phase == JumpState.RotationGesturePhase.ROTATING_FIRST_HALF:
+		state.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_SECOND_PRESS
+		return
+	state.completed_rotations += 1
+	state.trick_tracker.complete_rotation(state.spin_direction)
+	state.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_DIRECTION
+
+
+func _rotation_is_advancing(state: RiderState) -> bool:
+	return (
+		state.rotation_gesture_phase
+		in [
+			JumpState.RotationGesturePhase.ROTATING_FIRST_HALF,
+			JumpState.RotationGesturePhase.ROTATING_SECOND_HALF,
+		]
+	)
+
+
+func _rotation_rate_for_speed(takeoff_speed: float, tuning: RiderTuning) -> float:
+	var speed_range := tuning.max_rotation_speed - tuning.min_rotation_speed
+	var speed_factor := 0.0
+	if not is_zero_approx(speed_range):
+		speed_factor = clampf((takeoff_speed - tuning.min_rotation_speed) / speed_range, 0.0, 1.0)
+	elif takeoff_speed >= tuning.max_rotation_speed:
+		speed_factor = 1.0
+	return lerpf(tuning.min_rotation_rate, tuning.max_rotation_rate, speed_factor)
 
 
 func _resolve_landing_contact(state: RiderState, contact: Dictionary) -> void:

@@ -58,6 +58,46 @@ const NEUTRAL_GLIDE_FRAMES: Array[Texture2D] = [
 	preload("res://artwork/players/snowboarder/snowboarder_neutral_glide_f2.png"),
 	preload("res://artwork/players/snowboarder/snowboarder_neutral_glide_f3.png"),
 ]
+const SPIN_REGULAR_BACKSIDE_FRAMES: Array[Texture2D] = [
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_000.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_045.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_090.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_135.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_180.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_225.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_270.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_backside_315.png"),
+]
+const SPIN_REGULAR_FRONTSIDE_FRAMES: Array[Texture2D] = [
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_000.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_045.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_090.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_135.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_180.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_225.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_270.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_regular_frontside_315.png"),
+]
+const SPIN_TWEAK_BACKSIDE_FRAMES: Array[Texture2D] = [
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_000.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_045.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_090.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_135.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_180.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_225.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_270.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_backside_315.png"),
+]
+const SPIN_TWEAK_FRONTSIDE_FRAMES: Array[Texture2D] = [
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_000.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_045.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_090.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_135.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_180.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_225.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_270.png"),
+	preload("res://artwork/players/snowboarder/snowboarder_spin_tweak_frontside_315.png"),
+]
 const SKETCHY_RECOVERY_FRAMES: Array[Texture2D] = [
 	preload("res://artwork/players/snowboarder/snowboarder_sketchy_recovery_f0.png"),
 	preload("res://artwork/players/snowboarder/snowboarder_sketchy_recovery_f1.png"),
@@ -84,6 +124,12 @@ func _carve_animation(state: RiderState) -> StringName:
 	return &"carve_heel" if state.heading.y < 0.0 else &"carve_toe"
 
 
+func _spin_animation_for_state(state: RiderState) -> StringName:
+	if state.spin_grab_tweak:
+		return &"spin_tweak_backside" if state.spin_direction < 0 else &"spin_tweak_frontside"
+	return &"spin_regular_backside" if state.spin_direction < 0 else &"spin_regular_frontside"
+
+
 func _build_frames() -> SpriteFrames:
 	var frames := SpriteFrames.new()
 	frames.remove_animation(&"default")
@@ -94,6 +140,18 @@ func _build_frames() -> SpriteFrames:
 	_add_animation(frames, &"compression", COMPRESSION_FRAMES, TRANSITION_FPS, false)
 	_add_animation(frames, &"takeoff_extension", TAKEOFF_EXTENSION_FRAMES, TRANSITION_FPS, false)
 	_add_animation(frames, &"neutral_air", NEUTRAL_AIR_FRAMES, LOOP_FPS, true)
+	_add_animation(
+		frames, &"spin_regular_backside", SPIN_REGULAR_BACKSIDE_FRAMES, TRANSITION_FPS, false
+	)
+	_add_animation(
+		frames, &"spin_regular_frontside", SPIN_REGULAR_FRONTSIDE_FRAMES, TRANSITION_FPS, false
+	)
+	_add_animation(
+		frames, &"spin_tweak_backside", SPIN_TWEAK_BACKSIDE_FRAMES, TRANSITION_FPS, false
+	)
+	_add_animation(
+		frames, &"spin_tweak_frontside", SPIN_TWEAK_FRONTSIDE_FRAMES, TRANSITION_FPS, false
+	)
 	_add_animation(frames, &"grab_reach", GRAB_REACH_FRAMES, TRANSITION_FPS, false)
 	_add_animation(frames, &"grab_hold", GRAB_HOLD_FRAMES, LOOP_FPS, true)
 	_add_animation(frames, &"grab_tweak", GRAB_TWEAK_FRAMES, TRANSITION_FPS, false)

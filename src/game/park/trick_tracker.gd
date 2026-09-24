@@ -33,6 +33,11 @@ func track_rotation(orientation: float) -> void:
 	completed_rotations = floori(absf(cumulative_rotation) / TAU)
 
 
+func complete_rotation(direction: int) -> void:
+	cumulative_rotation += signi(direction) * TAU
+	completed_rotations += 1
+
+
 func start_grab() -> void:
 	grab_active = true
 

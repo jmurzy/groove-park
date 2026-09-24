@@ -224,6 +224,51 @@ var angular_velocity: float:
 		return jump.angular_velocity
 	set(value):
 		jump.angular_velocity = value
+var rotation_gesture_phase: int:
+	get:
+		return jump.rotation_gesture_phase
+	set(value):
+		jump.rotation_gesture_phase = value
+var spin_direction: int:
+	get:
+		return jump.spin_direction
+	set(value):
+		jump.spin_direction = value
+var spin_rearmed: bool:
+	get:
+		return jump.spin_rearmed
+	set(value):
+		jump.spin_rearmed = value
+var spin_progress: float:
+	get:
+		return jump.spin_progress
+	set(value):
+		jump.spin_progress = value
+var spin_target: float:
+	get:
+		return jump.spin_target
+	set(value):
+		jump.spin_target = value
+var spin_grab_tweak: bool:
+	get:
+		return jump.spin_grab_tweak
+	set(value):
+		jump.spin_grab_tweak = value
+var rotation_rate: float:
+	get:
+		return jump.rotation_rate
+	set(value):
+		jump.rotation_rate = value
+var completed_rotations: int:
+	get:
+		return jump.completed_rotations
+	set(value):
+		jump.completed_rotations = value
+var rotation_incomplete: bool:
+	get:
+		return jump.rotation_incomplete
+	set(value):
+		jump.rotation_incomplete = value
 var airtime: float:
 	get:
 		return jump.airtime

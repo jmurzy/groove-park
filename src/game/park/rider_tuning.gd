@@ -31,6 +31,10 @@ extends Resource
 @export var gravity := 980.0
 @export var air_drag := 0.05
 @export var air_time_scale := 0.72
+@export var min_rotation_speed := 150.0
+@export var max_rotation_speed := 500.0
+@export var min_rotation_rate := TAU
+@export var max_rotation_rate := TAU * 2.0
 @export var air_torque := 25.0
 @export var maximum_angular_velocity := 12.0
 @export var air_angular_damping := 1.2
