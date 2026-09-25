@@ -8,6 +8,8 @@ const ARROW_HEIGHT := 19.0
 const RIDER_GAP := 8.0
 const CALLOUT_DURATION := 1.0
 const FLASH_INTERVAL := 0.12
+const DEFAULT_PANEL_COLOR := Color("f51e16")
+const DEFAULT_LABEL_COLOR := Color("ffe126")
 
 var _label: Label
 var _arrow: Polygon2D
@@ -19,11 +21,11 @@ func _ready() -> void:
 	name = "PerformanceMarker"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 3
-	add_theme_stylebox_override("panel", _marker_style())
+	add_theme_stylebox_override("panel", _marker_style(DEFAULT_PANEL_COLOR))
 	_arrow = Polygon2D.new()
-	_arrow.color = Color("f51e16")
+	_arrow.color = DEFAULT_PANEL_COLOR
 	add_child(_arrow)
-	_label = ArcadeTheme.make_label("", 16, Color("ffe126"))
+	_label = ArcadeTheme.make_label("", 16, DEFAULT_LABEL_COLOR)
 	_label.name = "Label"
 	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_label.add_theme_constant_override("outline_size", 0)
@@ -33,8 +35,13 @@ func _ready() -> void:
 	hide()
 
 
-func show_feedback(callout_text: String) -> void:
+func show_feedback(
+	callout_text: String, panel_color := DEFAULT_PANEL_COLOR, label_color := DEFAULT_LABEL_COLOR
+) -> void:
 	_label.text = callout_text
+	add_theme_stylebox_override("panel", _marker_style(panel_color))
+	_arrow.color = panel_color
+	_label.add_theme_color_override("font_color", label_color)
 	_time_remaining = CALLOUT_DURATION
 	_elapsed = 0.0
 	show()
@@ -69,9 +76,9 @@ func local_bounds() -> Rect2:
 	)
 
 
-func _marker_style() -> StyleBoxFlat:
+func _marker_style(panel_color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("f51e16")
+	style.bg_color = panel_color
 	style.border_color = Color.WHITE
 	style.set_border_width_all(1)
 	return style

@@ -18,6 +18,8 @@ const FLIGHT_CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 640.0, DESIGN_SIZE.y / 640.0
 const CAMERA_ZOOM_RESPONSE := 3.5
 const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
 const PERFORMANCE_MARKER_BOTTOM_OFFSET := Vector2(0, 30)
+const FULL_SPIN_PANEL_COLOR := Color("42eaff")
+const FULL_SPIN_LABEL_COLOR := Color("0047b8")
 
 var course: ParkCourse
 var show_terrain := false
@@ -31,6 +33,7 @@ var _camera: Camera2D
 var _projection: ParkProjection
 var _debug_overlay: ParkDebugOverlay
 var _observed_compression_release_progress := -1.0
+var _observed_spin_half_turns := 0
 
 
 func setup(
@@ -57,6 +60,7 @@ func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -
 	_snowboarder.reset_presentation()
 	_performance_marker.reset_feedback()
 	_observed_compression_release_progress = -1.0
+	_observed_spin_half_turns = 0
 	_camera.zoom = CAMERA_ZOOM
 	update_from_run(run_manager, 0.0, hud_occlusion)
 
@@ -146,6 +150,7 @@ func _update_rider_marker(
 ) -> void:
 	var state := run_manager.rider_state
 	_show_new_compression_feedback(state)
+	_show_new_spin_feedback(state)
 	var rider_position := _projection.project_rider(state)
 	_update_performance_marker(rider_position, hud_occlusion, delta)
 	var speed_mph := GameplayHud.speed_to_mph(state.movement_velocity().length())
@@ -196,6 +201,37 @@ func _show_new_compression_feedback(state: RiderState) -> void:
 		_performance_marker.show_feedback("GOOD POP")
 	else:
 		_performance_marker.show_feedback("EARLY POP")
+
+
+func _show_new_spin_feedback(state: RiderState) -> void:
+	if state.run_phase != RiderState.RunPhase.FLIGHT or state.spin_direction == 0:
+		_observed_spin_half_turns = 0
+		return
+	var spin_half_turns := _spin_half_turns(state.spin_progress)
+	if spin_half_turns == 0:
+		_observed_spin_half_turns = 0
+		return
+	if spin_half_turns <= _observed_spin_half_turns:
+		return
+	_observed_spin_half_turns = spin_half_turns
+	var degrees := spin_half_turns * 180
+	if degrees % 360 == 0:
+		_performance_marker.show_feedback(
+			_spin_feedback_text(state.spin_direction, degrees),
+			FULL_SPIN_PANEL_COLOR,
+			FULL_SPIN_LABEL_COLOR
+		)
+		return
+	_performance_marker.show_feedback(_spin_feedback_text(state.spin_direction, degrees))
+
+
+static func _spin_half_turns(spin_progress: float) -> int:
+	return floori(spin_progress / PI)
+
+
+static func _spin_feedback_text(spin_direction: int, degrees: int) -> String:
+	var direction := "BACKSIDE" if spin_direction < 0 else "FRONTSIDE"
+	return "%s %d" % [direction, degrees]
 
 
 func _update_debug_overlay(state: RiderState) -> void:

@@ -6,6 +6,8 @@ const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd"
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
+const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
+const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
 const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboarder_view.gd")
 
@@ -37,6 +39,7 @@ func _init() -> void:
 	_test_rotation_does_not_change_trajectory_or_pitch()
 	_test_takeoff_resets_spin_state()
 	_test_directional_view_clips()
+	_test_spin_performance_feedback()
 	if _failures.is_empty():
 		print("Rider rotation checks passed.")
 		quit(0)
@@ -234,6 +237,43 @@ func _test_directional_view_clips() -> void:
 		)
 	skier.free()
 	snowboarder.free()
+
+
+func _test_spin_performance_feedback() -> void:
+	_expect(
+		ParkWorldPresenterScene._spin_half_turns(PI - 0.01) == 0,
+		"An incomplete half-turn must not trigger spin feedback."
+	)
+	_expect(
+		ParkWorldPresenterScene._spin_half_turns(PI) == 1,
+		"A completed half-turn must trigger 180-degree feedback."
+	)
+	_expect(
+		ParkWorldPresenterScene._spin_half_turns(TAU) == 2,
+		"A completed turn must trigger 360-degree feedback."
+	)
+	_expect(
+		ParkWorldPresenterScene._spin_feedback_text(-1, 180) == "BACKSIDE 180",
+		"Negative snowboard rotation must be labeled backside."
+	)
+	_expect(
+		ParkWorldPresenterScene._spin_feedback_text(1, 360) == "FRONTSIDE 360",
+		"Positive snowboard rotation must be labeled frontside."
+	)
+	var marker := PerformanceMarkerScene.new()
+	marker._ready()
+	marker.show_feedback("BACKSIDE 360", Color("42eaff"), Color("0047b8"))
+	var style := marker.get_theme_stylebox("panel") as StyleBoxFlat
+	var label := marker.get_node("Label") as Label
+	_expect(
+		style.bg_color.is_equal_approx(Color("42eaff")),
+		"Performance feedback must support a custom panel color."
+	)
+	_expect(
+		label.get_theme_color("font_color").is_equal_approx(Color("0047b8")),
+		"Performance feedback must support a custom label color."
+	)
+	marker.free()
 
 
 func _complete_rotation(state: RiderState, direction: int) -> void:
