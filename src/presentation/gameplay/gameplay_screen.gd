@@ -50,10 +50,12 @@ func _ready() -> void:
 	_build_ui_layer()
 	_input_controller = GameplayInputControllerScene.new()
 	_hud_presenter = GameplayHudPresenterScene.new()
-	_hud_presenter.build(_ui_layer, game_session.player_count)
+	_hud_presenter.build(_ui_layer, game_session.rider_kind)
 	_world_presenter = ParkWorldPresenterScene.new()
 	add_child(_world_presenter)
-	_world_presenter.setup(_course, show_terrain, _rider_tuning.compression_window_distance)
+	_world_presenter.setup(
+		_course, show_terrain, _rider_tuning.compression_window_distance, game_session.rider_kind
+	)
 	_world_presenter.update_from_run(_run_manager, 0.0, _hud_presenter.is_occluded)
 	_update_hud_occlusion()
 	_pause_flow = PauseFlowControllerScene.new()
@@ -68,7 +70,7 @@ func _process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
 	_hud_presenter.update(
-		delta, _run_manager, game_session.player_count, _input_controller.sample_frame()
+		delta, _run_manager, game_session.rider_kind, _input_controller.sample_frame()
 	)
 
 
@@ -107,7 +109,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _restart_run() -> void:
 	game_session.restart_run(_course)
-	_hud_presenter.reset(game_session.player_count)
+	_hud_presenter.reset(game_session.rider_kind)
 	_world_presenter.reset_presentation(_run_manager, _hud_presenter.is_occluded)
 	_update_hud_occlusion()
 

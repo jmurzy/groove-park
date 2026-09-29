@@ -3,7 +3,7 @@
 class_name PrimaryScreen
 extends Control
 
-signal start_game_requested(player_count: int)
+signal start_game_requested(rider_kind: StringName)
 signal exit_requested
 
 const DESIGN_SIZE := Vector2(1920, 1080)
@@ -386,11 +386,11 @@ func _close_controls() -> void:
 	controls_button.call_deferred("grab_focus")
 
 
-func _on_player_select_confirmed(player_count: int) -> void:
+func _on_player_select_confirmed(rider_kind: StringName) -> void:
 	if not player_select:
 		return
 	player_select = null
-	start_game_requested.emit(player_count)
+	start_game_requested.emit(rider_kind)
 
 
 func _on_player_select_cancelled() -> void:

@@ -95,21 +95,21 @@ func _process(delta: float) -> void:
 		_quit()
 
 
-func _start_game(player_count: int) -> void:
+func _start_game(rider_kind: StringName) -> void:
 	if _transitioning or _primary_view == null:
 		return
 	_transitioning = true
 	_audio_manager.play_confirmation()
 	var transition := CrtTransitionScene.new()
-	transition.midpoint_reached.connect(_show_gameplay.bind(player_count, transition))
+	transition.midpoint_reached.connect(_show_gameplay.bind(rider_kind, transition))
 	transition.finished.connect(_finish_transition.bind(transition))
 	add_child(transition)
 
 
-func _show_gameplay(player_count: int, transition: CrtTransition) -> void:
+func _show_gameplay(rider_kind: StringName, transition: CrtTransition) -> void:
 	_primary_view.queue_free()
 	_primary_view = null
-	_game_session.start_game(player_count)
+	_game_session.start_game(rider_kind)
 	_gameplay_screen = GameplayScreenScene.new()
 	_gameplay_screen.game_session = _game_session
 	_gameplay_screen.show_terrain = _show_terrain

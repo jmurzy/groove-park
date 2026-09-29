@@ -1,4 +1,4 @@
-## Owns the active game session: presentation flow, player selection, park run,
+## Owns the active game session: presentation flow, rider selection, park run,
 ## score, pause state, and forwarded mountain lift state.
 class_name GameSession
 extends Node
@@ -17,9 +17,12 @@ enum PresentationState {
 	RESULTS,
 }
 
+const RIDER_SNOWBOARDER := &"snowboarder"
+const RIDER_SKIER := &"skier"
+
 var mountain_state: MountainState
 var presentation_state: PresentationState = PresentationState.ATTRACT
-var player_count := 1
+var rider_kind: StringName = RIDER_SNOWBOARDER
 var run_manager: RiderRunManager
 var run_score := 0
 var results: RunResult
@@ -44,8 +47,8 @@ func _ready() -> void:
 	add_child(_mountain_state_source)
 
 
-func start_game(selected_player_count: int) -> void:
-	player_count = selected_player_count
+func start_game(selected_rider_kind: StringName) -> void:
+	rider_kind = selected_rider_kind
 	run_manager = null
 	run_score = 0
 	results = null
@@ -97,9 +100,7 @@ func show_results() -> void:
 		push_error("Cannot show results without an active run.")
 		return
 	_set_run_score(run_manager.rider_state.jump.jump_score)
-	results = RunResult.from_primary_rider(
-		player_count, run_manager.rider_state, _active_course, _active_tuning
-	)
+	results = RunResult.from_primary_rider(run_manager.rider_state, _active_course, _active_tuning)
 	_set_presentation_state(PresentationState.RESULTS)
 	results_ready.emit(results)
 

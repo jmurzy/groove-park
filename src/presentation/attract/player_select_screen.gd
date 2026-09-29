@@ -1,9 +1,8 @@
-## 1P / 2P chooser overlay with rider-card previews. Emits `confirmed(count)` or
-## `cancelled`; the 2P card is currently display-only.
+## Solo rider chooser overlay with snowboarder and skier previews.
 class_name PlayerSelectScreen
 extends Control
 
-signal confirmed(player_count: int)
+signal confirmed(rider_kind: StringName)
 signal cancelled
 
 const DESIGN_WIDTH := 1920.0
@@ -11,10 +10,10 @@ const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
 const SNOWBOARDER_SHEET := preload("res://artwork/marquee/snowboarder_sprite.png")
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CARD_SIZE := Vector2(560, 385)
-const ONE_PLAYER_POSITION := Vector2(375, 545)
-const TWO_PLAYER_POSITION := Vector2(985, 545)
+const SNOWBOARDER_POSITION := Vector2(375, 545)
+const SKIER_POSITION := Vector2(985, 545)
 
-var selected_player_count := 1
+var selected_rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
 var _cards: Array[Button] = []
 var _riders: Array[RiderPreview] = []
 var _switch_sound: AudioStreamPlayer
@@ -30,15 +29,15 @@ func _ready() -> void:
 	_switch_sound = AudioStreamPlayer.new()
 	_switch_sound.stream = SWITCH_SOUND
 	add_child(_switch_sound)
-	_select(1)
+	_select(GameSession.RIDER_SNOWBOARDER)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_left") or event.is_action_pressed(&"ui_right"):
-		_select(1)
+		_select(_other_rider_kind())
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"controller_start"):
-		_confirm(selected_player_count)
+		_confirm(selected_rider_kind)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"controller_back"):
 		cancelled.emit()
@@ -46,7 +45,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func focus_default() -> void:
-	_select(1)
+	_select(GameSession.RIDER_SNOWBOARDER)
 
 
 func _build_shade() -> void:
@@ -59,23 +58,22 @@ func _build_shade() -> void:
 
 
 func _build_title() -> void:
-	var title := ArcadeTheme.make_label("CHOOSE YOUR RUN", 44, Color("fff16a"))
+	var title := ArcadeTheme.make_label("CHOOSE YOUR RIDE", 44, Color("fff16a"))
 	title.position = Vector2(0, 455)
 	title.size = Vector2(DESIGN_WIDTH, 64)
 	add_child(title)
 
 
 func _build_cards() -> void:
-	var one_player := _build_card(1, ONE_PLAYER_POSITION)
-	add_child(one_player)
-	var two_players := _build_card(2, TWO_PLAYER_POSITION)
-	add_child(two_players)
-	_cards.assign([one_player, two_players])
-	two_players.focus_mode = Control.FOCUS_NONE
-	two_players.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	one_player.focus_neighbor_left = NodePath(".")
-	one_player.focus_neighbor_right = NodePath(".")
+	var snowboarder := _build_card(GameSession.RIDER_SNOWBOARDER, SNOWBOARDER_POSITION)
+	add_child(snowboarder)
+	var skier := _build_card(GameSession.RIDER_SKIER, SKIER_POSITION)
+	add_child(skier)
+	_cards.assign([snowboarder, skier])
+	snowboarder.focus_neighbor_left = skier.get_path_to(snowboarder)
+	snowboarder.focus_neighbor_right = snowboarder.get_path_to(skier)
+	skier.focus_neighbor_left = skier.get_path_to(snowboarder)
+	skier.focus_neighbor_right = skier.get_path_to(skier)
 
 
 func _build_hint() -> void:
@@ -88,9 +86,9 @@ func _build_hint() -> void:
 	add_child(hint)
 
 
-func _build_card(player_count: int, card_position: Vector2) -> Button:
+func _build_card(rider_kind: StringName, card_position: Vector2) -> Button:
 	var card := Button.new()
-	card.name = "Player%dCard" % player_count
+	card.name = "%sCard" % rider_kind.capitalize()
 	card.position = card_position
 	card.size = CARD_SIZE
 	card.focus_mode = Control.FOCUS_ALL
@@ -106,57 +104,59 @@ func _build_card(player_count: int, card_position: Vector2) -> Button:
 	card.add_theme_stylebox_override(
 		"focus", ArcadeTheme.button_style(Color("12366bf2"), Color("fff16a"), 10, 15)
 	)
-	card.focus_entered.connect(_on_card_focused.bind(player_count))
+	card.focus_entered.connect(_on_card_focused.bind(rider_kind))
 	card.mouse_entered.connect(card.grab_focus)
-	card.pressed.connect(_on_card_pressed.bind(player_count))
+	card.pressed.connect(_on_card_pressed.bind(rider_kind))
 
-	var heading := ArcadeTheme.make_label(
-		"%d PLAYER%s" % [player_count, "" if player_count == 1 else "S"], 30, Color("fff7cf")
-	)
+	var heading := ArcadeTheme.make_label(rider_kind.to_upper(), 30, Color("fff7cf"))
 	heading.position = Vector2(0, 28)
 	heading.size = Vector2(CARD_SIZE.x, 48)
 	card.add_child(heading)
 
-	if player_count == 1:
-		_riders.append(RiderPreview.create("SoloSkier", SKIER_SHEET, Vector2(280, 208)))
-		card.add_child(_riders.back())
-	else:
-		_riders.append(RiderPreview.create("TeamSkier", SKIER_SHEET, Vector2(205, 208)))
-		card.add_child(_riders.back())
-		_riders.append(RiderPreview.create("TeamSnowboarder", SNOWBOARDER_SHEET, Vector2(355, 208)))
-		card.add_child(_riders.back())
+	var sheet := SNOWBOARDER_SHEET if rider_kind == GameSession.RIDER_SNOWBOARDER else SKIER_SHEET
+	_riders.append(RiderPreview.create(rider_kind.capitalize(), sheet, Vector2(280, 208)))
+	card.add_child(_riders.back())
 
-	var run_type := ArcadeTheme.make_label(
-		"SOLO RUN" if player_count == 1 else "TEAM RUN", 18, Color("aefcff")
-	)
+	var run_type := ArcadeTheme.make_label("SOLO RUN", 18, Color("aefcff"))
 	run_type.position = Vector2(0, 323)
 	run_type.size = Vector2(CARD_SIZE.x, 30)
 	card.add_child(run_type)
 	return card
 
 
-func _select(player_count: int) -> void:
-	var selection_changed := selected_player_count != player_count
-	selected_player_count = player_count
+func _select(rider_kind: StringName) -> void:
+	var selection_changed := selected_rider_kind != rider_kind
+	selected_rider_kind = rider_kind
 	for index in _riders.size():
-		var belongs_to_selection := index == 0 if player_count == 1 else index > 0
-		_riders[index].set_highlighted(belongs_to_selection)
+		_riders[index].set_highlighted(index == _rider_index(rider_kind))
 	if _cards.size() == 2:
-		_cards[player_count - 1].call_deferred("grab_focus")
+		_cards[_rider_index(rider_kind)].call_deferred("grab_focus")
 	if selection_changed:
 		_switch_sound.play()
 
 
-func _confirm(player_count: int) -> void:
-	confirmed.emit(player_count)
+func _confirm(rider_kind: StringName) -> void:
+	confirmed.emit(rider_kind)
 
 
-func _on_card_focused(player_count: int) -> void:
-	if player_count == selected_player_count:
+func _on_card_focused(rider_kind: StringName) -> void:
+	if rider_kind == selected_rider_kind:
 		return
-	_select(player_count)
+	_select(rider_kind)
 
 
-func _on_card_pressed(player_count: int) -> void:
-	selected_player_count = player_count
-	_confirm(player_count)
+func _on_card_pressed(rider_kind: StringName) -> void:
+	selected_rider_kind = rider_kind
+	_confirm(rider_kind)
+
+
+func _other_rider_kind() -> StringName:
+	return (
+		GameSession.RIDER_SKIER
+		if selected_rider_kind == GameSession.RIDER_SNOWBOARDER
+		else GameSession.RIDER_SNOWBOARDER
+	)
+
+
+func _rider_index(rider_kind: StringName) -> int:
+	return 0 if rider_kind == GameSession.RIDER_SNOWBOARDER else 1
