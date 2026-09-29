@@ -31,7 +31,7 @@ func sample_frame() -> RiderInputFrame:
 	frame.spin_lt_just_pressed = Input.is_action_just_pressed(&"action_lt")
 	frame.spin_rt_pressed = Input.is_action_pressed(&"action_rt")
 	frame.spin_rt_just_pressed = Input.is_action_just_pressed(&"action_rt")
-	frame.landing_prep_pressed = Input.is_action_pressed(&"action_b")
+	frame.landing_prep_pressed = Input.is_action_pressed(&"action_x")
 	return frame
 
 

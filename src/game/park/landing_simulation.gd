@@ -12,11 +12,12 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	var flight_velocity := Vector2(state.kinematics.course_speed, state.kinematics.vertical_speed)
 	var landing_speed := maxf(flight_velocity.dot(tangent), 0.0)
 	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = RiderRunState.LandingOutcome.CLEAN
+	state.run.landing_outcome = _outcome_at_contact(state)
 	state.run.current_surface_id = &"landing"
 	state.jump.landing_resolved = true
-	state.jump.landing_label = "CLEAN"
-	state.jump.landing_quality = 1.0
+	state.jump.grab_active_at_landing = state.jump.trick_tracker.grab_active
+	state.jump.landing_label = _label_for_outcome(state.run.landing_outcome)
+	state.jump.landing_quality = _quality_for_outcome(state.run.landing_outcome)
 	state.jump.landing_position = contact_position
 	state.jump.landing_tangent = tangent
 	state.jump.landing_normal = normal
@@ -28,13 +29,45 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	state.kinematics.ground_position = Vector2(
 		state.kinematics.course_progress, state.kinematics.lane_position
 	)
-	state.kinematics.ground_velocity = Vector2(landing_speed * tangent.x, 0.0)
-	state.kinematics.course_speed = state.kinematics.ground_velocity.x
+	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+		state.kinematics.ground_velocity = Vector2.ZERO
+		state.kinematics.course_speed = 0.0
+	else:
+		state.kinematics.ground_velocity = Vector2(landing_speed * tangent.x, 0.0)
+		state.kinematics.course_speed = state.kinematics.ground_velocity.x
 	state.kinematics.lane_speed = 0.0
 	state.kinematics.vertical_speed = 0.0
 	state.jump.orientation = tangent.angle()
 	state.jump.angular_velocity = 0.0
 	state.run.completion_time_remaining = 0.0
+	state.run.recovery_time_remaining = 0.0
+
+
+func _outcome_at_contact(state: RiderState) -> int:
+	if not state.jump.landing_prep_active:
+		return RiderRunState.LandingOutcome.CRASH
+	if state.jump.trick_tracker.grab_active:
+		return RiderRunState.LandingOutcome.CRASH
+	if state.jump.rotation_incomplete:
+		return RiderRunState.LandingOutcome.CRASH
+	if state.jump.grab_released_after_deadline:
+		return RiderRunState.LandingOutcome.SKETCHY
+	return RiderRunState.LandingOutcome.CLEAN
+
+
+func _label_for_outcome(outcome: int) -> String:
+	match outcome:
+		RiderRunState.LandingOutcome.CLEAN:
+			return "CLEAN"
+		RiderRunState.LandingOutcome.SKETCHY:
+			return "SKETCHY"
+		RiderRunState.LandingOutcome.CRASH:
+			return "CRASH"
+	return "ABANDON"
+
+
+func _quality_for_outcome(outcome: int) -> float:
+	return 1.0 if outcome == RiderRunState.LandingOutcome.CLEAN else 0.0
 
 
 func begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
@@ -80,6 +113,7 @@ func crash(state: RiderState, tuning: RiderTuning) -> void:
 		state.kinematics.course_progress, state.kinematics.vertical_position
 	)
 	state.run.completion_time_remaining = tuning.crash_completion_delay
+	state.run.recovery_time_remaining = 0.0
 	state.kinematics.ground_velocity = Vector2.ZERO
 	state.kinematics.course_speed = 0.0
 	state.kinematics.lane_speed = 0.0
@@ -103,14 +137,18 @@ func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) 
 	state.jump.orientation = tangent.angle()
 	state.jump.angular_velocity = 0.0
 	state.run.completion_time_remaining = 0.0
+	state.run.recovery_time_remaining = 0.0
 
 
 func step(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
 	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+		if state.run.completion_time_remaining <= 0.0:
+			state.run.completion_time_remaining = tuning.crash_completion_delay
 		state.run.completion_time_remaining = maxf(state.run.completion_time_remaining - delta, 0.0)
 		if is_zero_approx(state.run.completion_time_remaining):
 			_complete(state)
 		return
+	state.run.recovery_time_remaining = maxf(state.run.recovery_time_remaining - delta, 0.0)
 	var runout_end := course.landing_end_at(state.kinematics.active_route_index)
 	if state.kinematics.course_progress >= runout_end.x:
 		_complete(state)

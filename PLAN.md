@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 10 are complete. Final landing judgment remains an incremental later milestone.
+Milestones 1 through 11 are complete. Completion and gameplay polish remain.
 
 ## Goal
 
@@ -56,7 +56,8 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 - `A` holds the standard grab.
 - `B` holds the tweak-grab variation.
 - Releasing the held grab button ends its grab immediately.
-- `X`, `Y`, `LB`, and `RB` have no flight role in the initial control set.
+- Hold `X` in flight to prepare for landing. It is required at terrain contact.
+- `Y`, `LB`, and `RB` have no flight role in the initial control set.
 - `LT` and `RT` trigger spins. Rotations are available only while either grab is held.
 
 ### Rotation Gesture
@@ -143,14 +144,20 @@ required_rotations = ceil(
 - Starting another grab after crossing also marks the landing sketchy.
 - Still grabbing at ground contact causes a crash.
 
+### Landing Preparation
+
+- Hold `X` to enter landing preparation while airborne.
+- Landing without `X` held causes a crash regardless of other jump state.
+- Holding `X` does not excuse an active grab or an unfinished half-rotation at contact.
+
 ### Landing Outcomes
 
 The first swept contact with the selected landing path resolves the landing exactly once. Outcome priority is:
 
 ```text
+X not held                  -> CRASH
 Still grabbing              -> CRASH
 Half-rotation unfinished    -> CRASH
-Completed rotations < quota -> CRASH
 Release deadline missed     -> SKETCHY
 Otherwise                   -> CLEAN
 ```
@@ -160,6 +167,7 @@ Otherwise                   -> CLEAN
 - An airborne abandon follows the active route's curved abandon line; the lower grounded route follows its authored runout path.
 - A sketchy landing enters automatic runout with recovery presentation.
 - A crash stops or settles the rider and completes after a deterministic delay.
+- Missing the displayed rotation quota does not affect landing outcome; it remains a speed-management target and HUD metric.
 - Landing controls are always disabled.
 - Clean and sketchy runouts preserve contact momentum but are advanced automatically.
 - The run completes at the selected landing path endpoint.
@@ -769,23 +777,24 @@ Manual acceptance:
 
 - The warning appears with enough time to react and remains legible over the course.
 
-### Milestone 11: Final Landing Outcomes
+### Milestone 11: Final Landing Outcomes - Complete
 
 Implementation:
 
-- Apply the agreed outcome priority on first contact.
-- Add clean celebration, sketchy recovery, and crash behavior.
-- Auto-run clean and sketchy outcomes to the endpoint.
-- Complete crashes after a simulation-owned timer.
-- Ignore animation callbacks for completion logic.
+- Applied the agreed outcome priority once on first contact.
+- Mapped clean, sketchy, and crash outcomes to their rider presentations and HUD feedback.
+- Continued clean and sketchy outcomes through automatic runout.
+- Completed contact crashes with the simulation-owned timer.
+- Kept completion independent from animation callbacks.
 
 Automated acceptance:
 
+- Landing without X held crashes.
 - Still grabbing at contact crashes.
 - An incomplete half-turn crashes.
-- Missing the required count crashes.
-- A late release with enough rotations is sketchy.
-- An early release with enough rotations is clean.
+- Missing the required count does not crash.
+- A late release is sketchy.
+- An early release with X held is clean.
 - Outcome resolves once and cannot change afterward.
 
 Manual acceptance:

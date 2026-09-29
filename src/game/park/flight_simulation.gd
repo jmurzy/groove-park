@@ -36,6 +36,7 @@ func begin(state: RiderState, course: ParkCourse, tuning: RiderTuning, route_ind
 	state.jump.takeoff_tangent = tangent
 	state.jump.takeoff_normal = normal
 	state.jump.release_deadline_y = state.kinematics.vertical_position
+	state.jump.landing_prep_active = false
 	state.jump.approach_speed = takeoff_speed
 	state.jump.approach_speed_captured = true
 	state.kinematics.course_speed = takeoff_velocity.x
@@ -65,6 +66,7 @@ func step(
 	delta: float,
 	landing: LandingSimulation
 ) -> float:
+	state.jump.landing_prep_active = input.landing_prep_pressed
 	_tricks.update_input(state, input, tuning)
 	var previous_y := state.kinematics.vertical_position
 	var result := _integrator.advance(state, course, tuning, delta)

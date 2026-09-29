@@ -514,7 +514,9 @@ func _test_swept_landing_contact_resolves_once() -> void:
 	tuning.gravity = 0.0
 	tuning.air_drag = 0.0
 	tuning.air_time_scale = 1.0
-	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.2)
+	var landing_prep := RiderInputFrameScene.new()
+	landing_prep.landing_prep_pressed = true
+	_simulation.step(state, landing_prep, _course, tuning, 0.2)
 	_expect(
 		(
 			state.run.run_phase == RiderRunState.RunPhase.LANDING
@@ -530,6 +532,92 @@ func _test_swept_landing_contact_resolves_once() -> void:
 	var first_contact := state.jump.landing_position
 	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.5)
 	_expect(state.jump.landing_position.is_equal_approx(first_contact), "Runout must not reland.")
+
+
+func _test_contact_outcome_priority() -> void:
+	var landing := LandingSimulation.new()
+	var contact := {
+		"position": Vector2(100.0, 100.0), "tangent": Vector2.RIGHT, "normal": Vector2.UP
+	}
+	var still_grabbing := _landing_contact_state()
+	still_grabbing.jump.landing_prep_active = true
+	still_grabbing.jump.trick_tracker.grab_active = true
+	still_grabbing.jump.rotation_incomplete = true
+	still_grabbing.jump.required_rotations = 1
+	still_grabbing.jump.grab_released_after_deadline = true
+	landing.resolve_contact(still_grabbing, contact)
+	_expect(
+		still_grabbing.run.landing_outcome == RiderRunState.LandingOutcome.CRASH,
+		"An active grab at contact must take crash priority."
+	)
+	var incomplete_rotation := _landing_contact_state()
+	incomplete_rotation.jump.landing_prep_active = true
+	incomplete_rotation.jump.rotation_incomplete = true
+	incomplete_rotation.jump.required_rotations = 1
+	incomplete_rotation.jump.grab_released_after_deadline = true
+	landing.resolve_contact(incomplete_rotation, contact)
+	_expect(
+		incomplete_rotation.run.landing_outcome == RiderRunState.LandingOutcome.CRASH,
+		"An incomplete rotation at contact must crash."
+	)
+	var missing_rotation := _landing_contact_state()
+	missing_rotation.jump.landing_prep_active = true
+	missing_rotation.jump.required_rotations = 1
+	missing_rotation.jump.grab_released_after_deadline = true
+	landing.resolve_contact(missing_rotation, contact)
+	_expect(
+		missing_rotation.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY,
+		"A missed rotation requirement must not crash."
+	)
+	var late_release := _landing_contact_state()
+	late_release.jump.landing_prep_active = true
+	late_release.jump.required_rotations = 1
+	late_release.jump.completed_rotations = 1
+	late_release.jump.grab_released_after_deadline = true
+	landing.resolve_contact(late_release, contact)
+	_expect(
+		late_release.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY,
+		"A late release with enough rotations must be sketchy."
+	)
+	var clean := _landing_contact_state()
+	clean.jump.landing_prep_active = true
+	clean.jump.required_rotations = 1
+	clean.jump.completed_rotations = 1
+	landing.resolve_contact(clean, contact)
+	_expect(
+		clean.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN,
+		"An early release with enough rotations must land clean."
+	)
+	var no_landing_prep := _landing_contact_state()
+	landing.resolve_contact(no_landing_prep, contact)
+	_expect(
+		no_landing_prep.run.landing_outcome == RiderRunState.LandingOutcome.CRASH,
+		"Landing without X held must crash."
+	)
+
+
+func _test_flight_input_activates_landing_prep() -> void:
+	var state := flight_state()
+	var input := RiderInputFrameScene.new()
+	input.landing_prep_pressed = true
+	_simulation.step(state, input, _course, _tuning, DELTA)
+	_expect(state.jump.landing_prep_active, "Holding X in flight must activate landing prep.")
+
+
+func _test_contact_outcome_resolves_once() -> void:
+	var state := _landing_contact_state()
+	state.jump.landing_prep_active = true
+	var landing := LandingSimulation.new()
+	var contact := {
+		"position": Vector2(100.0, 100.0), "tangent": Vector2.RIGHT, "normal": Vector2.UP
+	}
+	landing.resolve_contact(state, contact)
+	var outcome := state.run.landing_outcome
+	state.jump.trick_tracker.grab_active = true
+	landing.resolve_contact(state, contact)
+	_expect(
+		state.run.landing_outcome == outcome, "Landing outcome must not change after first contact."
+	)
 
 
 func _test_flight_only_hits_selected_landing_path() -> void:
@@ -691,12 +779,14 @@ func _test_abandon_floor_does_not_preempt_landing_contact() -> void:
 	tuning.gravity = 0.0
 	tuning.air_drag = 0.0
 	tuning.air_time_scale = 1.0
-	_simulation.step(state, RiderInputFrameScene.new(), routed_course, tuning, 1.0)
+	var landing_prep := RiderInputFrameScene.new()
+	landing_prep.landing_prep_pressed = true
+	_simulation.step(state, landing_prep, routed_course, tuning, 1.0)
 	_expect(
 		state.run.run_phase == RiderRunState.RunPhase.FLIGHT,
 		"The nominal floor must not end flight."
 	)
-	_simulation.step(state, RiderInputFrameScene.new(), routed_course, tuning, 1.0)
+	_simulation.step(state, landing_prep, routed_course, tuning, 1.0)
 	_expect(
 		state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN,
 		"Later contact must land cleanly."
@@ -737,7 +827,7 @@ func _test_missed_flight_is_terminal() -> void:
 	)
 
 
-func _test_shipped_routes_complete_cleanly() -> void:
+func _test_shipped_routes_complete_with_landing_prep() -> void:
 	for route_index in ParkCourse.ROUTE_COUNT:
 		var state := RiderStateScene.new()
 		var kinematics := state.kinematics
@@ -755,6 +845,7 @@ func _test_shipped_routes_complete_cleanly() -> void:
 		run.has_ground_intent = true
 		var input := RiderInputFrameScene.new()
 		input.heading = Vector2.RIGHT
+		input.landing_prep_pressed = true
 		for _tick in 3000:
 			_simulation.step(state, input, ShippedParkCourse, _tuning, DELTA)
 			if run.run_phase == RiderRunState.RunPhase.COMPLETE:
@@ -765,9 +856,7 @@ func _test_shipped_routes_complete_cleanly() -> void:
 		)
 		var outcome_is_valid := run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
 		if ShippedParkCourse.route_at(route_index).kind == ParkRoute.Kind.FLIGHT:
-			outcome_is_valid = (
-				outcome_is_valid or (run.landing_outcome == RiderRunState.LandingOutcome.CLEAN)
-			)
+			outcome_is_valid = run.landing_outcome == RiderRunState.LandingOutcome.CLEAN
 		_expect(
 			outcome_is_valid,
 			(

@@ -82,7 +82,13 @@ func _update_rotation(state: RiderState) -> void:
 
 func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState) -> void:
 	var action_message := ""
-	if state.run.run_phase == RiderRunState.RunPhase.APPROACH:
+	if state.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY:
+		action_message = "SKETCHY RECOVERY"
+	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+		action_message = "CRASH"
+	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN:
+		action_message = "CLEAN LANDING"
+	elif state.run.run_phase == RiderRunState.RunPhase.APPROACH:
 		action_message = "RIGHT / D: BUILD SPEED"
 		if state.jump.compression_active:
 			action_message = "X  COMPRESSING"
@@ -91,7 +97,9 @@ func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState
 		elif input.tuck_pressed:
 			action_message = "A  TUCKING"
 	elif state.run.run_phase == RiderRunState.RunPhase.FLIGHT:
-		if state.jump.tweak_active:
+		if state.jump.landing_prep_active:
+			action_message = "X  HOLD TO LAND"
+		elif state.jump.tweak_active:
 			action_message = "B  TWEAK GRAB"
 		elif state.jump.trick_tracker.grab_active:
 			action_message = "A  STANDARD GRAB"
