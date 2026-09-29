@@ -141,7 +141,7 @@ func landing_end_at(route_index: int) -> Vector2:
 
 
 func flight_miss_boundary_y_at(course_progress: float, route_index: int) -> float:
-	return _path_surface_y_at(flight_miss_boundary_points(route_index), course_progress)
+	return ParkPathGeometry.surface_y_at(flight_miss_boundary_points(route_index), course_progress)
 
 
 func flight_miss_boundary_points(route_index: int) -> PackedVector2Array:
@@ -163,7 +163,7 @@ func flight_abandon_floor_points(route_index: int) -> PackedVector2Array:
 
 
 func flight_abandon_floor_y_at(course_progress: float, route_index: int) -> float:
-	return _path_surface_y_at(flight_abandon_floor_points(route_index), course_progress)
+	return ParkPathGeometry.surface_y_at(flight_abandon_floor_points(route_index), course_progress)
 
 
 func flight_abandon_trigger_y_at(course_progress: float, route_index: int) -> float:
@@ -220,14 +220,3 @@ func _blend_approach_x(route_position: float, use_end: bool) -> float:
 	var upper_path := route_at(upper_index).approach_path
 	var point_index := -1 if use_end else 0
 	return lerpf(lower_path[point_index].x, upper_path[point_index].x, blend)
-
-
-func _path_surface_y_at(path: PackedVector2Array, course_progress: float) -> float:
-	if course_progress <= path[0].x:
-		return path[0].y
-	for point_index in range(path.size() - 1):
-		var start := path[point_index]
-		var end := path[point_index + 1]
-		if course_progress <= end.x:
-			return lerpf(start.y, end.y, inverse_lerp(start.x, end.x, course_progress))
-	return path[-1].y
