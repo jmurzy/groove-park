@@ -1,6 +1,9 @@
-## Launches and advances airborne riders, including grab and rotation gestures.
+## Coordinates launch, flight physics, tricks, and landing outcomes.
 class_name FlightSimulation
 extends RefCounted
+
+var _integrator := FlightIntegrator.new()
+var _tricks := AirTrickController.new()
 
 
 func begin(state: RiderState, course: ParkCourse, tuning: RiderTuning, route_index: int) -> void:
@@ -38,20 +41,8 @@ func begin(state: RiderState, course: ParkCourse, tuning: RiderTuning, route_ind
 	state.kinematics.lane_speed = state.kinematics.ground_velocity.y
 	state.kinematics.vertical_speed = takeoff_velocity.y
 	state.jump.orientation = tangent.angle()
-	state.jump.angular_velocity = 0.0
-	state.jump.spin_gesture.reset()
-	_sync_spin_gesture(state)
-	state.jump.rotation_rate = _rotation_rate_for_speed(takeoff_velocity.length(), tuning)
-	state.jump.completed_rotations = 0
-	state.jump.rotation_incomplete = false
-	state.jump.airtime = 0.0
-	state.jump.grab_reach_active = false
-	state.jump.tweak_active = false
-	state.jump.grab_started_airtime = -1.0
-	state.jump.grab_active_at_landing = false
+	_tricks.begin(state, takeoff_velocity.length(), tuning)
 	state.jump.landing_resolved = false
-	state.jump.trick_tracker.reset(state.jump.orientation)
-	state.jump.trick_call = ""
 
 
 func step(
@@ -62,180 +53,16 @@ func step(
 	delta: float,
 	landing: LandingSimulation
 ) -> float:
-	var flight_delta := delta * tuning.air_time_scale
-	_update_grab_input(state, input, tuning)
-	_update_rotation_gesture_input(state, input)
-	var previous_position := Vector2(
-		state.kinematics.course_progress, state.kinematics.vertical_position
-	)
-	var previous_lane_position := state.kinematics.lane_position
-	var previous_course_speed := state.kinematics.course_speed
-	var previous_lane_speed := state.kinematics.lane_speed
-	var previous_vertical_speed := state.kinematics.vertical_speed
-	var next_vertical_speed := (
-		previous_vertical_speed
-		+ tuning.gravity * tuning.flight_arc_height_multiplier * flight_delta
-	)
-	var drag_factor := maxf(0.0, 1.0 - tuning.air_drag * flight_delta)
-	var next_course_speed := previous_course_speed * drag_factor
-	var next_lane_speed := previous_lane_speed * drag_factor
-	next_vertical_speed *= drag_factor
-	var next_position := (
-		previous_position + Vector2(next_course_speed, next_vertical_speed) * flight_delta
-	)
-	var next_lane_position := previous_lane_position + next_lane_speed * flight_delta
-	var contact := course.landing_swept_terrain_intersection(
-		previous_position, next_position, state.kinematics.active_route_index
-	)
-	if not contact.is_empty():
-		var contact_time := float(contact["time"])
-		state.kinematics.course_speed = lerpf(
-			previous_course_speed, next_course_speed, contact_time
-		)
-		state.kinematics.lane_speed = lerpf(previous_lane_speed, next_lane_speed, contact_time)
-		state.kinematics.vertical_speed = lerpf(
-			previous_vertical_speed, next_vertical_speed, contact_time
-		)
-		state.kinematics.lane_position = lerpf(
-			previous_lane_position, next_lane_position, contact_time
-		)
-		_advance_grab(state, tuning, flight_delta * contact_time)
-		_advance_rotation(state, flight_delta * contact_time)
-		state.jump.airtime += flight_delta * contact_time
-		landing.resolve_contact(state, contact)
-		return delta * (1.0 - contact_time)
-	state.kinematics.course_speed = next_course_speed
-	state.kinematics.lane_speed = next_lane_speed
-	state.kinematics.vertical_speed = next_vertical_speed
-	state.kinematics.course_progress = next_position.x
-	state.kinematics.lane_position = next_lane_position
-	state.kinematics.vertical_position = next_position.y
-	state.kinematics.ground_position = Vector2(
-		state.kinematics.course_progress, state.kinematics.lane_position
-	)
-	state.kinematics.ground_velocity = Vector2(
-		state.kinematics.course_speed, state.kinematics.lane_speed
-	)
-	_advance_grab(state, tuning, flight_delta)
-	_advance_rotation(state, flight_delta)
-	state.jump.airtime += flight_delta
-	if _has_overshot_landing(state, course):
+	_tricks.update_input(state, input, tuning)
+	var result := _integrator.advance(state, course, tuning, delta)
+	var airtime_delta := float(result["airtime_delta"])
+	_tricks.advance(state, tuning, airtime_delta)
+	state.jump.airtime += airtime_delta
+	if result.has("contact"):
+		landing.resolve_contact(state, result["contact"])
+		return float(result["remaining_delta"])
+	if _integrator.has_overshot_landing(state, course):
 		landing.crash(state, tuning)
-	elif _should_abandon(state, course):
+	elif _integrator.should_abandon(state, course):
 		landing.begin_abandoned_runout(state, course)
 	return -1.0
-
-
-func _update_grab_input(state: RiderState, input: RiderInputFrame, tuning: RiderTuning) -> void:
-	if state.jump.trick_tracker.grab_active:
-		var active_button_held := (
-			input.tweak_pressed if state.jump.tweak_active else input.grab_pressed
-		)
-		if not active_button_held:
-			_release_grab(state, tuning)
-		return
-	if input.grab_just_pressed and input.grab_pressed:
-		_start_grab(state, false)
-	elif input.tweak_just_pressed and input.tweak_pressed:
-		_start_grab(state, true)
-
-
-func _start_grab(state: RiderState, tweak: bool) -> void:
-	state.jump.trick_tracker.start_grab()
-	state.jump.grab_started_airtime = state.jump.airtime
-	state.jump.grab_reach_active = not tweak
-	state.jump.tweak_active = tweak
-
-
-func _release_grab(state: RiderState, tuning: RiderTuning) -> void:
-	state.jump.trick_tracker.release_grab(state.jump.airtime, tuning.minimum_grab_duration)
-	state.jump.grab_reach_active = false
-	state.jump.tweak_active = false
-
-
-func _advance_grab(state: RiderState, tuning: RiderTuning, delta: float) -> void:
-	state.jump.trick_tracker.step_grab(delta, state.jump.tweak_active)
-	if (
-		state.jump.grab_reach_active
-		and (
-			state.jump.airtime + delta - state.jump.grab_started_airtime
-			>= tuning.grab_reach_duration
-		)
-	):
-		state.jump.grab_reach_active = false
-
-
-func _update_rotation_gesture_input(state: RiderState, input: RiderInputFrame) -> void:
-	var gesture := state.jump.spin_gesture
-	var was_advancing := gesture.is_advancing()
-	gesture.update_input(
-		input.spin_lt_pressed,
-		input.spin_rt_pressed,
-		input.spin_lt_just_pressed,
-		input.spin_rt_just_pressed,
-		state.jump.trick_tracker.grab_active,
-		state.jump.tweak_active,
-		PI,
-		TAU
-	)
-	if not state.jump.trick_tracker.grab_active and was_advancing:
-		state.jump.rotation_incomplete = true
-		state.jump.angular_velocity = 0.0
-	_sync_spin_gesture(state)
-
-
-func _advance_rotation(state: RiderState, delta: float) -> void:
-	var gesture := state.jump.spin_gesture
-	if not state.jump.trick_tracker.grab_active or not gesture.is_advancing():
-		state.jump.angular_velocity = 0.0
-		return
-	state.jump.angular_velocity = state.jump.rotation_rate * gesture.direction
-	var completed_rotation := gesture.advance(delta, state.jump.rotation_rate)
-	state.jump.angular_velocity = 0.0
-	if completed_rotation:
-		state.jump.completed_rotations += 1
-		state.jump.trick_tracker.complete_rotation(gesture.direction)
-	_sync_spin_gesture(state)
-
-
-func _rotation_is_advancing(state: RiderState) -> bool:
-	return state.jump.spin_gesture.is_advancing()
-
-
-func _sync_spin_gesture(state: RiderState) -> void:
-	var gesture := state.jump.spin_gesture
-	state.jump.rotation_gesture_phase = gesture.phase
-	state.jump.spin_direction = gesture.direction
-	state.jump.spin_rearmed = gesture.rearmed
-	state.jump.spin_progress = gesture.progress
-	state.jump.spin_target = gesture.target
-	state.jump.spin_grab_tweak = gesture.tweak
-
-
-func _rotation_rate_for_speed(takeoff_speed: float, tuning: RiderTuning) -> float:
-	var speed_range := tuning.max_rotation_speed - tuning.min_rotation_speed
-	var speed_factor := 0.0
-	if not is_zero_approx(speed_range):
-		speed_factor = clampf((takeoff_speed - tuning.min_rotation_speed) / speed_range, 0.0, 1.0)
-	elif takeoff_speed >= tuning.max_rotation_speed:
-		speed_factor = 1.0
-	return lerpf(tuning.min_rotation_rate, tuning.max_rotation_rate, speed_factor)
-
-
-func _has_overshot_landing(state: RiderState, course: ParkCourse) -> bool:
-	return (
-		state.kinematics.course_progress
-		> course.landing_end_at(state.kinematics.active_route_index).x
-	)
-
-
-func _should_abandon(state: RiderState, course: ParkCourse) -> bool:
-	return (
-		state.kinematics.vertical_speed > 0.0
-		and (
-			state.kinematics.vertical_position
-			> course.flight_abandon_trigger_y_at(
-				state.kinematics.course_progress, state.kinematics.active_route_index
-			)
-		)
-	)
