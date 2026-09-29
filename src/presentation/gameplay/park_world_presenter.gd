@@ -7,14 +7,14 @@ const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
 const HeavenlyLogotypeScene := preload("res://src/presentation/features/heavenly_logotype.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
-const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
+const InfoMarkerScene := preload("res://src/presentation/gameplay/info_marker.gd")
 const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const ParkDebugOverlayScene := preload("res://src/presentation/gameplay/park_debug_overlay.gd")
 const CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 724.0, DESIGN_SIZE.y / 724.0)
 const FLIGHT_CAMERA_ZOOM := Vector2(DESIGN_SIZE.y / 640.0, DESIGN_SIZE.y / 640.0)
 const CAMERA_ZOOM_RESPONSE := 3.5
-const RIDER_MARKER_TOP_OFFSET := Vector2(0, -70)
+const INFO_MARKER_TOP_OFFSET := Vector2(0, -70)
 const PERFORMANCE_MARKER_BOTTOM_OFFSET := Vector2(0, 30)
 const FULL_SPIN_PANEL_COLOR := Color("42eaff")
 const FULL_SPIN_LABEL_COLOR := Color("0047b8")
@@ -24,7 +24,7 @@ var show_terrain := false
 var compression_window_distance := 0.0
 var rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
 var _rider: RiderView
-var _rider_marker: RiderMarker
+var _info_marker: InfoMarker
 var _performance_marker: PerformanceMarker
 var _rider_effects: RiderEffects
 var _camera: Camera2D
@@ -52,7 +52,7 @@ func setup(
 
 func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: Callable) -> void:
 	_update_rider_views(run_manager)
-	_update_rider_marker(run_manager, hud_occlusion, delta)
+	_update_info_marker(run_manager, hud_occlusion, delta)
 	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
 	_update_debug_overlay(run_manager.rider_state)
 	_update_camera(run_manager, delta)
@@ -95,8 +95,8 @@ func _build_world() -> void:
 	_rider.z_index = 2
 	_rider.set_show_source_bounds(show_terrain)
 	add_child(_rider)
-	_rider_marker = RiderMarkerScene.new()
-	add_child(_rider_marker)
+	_info_marker = InfoMarkerScene.new()
+	add_child(_info_marker)
 	_performance_marker = PerformanceMarkerScene.new()
 	add_child(_performance_marker)
 	_camera = Camera2D.new()
@@ -158,7 +158,7 @@ func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
 	view.update_from_state(state, _projection.project_rider(state), ground_rotation)
 
 
-func _update_rider_marker(
+func _update_info_marker(
 	run_manager: RiderRunManager, hud_occlusion: Callable, delta: float
 ) -> void:
 	var state := run_manager.rider_state
@@ -168,11 +168,11 @@ func _update_rider_marker(
 	_update_performance_marker(rider_position, hud_occlusion, delta)
 	var speed_mph := GameplayHud.speed_to_mph(state.movement_velocity().length())
 	if speed_mph == 0:
-		_rider_marker.hide()
+		_info_marker.hide()
 		return
-	_rider_marker.update_from_rider(rider_position + RIDER_MARKER_TOP_OFFSET, "%d MPH" % speed_mph)
-	_rider_marker.visible = not hud_occlusion.call(
-		_marker_screen_rect(_rider_marker, _rider_marker.local_bounds())
+	_info_marker.update_from_rider(rider_position + INFO_MARKER_TOP_OFFSET, "%d MPH" % speed_mph)
+	_info_marker.visible = not hud_occlusion.call(
+		_marker_screen_rect(_info_marker, _info_marker.local_bounds())
 	)
 
 
