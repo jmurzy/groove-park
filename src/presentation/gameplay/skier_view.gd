@@ -120,13 +120,13 @@ func _ready() -> void:
 
 
 func _carve_animation(state: RiderState) -> StringName:
-	return &"carve_uphill" if state.heading.y < 0.0 else &"carve_downhill"
+	return &"carve_uphill" if state.kinematics.heading.y < 0.0 else &"carve_downhill"
 
 
 func _spin_animation_for_state(state: RiderState) -> StringName:
-	if state.spin_grab_tweak:
-		return &"spin_tweak_left" if state.spin_direction < 0 else &"spin_tweak_right"
-	return &"spin_regular_left" if state.spin_direction < 0 else &"spin_regular_right"
+	if state.jump.spin_grab_tweak:
+		return &"spin_tweak_left" if state.jump.spin_direction < 0 else &"spin_tweak_right"
+	return &"spin_regular_left" if state.jump.spin_direction < 0 else &"spin_regular_right"
 
 
 func _build_frames() -> SpriteFrames:

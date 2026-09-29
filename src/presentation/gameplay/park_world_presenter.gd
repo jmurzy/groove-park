@@ -136,11 +136,22 @@ func _update_rider_views(run_manager: RiderRunManager) -> void:
 
 func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
 	var ground_rotation := (
-		course.route_tangent_at(state.course_progress, state.approach_path_position).angle()
+		course
+		. route_tangent_at(
+			state.kinematics.course_progress, state.kinematics.approach_path_position
+		)
+		. angle()
 	)
-	if state.active_route_index >= 0 and state.run_phase != RiderState.RunPhase.APPROACH:
+	if (
+		state.kinematics.active_route_index >= 0
+		and state.run.run_phase != RiderRunState.RunPhase.APPROACH
+	):
 		ground_rotation = (
-			course.landing_tangent_at(state.course_progress, state.active_route_index).angle()
+			course
+			. landing_tangent_at(
+				state.kinematics.course_progress, state.kinematics.active_route_index
+			)
+			. angle()
 		)
 	view.update_from_state(state, _projection.project_rider(state), ground_rotation)
 
@@ -185,29 +196,31 @@ func _marker_screen_rect(marker: Control, marker_bounds: Rect2) -> Rect2:
 
 
 func _show_new_compression_feedback(state: RiderState) -> void:
-	if state.compression_release_progress < 0.0:
+	if state.jump.compression_release_progress < 0.0:
 		_observed_compression_release_progress = -1.0
 		return
-	if is_equal_approx(state.compression_release_progress, _observed_compression_release_progress):
+	if is_equal_approx(
+		state.jump.compression_release_progress, _observed_compression_release_progress
+	):
 		return
-	_observed_compression_release_progress = state.compression_release_progress
-	if is_zero_approx(state.compression_amount):
+	_observed_compression_release_progress = state.jump.compression_release_progress
+	if is_zero_approx(state.jump.compression_amount):
 		return
-	if state.compression_auto_released:
+	if state.jump.compression_auto_released:
 		_performance_marker.show_feedback("AUTO POP")
-	elif state.compression_release_quality >= 0.9:
+	elif state.jump.compression_release_quality >= 0.9:
 		_performance_marker.show_feedback("PERFECT POP!")
-	elif state.compression_release_quality >= 0.5:
+	elif state.jump.compression_release_quality >= 0.5:
 		_performance_marker.show_feedback("GOOD POP")
 	else:
 		_performance_marker.show_feedback("EARLY POP")
 
 
 func _show_new_spin_feedback(state: RiderState) -> void:
-	if state.run_phase != RiderState.RunPhase.FLIGHT or state.spin_direction == 0:
+	if state.run.run_phase != RiderRunState.RunPhase.FLIGHT or state.jump.spin_direction == 0:
 		_observed_spin_half_turns = 0
 		return
-	var spin_half_turns := _spin_half_turns(state.spin_progress)
+	var spin_half_turns := _spin_half_turns(state.jump.spin_progress)
 	if spin_half_turns == 0:
 		_observed_spin_half_turns = 0
 		return
@@ -217,12 +230,12 @@ func _show_new_spin_feedback(state: RiderState) -> void:
 	var degrees := spin_half_turns * 180
 	if degrees % 360 == 0:
 		_performance_marker.show_feedback(
-			_spin_feedback_text(state.spin_direction, degrees),
+			_spin_feedback_text(state.jump.spin_direction, degrees),
 			FULL_SPIN_PANEL_COLOR,
 			FULL_SPIN_LABEL_COLOR
 		)
 		return
-	_performance_marker.show_feedback(_spin_feedback_text(state.spin_direction, degrees))
+	_performance_marker.show_feedback(_spin_feedback_text(state.jump.spin_direction, degrees))
 
 
 static func _spin_half_turns(spin_progress: float) -> int:
@@ -237,20 +250,22 @@ static func _spin_feedback_text(spin_direction: int, degrees: int) -> String:
 func _update_debug_overlay(state: RiderState) -> void:
 	if _debug_overlay == null:
 		return
-	var route_index := state.active_route_index
+	var route_index := state.kinematics.active_route_index
 	if route_index < 0:
-		route_index = state.approach_path_target
+		route_index = state.kinematics.approach_path_target
 	_debug_overlay.set_active_route_index(route_index)
 
 
 func _update_camera(run_manager: RiderRunManager, delta: float) -> void:
 	var state := run_manager.rider_state
-	var is_flying := state.run_phase == RiderState.RunPhase.FLIGHT
+	var is_flying := state.run.run_phase == RiderRunState.RunPhase.FLIGHT
 	var target_zoom := FLIGHT_CAMERA_ZOOM if is_flying else CAMERA_ZOOM
 	_camera.zoom = _camera.zoom.lerp(target_zoom, clampf(CAMERA_ZOOM_RESPONSE * delta, 0.0, 1.0))
 	var half_view_size := DESIGN_SIZE / _camera.zoom * 0.5
 	var target_x := clampf(
-		state.course_progress, half_view_size.x, GAMEPLAY_BG.get_width() - half_view_size.x
+		state.kinematics.course_progress,
+		half_view_size.x,
+		GAMEPLAY_BG.get_width() - half_view_size.x
 	)
 	var target_y := GAMEPLAY_BG.get_height() * 0.5
 	if is_flying:

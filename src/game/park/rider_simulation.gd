@@ -10,12 +10,12 @@ var _landing := LandingSimulation.new()
 func step(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	match state.run_phase:
-		RiderState.RunPhase.APPROACH:
+	match state.run.run_phase:
+		RiderRunState.RunPhase.APPROACH:
 			_step_approach(state, input, course, tuning, delta)
-		RiderState.RunPhase.FLIGHT:
+		RiderRunState.RunPhase.FLIGHT:
 			_step_flight(state, input, course, tuning, delta)
-		RiderState.RunPhase.LANDING:
+		RiderRunState.RunPhase.LANDING:
 			_step_landing(state, course, tuning, delta)
 
 
@@ -41,7 +41,7 @@ func _step_flight(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
 	var remaining_delta := _flight.step(state, input, course, tuning, delta, _landing)
-	if state.run_phase == RiderState.RunPhase.LANDING and remaining_delta > 0.0:
+	if state.run.run_phase == RiderRunState.RunPhase.LANDING and remaining_delta > 0.0:
 		_step_landing(state, course, tuning, remaining_delta)
 
 

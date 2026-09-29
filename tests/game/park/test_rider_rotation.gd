@@ -52,33 +52,35 @@ func _init() -> void:
 func _test_lt_completes_left_regular_rotation() -> void:
 	var state := _grabbed_flight_state(false)
 	_complete_rotation(state, -1)
-	_expect(state.completed_rotations == 1, "LT 2X must count one left rotation.")
-	_expect(state.spin_direction == -1, "LT must select the left/backside direction.")
-	_expect(is_equal_approx(state.spin_progress, TAU), "LT 2X must finish at 360 degrees.")
-	_expect(not state.spin_grab_tweak, "An A spin must retain the regular-grab style.")
-	_expect(state.trick_tracker.cumulative_rotation < 0.0, "LT must record negative rotation.")
+	_expect(state.jump.completed_rotations == 1, "LT 2X must count one left rotation.")
+	_expect(state.jump.spin_direction == -1, "LT must select the left/backside direction.")
+	_expect(is_equal_approx(state.jump.spin_progress, TAU), "LT 2X must finish at 360 degrees.")
+	_expect(not state.jump.spin_grab_tweak, "An A spin must retain the regular-grab style.")
+	_expect(state.jump.trick_tracker.cumulative_rotation < 0.0, "LT must record negative rotation.")
 
 
 func _test_rt_completes_right_tweak_rotation() -> void:
 	var state := _grabbed_flight_state(true)
 	_complete_rotation(state, 1)
-	_expect(state.completed_rotations == 1, "RT 2X must count one right rotation.")
-	_expect(state.spin_direction == 1, "RT must select the right/frontside direction.")
-	_expect(state.spin_grab_tweak, "A B spin must retain the tweak-grab style.")
-	_expect(state.trick_tracker.cumulative_rotation > 0.0, "RT must record positive rotation.")
+	_expect(state.jump.completed_rotations == 1, "RT 2X must count one right rotation.")
+	_expect(state.jump.spin_direction == 1, "RT must select the right/frontside direction.")
+	_expect(state.jump.spin_grab_tweak, "A B spin must retain the tweak-grab style.")
+	_expect(state.jump.trick_tracker.cumulative_rotation > 0.0, "RT must record positive rotation.")
 
 
 func _test_first_half_holds_and_requires_rearm() -> void:
 	var state := _grabbed_flight_state(false)
 	_complete_half_turn(state, -1)
-	_expect(is_equal_approx(state.spin_progress, PI), "The first tap must stop at 180 degrees.")
 	_expect(
-		state.rotation_gesture_phase == JumpState.RotationGesturePhase.WAITING_SECOND_PRESS,
+		is_equal_approx(state.jump.spin_progress, PI), "The first tap must stop at 180 degrees."
+	)
+	_expect(
+		state.jump.rotation_gesture_phase == JumpState.RotationGesturePhase.WAITING_SECOND_PRESS,
 		"The first half must wait for a second press."
 	)
 	_press_trigger(state, -1)
 	_expect(
-		state.rotation_gesture_phase == JumpState.RotationGesturePhase.WAITING_SECOND_PRESS,
+		state.jump.rotation_gesture_phase == JumpState.RotationGesturePhase.WAITING_SECOND_PRESS,
 		"A second press without trigger release must not start the second half."
 	)
 	_release_triggers(state)
@@ -94,11 +96,12 @@ func _test_opposite_trigger_does_not_complete_rotation() -> void:
 	_release_triggers(state)
 	_press_trigger(state, 1)
 	_expect(
-		state.rotation_gesture_phase == JumpState.RotationGesturePhase.WAITING_SECOND_PRESS,
+		state.jump.rotation_gesture_phase == JumpState.RotationGesturePhase.WAITING_SECOND_PRESS,
 		"The opposite trigger must not complete an active spin."
 	)
 	_expect(
-		is_equal_approx(state.spin_progress, PI), "The opposite trigger must preserve 180 degrees."
+		is_equal_approx(state.jump.spin_progress, PI),
+		"The opposite trigger must preserve 180 degrees."
 	)
 
 
@@ -107,8 +110,10 @@ func _test_held_trigger_does_not_repeat() -> void:
 	_complete_half_turn(state, 1)
 	for _tick in 60:
 		_step_spin(state, 1, false, true)
-	_expect(is_equal_approx(state.spin_progress, PI), "Holding RT must not start the second half.")
-	_expect(state.completed_rotations == 0, "Holding a trigger must not count a rotation.")
+	_expect(
+		is_equal_approx(state.jump.spin_progress, PI), "Holding RT must not start the second half."
+	)
+	_expect(state.jump.completed_rotations == 0, "Holding a trigger must not count a rotation.")
 
 
 func _test_second_pair_counts_again() -> void:
@@ -116,9 +121,11 @@ func _test_second_pair_counts_again() -> void:
 	_complete_rotation(state, -1)
 	_release_triggers(state)
 	_complete_rotation(state, 1)
-	_expect(state.completed_rotations == 2, "A second trigger pair must count a second rotation.")
 	_expect(
-		state.trick_tracker.completed_rotations == 2,
+		state.jump.completed_rotations == 2, "A second trigger pair must count a second rotation."
+	)
+	_expect(
+		state.jump.trick_tracker.completed_rotations == 2,
 		"The trick tracker must count opposite completed turns independently."
 	)
 
@@ -126,7 +133,10 @@ func _test_second_pair_counts_again() -> void:
 func _test_faster_takeoff_rotates_faster() -> void:
 	var slow := _takeoff_state(150.0)
 	var fast := _takeoff_state(500.0)
-	_expect(fast.rotation_rate > slow.rotation_rate, "Faster takeoff must set a faster spin rate.")
+	_expect(
+		fast.jump.rotation_rate > slow.jump.rotation_rate,
+		"Faster takeoff must set a faster spin rate."
+	)
 	_start_grab(slow, false)
 	_start_grab(fast, false)
 	_press_trigger(slow, -1)
@@ -134,7 +144,10 @@ func _test_faster_takeoff_rotates_faster() -> void:
 	for _tick in 8:
 		_step_spin(slow, -1, false, true)
 		_step_spin(fast, -1, false, true)
-	_expect(fast.spin_progress > slow.spin_progress, "Faster takeoff must advance a spin faster.")
+	_expect(
+		fast.jump.spin_progress > slow.jump.spin_progress,
+		"Faster takeoff must advance a spin faster."
+	)
 
 
 func _test_rotation_requires_active_grab() -> void:
@@ -143,8 +156,10 @@ func _test_rotation_requires_active_grab() -> void:
 	input.spin_lt_pressed = true
 	input.spin_lt_just_pressed = true
 	_simulation.step(state, input, _course, _tuning, DELTA)
-	_expect(is_zero_approx(state.spin_progress), "LT without an active grab must do nothing.")
-	_expect(state.spin_direction == 0, "Spin input without a grab must not select a direction.")
+	_expect(is_zero_approx(state.jump.spin_progress), "LT without an active grab must do nothing.")
+	_expect(
+		state.jump.spin_direction == 0, "Spin input without a grab must not select a direction."
+	)
 
 
 func _test_early_grab_release_freezes_incomplete_rotation() -> void:
@@ -152,15 +167,17 @@ func _test_early_grab_release_freezes_incomplete_rotation() -> void:
 	_press_trigger(state, -1)
 	for _tick in 5:
 		_step_spin(state, -1, false, true)
-	var released_progress := state.spin_progress
+	var released_progress := state.jump.spin_progress
 	var input := RiderInputFrameScene.new()
 	input.spin_lt_pressed = true
 	_simulation.step(state, input, _course, _tuning, DELTA)
 	for _tick in 10:
 		_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
-	_expect(state.rotation_incomplete, "Grab release during a half-turn must record incompletion.")
 	_expect(
-		is_equal_approx(state.spin_progress, released_progress),
+		state.jump.rotation_incomplete, "Grab release during a half-turn must record incompletion."
+	)
+	_expect(
+		is_equal_approx(state.jump.spin_progress, released_progress),
 		"An incomplete spin must freeze at its release progress."
 	)
 
@@ -168,41 +185,45 @@ func _test_early_grab_release_freezes_incomplete_rotation() -> void:
 func _test_rotation_does_not_change_trajectory_or_pitch() -> void:
 	var neutral := _grabbed_flight_state(false)
 	var spinning := _grabbed_flight_state(false)
-	var takeoff_pitch := spinning.orientation
+	var takeoff_pitch := spinning.jump.orientation
 	_step_spin(neutral)
 	_press_trigger(spinning, 1)
 	for _tick in 12:
 		_step_spin(neutral)
 		_step_spin(spinning, 1, false, true)
 	_expect(
-		Vector2(neutral.course_progress, neutral.vertical_position).is_equal_approx(
-			Vector2(spinning.course_progress, spinning.vertical_position)
+		(
+			Vector2(neutral.kinematics.course_progress, neutral.kinematics.vertical_position)
+			. is_equal_approx(
+				Vector2(spinning.kinematics.course_progress, spinning.kinematics.vertical_position)
+			)
 		),
 		"Horizontal spin input must not change the ballistic trajectory."
 	)
 	_expect(
-		is_equal_approx(spinning.orientation, takeoff_pitch), "A spin must not change rider pitch."
+		is_equal_approx(spinning.jump.orientation, takeoff_pitch),
+		"A spin must not change rider pitch."
 	)
 
 
 func _test_takeoff_resets_spin_state() -> void:
 	var state := RiderStateScene.new()
-	state.course_progress = 99.0
-	state.vertical_position = 0.0
-	state.ground_velocity = Vector2(300.0, 0.0)
-	state.has_ground_intent = true
-	state.spin_direction = -1
-	state.spin_progress = PI
-	state.rotation_incomplete = true
+	state.kinematics.course_progress = 99.0
+	state.kinematics.vertical_position = 0.0
+	state.kinematics.ground_velocity = Vector2(300.0, 0.0)
+	state.run.has_ground_intent = true
+	state.jump.spin_direction = -1
+	state.jump.spin_progress = PI
+	state.jump.rotation_incomplete = true
 	var input := RiderInputFrameScene.new()
 	input.heading = Vector2.RIGHT
 	_simulation.step(state, input, _course, _tuning, DELTA)
 	_expect(
-		state.spin_direction == 0 and is_zero_approx(state.spin_progress),
+		state.jump.spin_direction == 0 and is_zero_approx(state.jump.spin_progress),
 		"Takeoff must reset spin."
 	)
 	_expect(
-		not state.rotation_incomplete and state.spin_rearmed,
+		not state.jump.rotation_incomplete and state.jump.spin_rearmed,
 		"Takeoff must re-arm clean spin state."
 	)
 
@@ -293,7 +314,7 @@ func _complete_half_turn(state: RiderState, direction: int) -> void:
 
 func _rotation_is_advancing(state: RiderState) -> bool:
 	return (
-		state.rotation_gesture_phase
+		state.jump.rotation_gesture_phase
 		in [
 			JumpState.RotationGesturePhase.ROTATING_FIRST_HALF,
 			JumpState.RotationGesturePhase.ROTATING_SECOND_HALF,
@@ -303,7 +324,7 @@ func _rotation_is_advancing(state: RiderState) -> bool:
 
 func _grabbed_flight_state(tweak: bool) -> RiderState:
 	var state := _flight_state()
-	state.rotation_rate = TAU
+	state.jump.rotation_rate = TAU
 	_start_grab(state, tweak)
 	return state
 
@@ -331,8 +352,8 @@ func _step_spin(
 	state: RiderState, direction := 0, just_pressed := false, trigger_held := false
 ) -> void:
 	var input := RiderInputFrameScene.new()
-	if state.trick_tracker.grab_active:
-		if state.tweak_active:
+	if state.jump.trick_tracker.grab_active:
+		if state.jump.tweak_active:
 			input.tweak_pressed = true
 		else:
 			input.grab_pressed = true
@@ -347,28 +368,31 @@ func _step_spin(
 
 func _takeoff_state(speed: float) -> RiderState:
 	var state := RiderStateScene.new()
-	state.course_progress = 99.0
-	state.vertical_position = 0.0
-	state.ground_velocity = Vector2(speed, 0.0)
-	state.has_ground_intent = true
+	state.kinematics.course_progress = 99.0
+	state.kinematics.vertical_position = 0.0
+	state.kinematics.ground_velocity = Vector2(speed, 0.0)
+	state.run.has_ground_intent = true
 	var input := RiderInputFrameScene.new()
 	input.heading = Vector2.RIGHT
 	_simulation.step(state, input, _course, _tuning, DELTA)
-	_expect(state.run_phase == RiderState.RunPhase.FLIGHT, "Rotation-rate test must reach takeoff.")
+	_expect(
+		state.run.run_phase == RiderRunState.RunPhase.FLIGHT,
+		"Rotation-rate test must reach takeoff."
+	)
 	return state
 
 
 func _flight_state() -> RiderState:
 	var state := RiderStateScene.new()
-	state.run_phase = RiderState.RunPhase.FLIGHT
-	state.active_route_index = 1
-	state.course_progress = 100.0
-	state.vertical_position = 0.0
-	state.ground_position = Vector2(100.0, 0.0)
-	state.course_speed = 10.0
-	state.takeoff_velocity = Vector2(10.0, 0.0)
-	state.orientation = 0.25
-	state.trick_tracker.reset(state.orientation)
+	state.run.run_phase = RiderRunState.RunPhase.FLIGHT
+	state.kinematics.active_route_index = 1
+	state.kinematics.course_progress = 100.0
+	state.kinematics.vertical_position = 0.0
+	state.kinematics.ground_position = Vector2(100.0, 0.0)
+	state.kinematics.course_speed = 10.0
+	state.jump.takeoff_velocity = Vector2(10.0, 0.0)
+	state.jump.orientation = 0.25
+	state.jump.trick_tracker.reset(state.jump.orientation)
 	return state
 
 

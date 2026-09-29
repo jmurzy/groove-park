@@ -1,7 +1,7 @@
 ## In-run HUD data: rider, speed, jump, score, and rotation metric labels.
 ## Background frame rendering lives in `HudFrame`; this node owns the values so
 ## score/jump/rotation can go live without touching the painter.
-## Example: `hud.set_speed(state.ground_velocity.length())`.
+## Example: `hud.set_speed(state.kinematics.ground_velocity.length())`.
 class_name GameplayHud
 extends Control
 

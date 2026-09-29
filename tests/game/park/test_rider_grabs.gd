@@ -38,16 +38,16 @@ func _test_standard_grab_reaches_holds_and_releases() -> void:
 	press.grab_pressed = true
 	press.grab_just_pressed = true
 	_simulation.step(state, press, _course, _tuning, DELTA)
-	_expect(state.trick_tracker.grab_active, "A fresh airborne A press must start a grab.")
-	_expect(state.grab_reach_active, "A grab must begin with its reach presentation.")
+	_expect(state.jump.trick_tracker.grab_active, "A fresh airborne A press must start a grab.")
+	_expect(state.jump.grab_reach_active, "A grab must begin with its reach presentation.")
 	var hold := RiderInputFrameScene.new()
 	hold.grab_pressed = true
 	for _tick in 20:
 		_simulation.step(state, hold, _course, _tuning, DELTA)
-	_expect(state.trick_tracker.grab_active, "Holding A must keep the standard grab active.")
-	_expect(not state.grab_reach_active, "The A grab must transition from reach to hold.")
+	_expect(state.jump.trick_tracker.grab_active, "Holding A must keep the standard grab active.")
+	_expect(not state.jump.grab_reach_active, "The A grab must transition from reach to hold.")
 	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
-	_expect(not state.trick_tracker.grab_active, "Releasing A must end the standard grab.")
+	_expect(not state.jump.trick_tracker.grab_active, "Releasing A must end the standard grab.")
 
 
 func _test_tweak_grab_holds_and_releases() -> void:
@@ -56,15 +56,15 @@ func _test_tweak_grab_holds_and_releases() -> void:
 	press.tweak_pressed = true
 	press.tweak_just_pressed = true
 	_simulation.step(state, press, _course, _tuning, DELTA)
-	_expect(state.trick_tracker.grab_active, "A fresh airborne B press must start a grab.")
-	_expect(state.tweak_active, "Holding B must select the tweak-grab presentation.")
+	_expect(state.jump.trick_tracker.grab_active, "A fresh airborne B press must start a grab.")
+	_expect(state.jump.tweak_active, "Holding B must select the tweak-grab presentation.")
 	var hold := RiderInputFrameScene.new()
 	hold.tweak_pressed = true
 	_simulation.step(state, hold, _course, _tuning, DELTA)
-	_expect(state.tweak_active, "Holding B must keep the tweak grab active.")
+	_expect(state.jump.tweak_active, "Holding B must keep the tweak grab active.")
 	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
 	_expect(
-		not state.trick_tracker.grab_active and not state.tweak_active,
+		not state.jump.trick_tracker.grab_active and not state.jump.tweak_active,
 		"Releasing B must end the tweak grab."
 	)
 
@@ -84,30 +84,30 @@ func _test_approach_buttons_do_not_start_takeoff_grabs() -> void:
 			input.grab_just_pressed = true
 		_simulation.step(state, input, _course, _tuning, DELTA)
 		_expect(
-			state.run_phase == RiderState.RunPhase.FLIGHT,
+			state.run.run_phase == RiderRunState.RunPhase.FLIGHT,
 			"An approach button test must cross into flight."
 		)
 		_expect(
-			not state.trick_tracker.grab_active,
+			not state.jump.trick_tracker.grab_active,
 			"A button pressed before takeoff must not leak into a flight grab."
 		)
 
 
 func _test_takeoff_resets_grab_state() -> void:
 	var state := _approach_state()
-	state.trick_tracker.start_grab()
-	state.grab_reach_active = true
-	state.tweak_active = true
-	state.grab_started_airtime = 1.0
+	state.jump.trick_tracker.start_grab()
+	state.jump.grab_reach_active = true
+	state.jump.tweak_active = true
+	state.jump.grab_started_airtime = 1.0
 	var input := RiderInputFrameScene.new()
 	input.heading = Vector2.RIGHT
 	_simulation.step(state, input, _course, _tuning, DELTA)
 	_expect(
 		(
-			not state.trick_tracker.grab_active
-			and not state.grab_reach_active
-			and not state.tweak_active
-			and state.grab_started_airtime < 0.0
+			not state.jump.trick_tracker.grab_active
+			and not state.jump.grab_reach_active
+			and not state.jump.tweak_active
+			and state.jump.grab_started_airtime < 0.0
 		),
 		"Takeoff must reset all transient grab state."
 	)
@@ -119,36 +119,38 @@ func _test_grounded_buttons_keep_approach_roles() -> void:
 	tuck_input.tuck_pressed = true
 	tuck_input.grab_pressed = true
 	_simulation.step(tuck_state, tuck_input, _course, _tuning, DELTA)
-	_expect(tuck_state.tuck_active, "Grounded A must retain its tuck behavior.")
-	_expect(not tuck_state.trick_tracker.grab_active, "Grounded A must not start a grab.")
+	_expect(tuck_state.run.tuck_active, "Grounded A must retain its tuck behavior.")
+	_expect(not tuck_state.jump.trick_tracker.grab_active, "Grounded A must not start a grab.")
 	var brake_state := RiderStateScene.new()
 	var brake_input := RiderInputFrameScene.new()
 	brake_input.brake_pressed = true
 	brake_input.tweak_pressed = true
 	_simulation.step(brake_state, brake_input, _course, _tuning, DELTA)
-	_expect(brake_state.brake_active, "Grounded B must retain its brake behavior.")
-	_expect(not brake_state.trick_tracker.grab_active, "Grounded B must not start a grab.")
+	_expect(brake_state.run.brake_active, "Grounded B must retain its brake behavior.")
+	_expect(not brake_state.jump.trick_tracker.grab_active, "Grounded B must not start a grab.")
 
 
 func _approach_state() -> RiderState:
 	var state := RiderStateScene.new()
-	state.course_progress = 2995.0
-	state.ground_velocity = Vector2(600.0, 0.0)
-	state.has_ground_intent = true
+	state.kinematics.course_progress = 2995.0
+	state.kinematics.ground_velocity = Vector2(600.0, 0.0)
+	state.run.has_ground_intent = true
 	return state
 
 
 func _flight_state() -> RiderState:
 	var state := RiderStateScene.new()
-	state.run_phase = RiderState.RunPhase.FLIGHT
-	state.active_route_index = 1
-	state.course_progress = 3000.0
-	state.vertical_position = 100.0
-	state.ground_position = Vector2(state.course_progress, 0.0)
-	state.course_speed = 100.0
-	state.vertical_speed = -50.0
-	state.takeoff_velocity = Vector2(state.course_speed, state.vertical_speed)
-	state.orientation = 0.25
+	state.run.run_phase = RiderRunState.RunPhase.FLIGHT
+	state.kinematics.active_route_index = 1
+	state.kinematics.course_progress = 3000.0
+	state.kinematics.vertical_position = 100.0
+	state.kinematics.ground_position = Vector2(state.kinematics.course_progress, 0.0)
+	state.kinematics.course_speed = 100.0
+	state.kinematics.vertical_speed = -50.0
+	state.jump.takeoff_velocity = Vector2(
+		state.kinematics.course_speed, state.kinematics.vertical_speed
+	)
+	state.jump.orientation = 0.25
 	return state
 
 

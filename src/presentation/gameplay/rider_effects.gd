@@ -25,14 +25,17 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, 38.0 + height * 0.05, Color(0.0, 0.05, 0.12, shadow_alpha))
 	draw_set_transform(Vector2.ZERO)
 
-	if _state.run_phase != RiderState.RunPhase.APPROACH or _state.ground_velocity.length() < 45.0:
+	if (
+		_state.run.run_phase != RiderRunState.RunPhase.APPROACH
+		or _state.kinematics.ground_velocity.length() < 45.0
+	):
 		return
 	var spray_strength := 0.0
-	if _state.brake_active:
+	if _state.run.brake_active:
 		spray_strength = 1.0
-	elif _state.edge_active:
+	elif _state.run.edge_active:
 		spray_strength = 0.72
-	elif absf(_state.lane_speed) > 35.0:
+	elif absf(_state.kinematics.lane_speed) > 35.0:
 		spray_strength = 0.36
 	if is_zero_approx(spray_strength):
 		return

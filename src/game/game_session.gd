@@ -73,7 +73,7 @@ func step_run(
 		return
 	_active_tuning = tuning
 	run_manager.step(input, course, tuning, delta)
-	_set_run_score(run_manager.rider_state.jump_score)
+	_set_run_score(run_manager.rider_state.jump.jump_score)
 
 
 func restart_run(course: ParkCourse) -> void:
@@ -96,7 +96,7 @@ func show_results() -> void:
 	if not run_manager or _active_course == null or _active_tuning == null:
 		push_error("Cannot show results without an active run.")
 		return
-	_set_run_score(run_manager.rider_state.jump_score)
+	_set_run_score(run_manager.rider_state.jump.jump_score)
 	results = RunResult.from_primary_rider(
 		player_count, run_manager.rider_state, _active_course, _active_tuning
 	)

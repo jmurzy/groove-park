@@ -68,18 +68,18 @@ func _ready_text(player_count: int) -> String:
 
 func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState) -> void:
 	var action_message := ""
-	if state.run_phase == RiderState.RunPhase.APPROACH:
+	if state.run.run_phase == RiderRunState.RunPhase.APPROACH:
 		action_message = "RIGHT / D: BUILD SPEED"
-		if state.compression_active:
+		if state.jump.compression_active:
 			action_message = "X  COMPRESSING"
 		elif input.brake_pressed:
 			action_message = "B  CHECKING SPEED"
 		elif input.tuck_pressed:
 			action_message = "A  TUCKING"
-	elif state.run_phase == RiderState.RunPhase.FLIGHT:
-		if state.tweak_active:
+	elif state.run.run_phase == RiderRunState.RunPhase.FLIGHT:
+		if state.jump.tweak_active:
 			action_message = "B  TWEAK GRAB"
-		elif state.trick_tracker.grab_active:
+		elif state.jump.trick_tracker.grab_active:
 			action_message = "A  STANDARD GRAB"
 		else:
 			action_message = "A  HOLD GRAB  /  B  HOLD TWEAK GRAB"

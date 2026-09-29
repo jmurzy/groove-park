@@ -57,28 +57,31 @@ func screen_bounds() -> Rect2:
 func update_from_state(state: RiderState, world_position: Vector2, ground_rotation: float) -> void:
 	position = world_position
 	rotation = (
-		state.orientation
-		if state.run_phase == RiderState.RunPhase.FLIGHT or state.current_surface_id == &"abandon"
+		state.jump.orientation
+		if (
+			state.run.run_phase == RiderRunState.RunPhase.FLIGHT
+			or state.run.current_surface_id == &"abandon"
+		)
 		else ground_rotation
 	)
-	if state.landing_resolved or is_playing_landing_animation():
+	if state.jump.landing_resolved or is_playing_landing_animation():
 		set_preview_speed_scale(1.0)
 		play_landing_animation(_landing_animation_for_state(state))
 		return
 	if _spin_is_visible(state):
-		play_preview_frame(_spin_animation_for_state(state), _spin_frame(state.spin_progress))
+		play_preview_frame(_spin_animation_for_state(state), _spin_frame(state.jump.spin_progress))
 		set_preview_speed_scale(1.0)
 		return
 	var animation := _animation_for_state(state)
 	_play(animation)
 	set_preview_speed_scale(
 		(
-			neutral_glide_speed_scale(state.ground_velocity.length())
+			neutral_glide_speed_scale(state.kinematics.ground_velocity.length())
 			if animation == &"neutral_glide"
 			else 1.0
 		)
 	)
-	if state.ground_velocity.is_zero_approx():
+	if state.kinematics.ground_velocity.is_zero_approx():
 		pause_idle_animation()
 
 
@@ -92,45 +95,45 @@ static func neutral_glide_speed_scale_for_mph(speed_mph: float) -> float:
 
 
 func _landing_animation_for_state(state: RiderState) -> StringName:
-	if state.landing_outcome == RiderState.LandingOutcome.CRASH:
+	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
 		return &"crash"
-	if state.landing_outcome == RiderState.LandingOutcome.SKETCHY:
+	if state.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY:
 		return &"sketchy_recovery"
-	if state.landing_outcome == RiderState.LandingOutcome.ABANDON:
+	if state.run.landing_outcome == RiderRunState.LandingOutcome.ABANDON:
 		return &"deep_landing"
 	return &"celebration"
 
 
 func _animation_for_state(state: RiderState) -> StringName:
 	var animation: StringName = &"neutral_glide"
-	if state.run_phase == RiderState.RunPhase.FLIGHT:
-		if state.landing_prep_active:
+	if state.run.run_phase == RiderRunState.RunPhase.FLIGHT:
+		if state.jump.landing_prep_active:
 			animation = &"landing_prep"
-		elif state.grab_reach_active:
+		elif state.jump.grab_reach_active:
 			animation = &"grab_reach"
-		elif state.tweak_active:
+		elif state.jump.tweak_active:
 			animation = &"grab_tweak"
-		elif state.trick_tracker.grab_active:
+		elif state.jump.trick_tracker.grab_active:
 			animation = &"grab_hold"
-		elif state.vertical_speed < 0.0:
+		elif state.kinematics.vertical_speed < 0.0:
 			animation = &"takeoff_extension"
 		else:
 			animation = &"neutral_air"
-	elif state.run_phase == RiderState.RunPhase.LANDING:
-		match state.landing_outcome:
-			RiderState.LandingOutcome.CRASH:
+	elif state.run.run_phase == RiderRunState.RunPhase.LANDING:
+		match state.run.landing_outcome:
+			RiderRunState.LandingOutcome.CRASH:
 				animation = &"crash"
-			RiderState.LandingOutcome.SKETCHY:
+			RiderRunState.LandingOutcome.SKETCHY:
 				animation = &"sketchy_recovery"
-			RiderState.LandingOutcome.ABANDON:
+			RiderRunState.LandingOutcome.ABANDON:
 				animation = &"deep_landing"
 			_:
 				animation = &"deep_landing"
-	elif state.compression_active:
+	elif state.jump.compression_active:
 		animation = &"compression"
-	elif state.tuck_active:
+	elif state.run.tuck_active:
 		animation = &"tuck"
-	elif state.edge_active or state.brake_active:
+	elif state.run.edge_active or state.run.brake_active:
 		animation = _carve_animation(state)
 	return animation
 
@@ -145,12 +148,12 @@ func _spin_animation_for_state(_state: RiderState) -> StringName:
 
 func _spin_is_visible(state: RiderState) -> bool:
 	return (
-		state.run_phase == RiderState.RunPhase.FLIGHT
-		and state.spin_direction != 0
+		state.run.run_phase == RiderRunState.RunPhase.FLIGHT
+		and state.jump.spin_direction != 0
 		and (
-			state.rotation_incomplete
-			or state.rotation_gesture_phase != JumpState.RotationGesturePhase.WAITING_DIRECTION
-			or is_equal_approx(state.spin_progress, TAU)
+			state.jump.rotation_incomplete
+			or state.jump.rotation_gesture_phase != JumpState.RotationGesturePhase.WAITING_DIRECTION
+			or is_equal_approx(state.jump.spin_progress, TAU)
 		)
 	)
 
