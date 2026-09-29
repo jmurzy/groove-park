@@ -8,13 +8,9 @@ const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
-const GameplayInputControllerScene := preload(
-	"res://src/presentation/gameplay/gameplay_input_controller.gd"
+const GameplayRunPresenterScene := preload(
+	"res://src/presentation/gameplay/gameplay_run_presenter.gd"
 )
-const GameplayHudPresenterScene := preload(
-	"res://src/presentation/gameplay/gameplay_hud_presenter.gd"
-)
-const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
 const PauseFlowControllerScene := preload(
 	"res://src/presentation/gameplay/pause_flow_controller.gd"
 )
@@ -22,17 +18,11 @@ const PauseFlowControllerScene := preload(
 var game_session: GameSession
 var show_terrain := OS.is_debug_build()
 var _course: ParkCourse = PARK_COURSE_RESOURCE.duplicate()
-var _input_controller: GameplayInputController
-var _hud_presenter: GameplayHudPresenter
-var _world_presenter: ParkWorldPresenter
+var _run_presenter: GameplayRunPresenter
 var _pause_flow: PauseFlowController
 var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
 var _ui_layer: CanvasLayer
 var _gameplay_music: AudioStreamPlayer
-
-var _run_manager: RiderRunManager:
-	get:
-		return game_session.run_manager
 
 
 func _ready() -> void:
@@ -48,39 +38,24 @@ func _ready() -> void:
 		push_error("Invalid ParkCourse:\n%s" % "\n".join(course_errors))
 	game_session.begin_run(_course)
 	_build_ui_layer()
-	_input_controller = GameplayInputControllerScene.new()
-	_hud_presenter = GameplayHudPresenterScene.new()
-	_hud_presenter.build(_ui_layer, game_session.rider_kind)
-	_world_presenter = ParkWorldPresenterScene.new()
-	add_child(_world_presenter)
-	_world_presenter.setup(
-		_course, show_terrain, _rider_tuning.compression_window_distance, game_session.rider_kind
-	)
-	_world_presenter.update_from_run(_run_manager, 0.0, _hud_presenter.is_occluded)
-	_update_hud_occlusion()
+	_run_presenter = GameplayRunPresenterScene.new()
+	_run_presenter.setup(self, _ui_layer, game_session, _course, _rider_tuning, show_terrain)
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)
 	_pause_flow.abandon_requested.connect(_confirm_return_to_title)
-	game_session.run_score_changed.connect(_hud_presenter.set_score)
-	_hud_presenter.set_score(game_session.run_score)
 	_build_music()
 
 
 func _process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
-	_hud_presenter.update(
-		delta, _run_manager, game_session.rider_kind, _input_controller.sample_frame()
-	)
+	_run_presenter.update(delta)
 
 
 func _physics_process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
-	var input := _input_controller.sample_frame()
-	game_session.step_run(input, _course, _rider_tuning, delta)
-	_world_presenter.update_from_run(_run_manager, delta, _hud_presenter.is_occluded)
-	_update_hud_occlusion()
+	_run_presenter.physics_update(delta)
 
 
 func request_exit_confirmation() -> void:
@@ -98,7 +73,7 @@ func close_exit_confirmation() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _pause_flow.accepts_screen_input():
 		return
-	match _input_controller.screen_command(event, _run_manager):
+	match _run_presenter.screen_command(event):
 		&"restart":
 			_restart_run()
 			get_viewport().set_input_as_handled()
@@ -108,14 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _restart_run() -> void:
-	game_session.restart_run(_course)
-	_hud_presenter.reset(game_session.rider_kind)
-	_world_presenter.reset_presentation(_run_manager, _hud_presenter.is_occluded)
-	_update_hud_occlusion()
-
-
-func _update_hud_occlusion() -> void:
-	_hud_presenter.update_rider_occlusion(_world_presenter.primary_rider_screen_bounds())
+	_run_presenter.restart()
 
 
 func _confirm_return_to_title() -> void:
