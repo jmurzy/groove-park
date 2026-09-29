@@ -1,12 +1,8 @@
 ## Shared rider-sprite base: scaled AnimatedSprite2D setup, clip switching, and
-## one-shot landing animations. Used via SkierView / SnowboarderView.
+## one-shot landing animations. Used via RiderView.
 ##
-## Carve clip contract: each rider names their two carving clips differently, but
-## the semantics are shared. `heading.y < 0` (into the slope / checking speed) maps
-## to skier `carve_uphill` and snowboarder `carve_heel` (CARVE_A); `heading.y >= 0`
-## (with the fall line) maps to skier `carve_downhill` and snowboarder `carve_toe`
-## (CARVE_B). Keep this mapping in sync across SkierView, SnowboarderView, and
-## RiderDemoPanel.
+## Carve clip contract: `heading.y < 0` maps to carve A and `heading.y >= 0` maps
+## to carve B. RiderVisualDefinition provides the rider-specific clip names.
 class_name RiderViewBase
 extends Node2D
 

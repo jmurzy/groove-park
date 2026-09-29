@@ -6,8 +6,6 @@ const DESIGN_SIZE := Vector2(1920, 1080)
 const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
 const HeavenlyLogotypeScene := preload("res://src/presentation/features/heavenly_logotype.gd")
-const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboarder_view.gd")
-const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
 const RiderEffectsScene := preload("res://src/presentation/gameplay/rider_effects.gd")
 const RiderMarkerScene := preload("res://src/presentation/gameplay/rider_marker.gd")
 const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
@@ -24,8 +22,8 @@ const FULL_SPIN_LABEL_COLOR := Color("0047b8")
 var course: ParkCourse
 var show_terrain := false
 var compression_window_distance := 0.0
-var _snowboarder: SnowboarderView
-var _skier: SkierView
+var _snowboarder: RiderView
+var _skier: RiderView
 var _rider_marker: RiderMarker
 var _performance_marker: PerformanceMarker
 var _rider_effects: RiderEffects
@@ -84,11 +82,11 @@ func _build_world() -> void:
 	_rider_effects.name = "RiderEffects"
 	_rider_effects.z_index = 1
 	add_child(_rider_effects)
-	_snowboarder = SnowboarderViewScene.new()
+	_snowboarder = RiderView.new(RiderVisualDefinition.snowboarder())
 	_snowboarder.z_index = 2
 	_snowboarder.set_show_source_bounds(show_terrain)
 	add_child(_snowboarder)
-	_skier = SkierViewScene.new()
+	_skier = RiderView.new(RiderVisualDefinition.skier())
 	_skier.z_index = 2
 	_skier.set_show_source_bounds(show_terrain)
 	add_child(_skier)

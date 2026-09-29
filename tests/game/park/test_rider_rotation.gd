@@ -8,8 +8,10 @@ const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
 const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
 const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
-const SkierViewScene := preload("res://src/presentation/gameplay/skier_view.gd")
-const SnowboarderViewScene := preload("res://src/presentation/gameplay/snowboarder_view.gd")
+const RiderViewScene := preload("res://src/presentation/gameplay/rider_view.gd")
+const RiderVisualDefinitionScene := preload(
+	"res://src/presentation/gameplay/rider_visual_definition.gd"
+)
 
 const DELTA := 1.0 / 60.0
 var _failures := PackedStringArray()
@@ -229,8 +231,8 @@ func _test_takeoff_resets_spin_state() -> void:
 
 
 func _test_directional_view_clips() -> void:
-	var skier := SkierViewScene.new()
-	var snowboarder := SnowboarderViewScene.new()
+	var skier := RiderViewScene.new(RiderVisualDefinitionScene.skier())
+	var snowboarder := RiderViewScene.new(RiderVisualDefinitionScene.snowboarder())
 	skier._ready()
 	snowboarder._ready()
 	var skier_frames := (skier.get_node("Sprite") as AnimatedSprite2D).sprite_frames

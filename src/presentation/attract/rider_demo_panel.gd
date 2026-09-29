@@ -28,8 +28,8 @@ const SPEED_CHECK_RATE_MPH := 45.0
 # Deliberately slow enough for the How to Play screen to show the direction.
 const SPIN_PROGRESS_RATE := 0.7
 
-var _skier: SkierView
-var _snowboarder: SnowboarderView
+var _skier: RiderView
+var _snowboarder: RiderView
 var _skier_status: Label
 var _snowboarder_status: Label
 var _skier_speed: Label
@@ -128,14 +128,16 @@ func _add_rider_lane(rider_name: String, lane_position: Vector2, is_skier: bool)
 		scanline.color = Color("4b93ce80")
 		scanline.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lane.add_child(scanline)
-	var rider: RiderViewBase = SkierView.new() if is_skier else SnowboarderView.new()
+	var rider := RiderView.new(
+		RiderVisualDefinition.skier() if is_skier else RiderVisualDefinition.snowboarder()
+	)
 	rider.position = RIDER_POSITION
 	rider.scale = Vector2.ONE * RIDER_SCALE
 	lane.add_child(rider)
 	if is_skier:
-		_skier = rider as SkierView
+		_skier = rider
 	else:
-		_snowboarder = rider as SnowboarderView
+		_snowboarder = rider
 
 
 func _add_rider_status(lane_x: float) -> Label:

@@ -36,6 +36,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_window().close_requested.connect(_quit)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	# Load rider animation textures before a gameplay transition needs to build their views.
+	RiderVisualDefinition.warm()
 
 	_audio_manager = AudioManagerScript.new()
 	add_child(_audio_manager)
