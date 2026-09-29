@@ -39,12 +39,8 @@ func begin(state: RiderState, course: ParkCourse, tuning: RiderTuning, route_ind
 	state.kinematics.vertical_speed = takeoff_velocity.y
 	state.jump.orientation = tangent.angle()
 	state.jump.angular_velocity = 0.0
-	state.jump.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_DIRECTION
-	state.jump.spin_direction = 0
-	state.jump.spin_rearmed = true
-	state.jump.spin_progress = 0.0
-	state.jump.spin_target = 0.0
-	state.jump.spin_grab_tweak = false
+	state.jump.spin_gesture.reset()
+	_sync_spin_gesture(state)
 	state.jump.rotation_rate = _rotation_rate_for_speed(takeoff_velocity.length(), tuning)
 	state.jump.completed_rotations = 0
 	state.jump.rotation_incomplete = false
@@ -170,79 +166,50 @@ func _advance_grab(state: RiderState, tuning: RiderTuning, delta: float) -> void
 
 
 func _update_rotation_gesture_input(state: RiderState, input: RiderInputFrame) -> void:
-	if not input.spin_lt_pressed and not input.spin_rt_pressed:
-		state.jump.spin_rearmed = true
-	if not state.jump.trick_tracker.grab_active:
-		if _rotation_is_advancing(state):
-			state.jump.rotation_incomplete = true
-			state.jump.spin_target = state.jump.spin_progress
-		state.jump.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_DIRECTION
+	var gesture := state.jump.spin_gesture
+	var was_advancing := gesture.is_advancing()
+	gesture.update_input(
+		input.spin_lt_pressed,
+		input.spin_rt_pressed,
+		input.spin_lt_just_pressed,
+		input.spin_rt_just_pressed,
+		state.jump.trick_tracker.grab_active,
+		state.jump.tweak_active,
+		PI,
+		TAU
+	)
+	if not state.jump.trick_tracker.grab_active and was_advancing:
+		state.jump.rotation_incomplete = true
 		state.jump.angular_velocity = 0.0
-		return
-	match state.jump.rotation_gesture_phase:
-		JumpState.RotationGesturePhase.WAITING_DIRECTION:
-			if (
-				state.jump.spin_rearmed
-				and state.jump.spin_direction != 0
-				and is_equal_approx(state.jump.spin_progress, TAU)
-				and not input.spin_lt_just_pressed
-				and not input.spin_rt_just_pressed
-			):
-				state.jump.spin_direction = 0
-				state.jump.spin_progress = 0.0
-				state.jump.spin_target = 0.0
-			if (
-				state.jump.spin_rearmed
-				and (input.spin_lt_just_pressed or input.spin_rt_just_pressed)
-			):
-				state.jump.spin_direction = -1 if input.spin_lt_just_pressed else 1
-				state.jump.spin_rearmed = false
-				state.jump.spin_progress = 0.0
-				state.jump.spin_target = PI
-				state.jump.spin_grab_tweak = state.jump.tweak_active
-				state.jump.rotation_gesture_phase = (
-					JumpState.RotationGesturePhase.ROTATING_FIRST_HALF
-				)
-		JumpState.RotationGesturePhase.WAITING_SECOND_PRESS:
-			var same_trigger_pressed := (
-				(input.spin_lt_just_pressed and state.jump.spin_direction < 0)
-				or (input.spin_rt_just_pressed and state.jump.spin_direction > 0)
-			)
-			if state.jump.spin_rearmed and same_trigger_pressed:
-				state.jump.spin_rearmed = false
-				state.jump.spin_target = TAU
-				state.jump.rotation_gesture_phase = (
-					JumpState.RotationGesturePhase.ROTATING_SECOND_HALF
-				)
+	_sync_spin_gesture(state)
 
 
 func _advance_rotation(state: RiderState, delta: float) -> void:
-	if not state.jump.trick_tracker.grab_active or not _rotation_is_advancing(state):
+	var gesture := state.jump.spin_gesture
+	if not state.jump.trick_tracker.grab_active or not gesture.is_advancing():
 		state.jump.angular_velocity = 0.0
 		return
-	state.jump.angular_velocity = state.jump.rotation_rate * state.jump.spin_direction
-	state.jump.spin_progress = move_toward(
-		state.jump.spin_progress, state.jump.spin_target, state.jump.rotation_rate * delta
-	)
-	if not is_equal_approx(state.jump.spin_progress, state.jump.spin_target):
-		return
+	state.jump.angular_velocity = state.jump.rotation_rate * gesture.direction
+	var completed_rotation := gesture.advance(delta, state.jump.rotation_rate)
 	state.jump.angular_velocity = 0.0
-	if state.jump.rotation_gesture_phase == JumpState.RotationGesturePhase.ROTATING_FIRST_HALF:
-		state.jump.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_SECOND_PRESS
-		return
-	state.jump.completed_rotations += 1
-	state.jump.trick_tracker.complete_rotation(state.jump.spin_direction)
-	state.jump.rotation_gesture_phase = JumpState.RotationGesturePhase.WAITING_DIRECTION
+	if completed_rotation:
+		state.jump.completed_rotations += 1
+		state.jump.trick_tracker.complete_rotation(gesture.direction)
+	_sync_spin_gesture(state)
 
 
 func _rotation_is_advancing(state: RiderState) -> bool:
-	return (
-		state.jump.rotation_gesture_phase
-		in [
-			JumpState.RotationGesturePhase.ROTATING_FIRST_HALF,
-			JumpState.RotationGesturePhase.ROTATING_SECOND_HALF,
-		]
-	)
+	return state.jump.spin_gesture.is_advancing()
+
+
+func _sync_spin_gesture(state: RiderState) -> void:
+	var gesture := state.jump.spin_gesture
+	state.jump.rotation_gesture_phase = gesture.phase
+	state.jump.spin_direction = gesture.direction
+	state.jump.spin_rearmed = gesture.rearmed
+	state.jump.spin_progress = gesture.progress
+	state.jump.spin_target = gesture.target
+	state.jump.spin_grab_tweak = gesture.tweak
 
 
 func _rotation_rate_for_speed(takeoff_speed: float, tuning: RiderTuning) -> float:

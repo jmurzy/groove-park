@@ -10,6 +10,7 @@ enum RotationGesturePhase {
 	ROTATING_SECOND_HALF,
 }
 
+const SpinGestureControllerScene := preload("res://src/game/park/spin_gesture_controller.gd")
 const TrickTrackerScene := preload("res://src/game/park/trick_tracker.gd")
 
 var compression_active := false
@@ -31,12 +32,13 @@ var approach_speed_captured := false
 
 var orientation := 0.0
 var angular_velocity := 0.0
-var rotation_gesture_phase := RotationGesturePhase.WAITING_DIRECTION
+var rotation_gesture_phase: int = RotationGesturePhase.WAITING_DIRECTION
 var spin_direction := 0
 var spin_rearmed := true
 var spin_progress := 0.0
 var spin_target := 0.0
 var spin_grab_tweak := false
+var spin_gesture: SpinGestureController = SpinGestureControllerScene.new()
 var rotation_rate := 0.0
 var completed_rotations := 0
 var rotation_incomplete := false
