@@ -1,7 +1,7 @@
 ## Headless checks for held standard and tweak grabs.
 extends SceneTree
 
-const ParkCourseScene := preload("res://src/game/park/park_course.gd")
+const ParkSimulationHarnessScene := preload("res://tests/game/park/park_simulation_harness.gd")
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
@@ -139,30 +139,11 @@ func _approach_state() -> RiderState:
 
 
 func _flight_state() -> RiderState:
-	var state := RiderStateScene.new()
-	state.run.run_phase = RiderRunState.RunPhase.FLIGHT
-	state.kinematics.active_route_index = 1
-	state.kinematics.course_progress = 3000.0
-	state.kinematics.vertical_position = 100.0
-	state.kinematics.ground_position = Vector2(state.kinematics.course_progress, 0.0)
-	state.kinematics.course_speed = 100.0
-	state.kinematics.vertical_speed = -50.0
-	state.jump.takeoff_velocity = Vector2(
-		state.kinematics.course_speed, state.kinematics.vertical_speed
-	)
-	state.jump.orientation = 0.25
-	return state
+	return ParkSimulationHarnessScene.new().flight_state()
 
 
 func _test_course() -> ParkCourse:
-	var course := ParkCourseScene.new()
-	var approach := PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
-	course.approach_paths = [approach, approach, approach]
-	var flight_landing := PackedVector2Array([Vector2(3100, 1700), Vector2(6000, 2000)])
-	var ground_runout := PackedVector2Array([Vector2(3000, 1500), Vector2(6000, 1800)])
-	course.landing_paths = [flight_landing, flight_landing, ground_runout]
-	course.flight_abandon_y = 1800.0
-	return course
+	return ParkSimulationHarnessScene.new().approach_course()
 
 
 func _expect(condition: bool, message: String) -> void:

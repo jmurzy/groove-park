@@ -1,20 +1,20 @@
 ## Headless checks for compression, lip crossing, and takeoff behavior.
 extends SceneTree
 
-const HarnessScene := preload("res://tests/game/park/park_simulation_harness.gd")
+const SuiteScene := preload("res://tests/game/park/park_takeoff_simulation_suite.gd")
 
 
 func _init() -> void:
-	_run("Rider takeoff checks", &"run_takeoff_checks")
+	_run("Rider takeoff checks")
 
 
-func _run(label: String, suite: StringName) -> void:
-	var harness := HarnessScene.new()
-	harness.call(suite)
-	if harness.failures.is_empty():
+func _run(label: String) -> void:
+	var suite := SuiteScene.new()
+	suite.run_checks()
+	if suite.failures.is_empty():
 		print("%s passed." % label)
 		quit(0)
 		return
-	for failure in harness.failures:
+	for failure in suite.failures:
 		push_error(failure)
 	quit(1)

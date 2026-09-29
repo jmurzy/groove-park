@@ -1,20 +1,20 @@
 ## Headless checks for airborne integration, projection, and landing contact.
 extends SceneTree
 
-const HarnessScene := preload("res://tests/game/park/park_simulation_harness.gd")
+const SuiteScene := preload("res://tests/game/park/park_flight_simulation_suite.gd")
 
 
 func _init() -> void:
-	_run("Rider flight checks", &"run_flight_checks")
+	_run("Rider flight checks")
 
 
-func _run(label: String, suite: StringName) -> void:
-	var harness := HarnessScene.new()
-	harness.call(suite)
-	if harness.failures.is_empty():
+func _run(label: String) -> void:
+	var suite := SuiteScene.new()
+	suite.run_checks()
+	if suite.failures.is_empty():
 		print("%s passed." % label)
 		quit(0)
 		return
-	for failure in harness.failures:
+	for failure in suite.failures:
 		push_error(failure)
 	quit(1)

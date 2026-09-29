@@ -24,55 +24,6 @@ func _init() -> void:
 	_tuning = RiderTuningScene.new()
 
 
-func run_approach_checks() -> void:
-	_test_neutral_input_does_not_start_a_run()
-	_test_shipped_course_has_an_approach_line()
-	_test_downhill_input_starts_a_run()
-	_test_releasing_right_carves_to_a_stop()
-	_test_left_brakes_without_turning_uphill()
-	_test_tuck_builds_more_speed()
-	_test_vertical_heading_does_not_free_carve()
-	_test_vertical_input_switches_approach_paths_smoothly()
-	_test_braking_reduces_speed()
-	_test_path_change_is_rejected_too_close_to_lip()
-	_test_route_tangent_follows_selected_path()
-	_test_gradient_sign_matches_terrain_pitch()
-	_test_uphill_stalls_without_momentum()
-	_test_uphill_clears_with_momentum()
-
-
-func run_takeoff_checks() -> void:
-	_test_compression_only_charges_near_lip()
-	_test_compression_charge_caps_at_maximum()
-	_test_compression_release_records_timing_quality()
-	_test_ideal_release_adds_maximum_pop()
-	_test_held_compression_auto_releases_at_lip()
-	_test_flight_route_transitions_at_lip()
-	_test_arc_height_multiplier_steepens_uphill_launch()
-	_test_takeoff_speed_cap_shortens_fast_launches()
-	_test_lip_crossing_is_fixed_step_safe()
-
-
-func run_flight_checks() -> void:
-	_test_arc_height_multiplier_preserves_flight_range()
-	_test_ballistic_flight_matches_known_step()
-	_test_air_drag_cannot_reverse_velocity()
-	_test_air_input_does_not_steer()
-	_test_flight_projection_uses_landing_path()
-	_test_swept_landing_contact_resolves_once()
-	_test_flight_only_hits_selected_landing_path()
-
-
-func run_runout_checks() -> void:
-	_test_runout_ignores_input_and_completes()
-	_test_descending_below_abandon_line_enters_runout()
-	_test_ascending_below_abandon_line_can_recover()
-	_test_abandon_floor_does_not_preempt_landing_contact()
-	_test_missed_flight_is_terminal()
-	_test_shipped_routes_complete_cleanly()
-	_test_ground_route_transitions_to_landing()
-
-
 func _test_neutral_input_does_not_start_a_run() -> void:
 	var state := _new_state()
 	_step(state, Vector2.ZERO)
@@ -367,10 +318,10 @@ func _test_takeoff_speed_cap_shortens_fast_launches() -> void:
 
 
 func _test_arc_height_multiplier_preserves_flight_range() -> void:
-	var baseline := _flight_state()
+	var baseline := flight_state()
 	baseline.kinematics.vertical_position = 0.0
 	baseline.kinematics.vertical_speed = -100.0
-	var boosted := _flight_state()
+	var boosted := flight_state()
 	boosted.kinematics.vertical_position = 0.0
 	boosted.kinematics.vertical_speed = -150.0
 	var baseline_tuning := RiderTuningScene.new()
@@ -476,7 +427,7 @@ func _test_lip_crossing_is_fixed_step_safe() -> void:
 
 
 func _test_ballistic_flight_matches_known_step() -> void:
-	var state := _flight_state()
+	var state := flight_state()
 	var kinematics := state.kinematics
 	var tuning := RiderTuningScene.new()
 	tuning.gravity = 100.0
@@ -498,7 +449,7 @@ func _test_ballistic_flight_matches_known_step() -> void:
 
 
 func _test_air_drag_cannot_reverse_velocity() -> void:
-	var state := _flight_state()
+	var state := flight_state()
 	var kinematics := state.kinematics
 	var tuning := RiderTuningScene.new()
 	tuning.gravity = 0.0
@@ -512,8 +463,8 @@ func _test_air_drag_cannot_reverse_velocity() -> void:
 
 
 func _test_air_input_does_not_steer() -> void:
-	var neutral := _flight_state()
-	var controlled := _flight_state()
+	var neutral := flight_state()
+	var controlled := flight_state()
 	var neutral_kinematics := neutral.kinematics
 	var controlled_kinematics := controlled.kinematics
 	var input := RiderInputFrameScene.new()
@@ -542,7 +493,7 @@ func _test_air_input_does_not_steer() -> void:
 
 
 func _test_flight_projection_uses_landing_path() -> void:
-	var state := _flight_state()
+	var state := flight_state()
 	var kinematics := state.kinematics
 	kinematics.course_progress = 3500.0
 	kinematics.ground_position = Vector2(kinematics.course_progress, kinematics.lane_position)
@@ -641,7 +592,7 @@ func _test_runout_ignores_input_and_completes() -> void:
 
 
 func _test_descending_below_abandon_line_enters_runout() -> void:
-	var state := _flight_state()
+	var state := flight_state()
 	var kinematics := state.kinematics
 	var run := state.run
 	var jump := state.jump
@@ -700,7 +651,7 @@ func _test_descending_below_abandon_line_enters_runout() -> void:
 
 
 func _test_ascending_below_abandon_line_can_recover() -> void:
-	var state := _flight_state()
+	var state := flight_state()
 	var kinematics := state.kinematics
 	kinematics.course_progress = 3050.0
 	kinematics.vertical_position = (
@@ -753,7 +704,7 @@ func _test_abandon_floor_does_not_preempt_landing_contact() -> void:
 
 
 func _test_missed_flight_is_terminal() -> void:
-	var state := _flight_state()
+	var state := flight_state()
 	var kinematics := state.kinematics
 	var run := state.run
 	var landing_end := _course.landing_end_at(kinematics.active_route_index)
@@ -902,7 +853,7 @@ func _new_state() -> RiderState:
 	return state
 
 
-func _flight_state() -> RiderState:
+func flight_state() -> RiderState:
 	var state := RiderStateScene.new()
 	var kinematics := state.kinematics
 	var jump := state.jump
@@ -960,6 +911,10 @@ func _approach_course() -> ParkCourse:
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course
+
+
+func approach_course() -> ParkCourse:
+	return _approach_course()
 
 
 func _roller_course() -> ParkCourse:
