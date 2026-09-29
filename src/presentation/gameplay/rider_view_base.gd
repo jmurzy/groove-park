@@ -17,6 +17,7 @@ var _show_source_bounds := false
 var _repeat_crash := false
 var _landing_animation_active := false
 var _landing_animation: StringName
+var _landing_follow_up_animation: StringName
 var _landing_animation_cycles := 0
 
 
@@ -61,7 +62,10 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 	)
 	if state.jump.landing_resolved or is_playing_landing_animation():
 		set_preview_speed_scale(1.0)
-		play_landing_animation(RiderAnimationPolicy.landing_animation_for_state(state))
+		play_landing_animation(
+			RiderAnimationPolicy.landing_animation_for_state(state),
+			RiderAnimationPolicy.landing_follow_up_animation_for_state(state)
+		)
 		return
 	if RiderAnimationPolicy.spin_is_visible(state):
 		play_preview_frame(
@@ -89,11 +93,14 @@ func _visual_definition() -> RiderVisualDefinition:
 	return RiderVisualDefinition.new()
 
 
-func play_landing_animation(animation_name: StringName) -> void:
+func play_landing_animation(
+	animation_name: StringName, follow_up_animation: StringName = &""
+) -> void:
 	if _sprite == null or _landing_animation_active:
 		return
 	_landing_animation_active = true
 	_landing_animation = animation_name
+	_landing_follow_up_animation = follow_up_animation
 	_landing_animation_cycles = 0
 	_sprite.play(animation_name)
 
@@ -105,6 +112,7 @@ func is_playing_landing_animation() -> bool:
 func reset_presentation() -> void:
 	_landing_animation_active = false
 	_landing_animation = &""
+	_landing_follow_up_animation = &""
 	_landing_animation_cycles = 0
 
 
@@ -158,6 +166,12 @@ func pause_idle_animation() -> void:
 
 func _on_sprite_animation_finished() -> void:
 	if _sprite.animation == _landing_animation and _landing_animation_active:
+		if not _landing_follow_up_animation.is_empty():
+			_landing_animation = _landing_follow_up_animation
+			_landing_follow_up_animation = &""
+			_landing_animation_cycles = 0
+			_sprite.play(_landing_animation)
+			return
 		_landing_animation_cycles += 1
 		if _landing_animation_cycles < 2:
 			_sprite.frame = 0
