@@ -10,7 +10,6 @@ const FLIGHT_ABANDON_CLEARANCE := 0.0
 const FLIGHT_ABANDON_CURVE_SEGMENTS := 24
 const FLIGHT_ABANDON_TRIGGER_RATIO := 0.5
 
-@export var course_version := "park-course-v3"
 @export var routes: Array[ParkRoute] = []
 @export var default_route_id: StringName = &"center"
 @export var flight_abandon_y := 624.0

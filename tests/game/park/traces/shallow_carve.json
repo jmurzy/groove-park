@@ -1,6 +1,4 @@
 {
-  "course_version": "park-course-v1",
-  "tuning_version": "scoring-v1",
   "physics_delta": 0.016666667,
   "frames": [
     { "heading": [1, 1] },

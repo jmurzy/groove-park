@@ -3,7 +3,6 @@
 class_name RiderTuning
 extends Resource
 
-@export var rules_version := "scoring-v1"
 @export var fall_line_acceleration := 540.0
 @export var slope_gravity := 980.0
 @export var uphill_pump_cut_gradient := 0.33
