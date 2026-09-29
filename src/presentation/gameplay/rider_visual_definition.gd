@@ -5,6 +5,9 @@ extends Resource
 const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
 
+static var _skier_definition: RiderVisualDefinition
+static var _snowboarder_definition: RiderVisualDefinition
+
 var view_name: StringName
 var baseline := 820.0
 var carve_a_animation: StringName
@@ -15,9 +18,6 @@ var spin_tweak_negative: StringName
 var spin_tweak_positive: StringName
 var _animations: Array[Dictionary] = []
 var _sprite_frames: SpriteFrames
-
-static var _skier_definition: RiderVisualDefinition
-static var _snowboarder_definition: RiderVisualDefinition
 
 
 static func skier() -> RiderVisualDefinition:

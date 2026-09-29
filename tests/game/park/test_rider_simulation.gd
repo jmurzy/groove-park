@@ -1,4 +1,5 @@
 ## Headless checks for approach movement and run-phase transitions.
+# gdlint: disable=max-file-lines
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
@@ -60,10 +61,10 @@ func _init() -> void:
 	if _failures.is_empty():
 		print("Rider simulation checks passed.")
 		quit(0)
-		return
-	for failure in _failures:
-		push_error(failure)
-	quit(1)
+	else:
+		for failure in _failures:
+			push_error(failure)
+		quit(1)
 
 
 func _test_neutral_input_does_not_start_a_run() -> void:
