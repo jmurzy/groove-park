@@ -11,6 +11,9 @@ const InfoMarkerScene := preload("res://src/presentation/gameplay/info_marker.gd
 const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
 const ParkDebugOverlayScene := preload("res://src/presentation/gameplay/park_debug_overlay.gd")
+const ReleaseDeadlineWarningScene := preload(
+	"res://src/presentation/gameplay/release_deadline_warning.gd"
+)
 
 var course: ParkCourse
 var show_terrain := false
@@ -23,6 +26,7 @@ var _rider_effects: RiderEffects
 var _camera: Camera2D
 var _projection: ParkProjection
 var _debug_overlay: ParkDebugOverlay
+var _release_deadline_warning: ReleaseDeadlineWarning
 var _camera_controller := ParkCameraController.new()
 var _marker_presenter: ParkMarkerPresenter
 
@@ -45,6 +49,7 @@ func setup(
 
 func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: Callable) -> void:
 	_update_rider_views(run_manager)
+	_release_deadline_warning.update_from_state(run_manager.rider_state)
 	_marker_presenter.update(run_manager.rider_state, _projection, hud_occlusion, delta)
 	_rider_effects.update_from_state(run_manager.rider_state, _projection, delta)
 	_update_debug_overlay(run_manager.rider_state)
@@ -89,6 +94,10 @@ func _build_world() -> void:
 	_rider.z_index = 2
 	_rider.set_show_source_bounds(show_terrain)
 	add_child(_rider)
+	_release_deadline_warning = ReleaseDeadlineWarningScene.new()
+	_release_deadline_warning.name = "ReleaseDeadlineWarning"
+	_release_deadline_warning.z_index = 1
+	add_child(_release_deadline_warning)
 	_info_marker = InfoMarkerScene.new()
 	add_child(_info_marker)
 	_performance_marker = PerformanceMarkerScene.new()

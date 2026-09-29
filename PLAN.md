@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 9 are complete. Release timing and final landing judgment remain incremental later milestones.
+Milestones 1 through 10 are complete. Final landing judgment remains an incremental later milestone.
 
 ## Goal
 
@@ -748,15 +748,14 @@ Manual acceptance:
 - The player can understand the requirement immediately after takeoff.
 - Initial thresholds are tuned so each flight route has achievable and intentionally unsafe speeds.
 
-### Milestone 10: Release Deadline
+### Milestone 10: Release Deadline - Complete
 
 Implementation:
 
-- Detect descending crossing of captured lip Y.
-- Record whether the grab was active at crossing.
-- Mark grabs started after crossing as late.
-- Draw the warning line as crossing approaches.
-- Do not trigger the deadline at the takeoff frame.
+- Detected the one-time descending crossing of the captured lip Y.
+- Recorded grab state at crossing and late grabs/releases after crossing.
+- Drew an in-world warning line as the rider descends toward the deadline, with an urgent active-grab treatment.
+- Kept the takeoff frame clean by requiring an above-to-below crossing.
 
 Automated acceptance:
 

@@ -43,6 +43,7 @@ func _init() -> void:
 	_test_faster_takeoff_rotates_faster()
 	_test_takeoff_speed_sets_required_rotations()
 	_test_required_rotations_stay_frozen()
+	_test_release_deadline_timing()
 	_test_rotation_requires_active_grab()
 	_test_early_grab_release_freezes_incomplete_rotation()
 	_test_rotation_does_not_change_trajectory_or_pitch()
@@ -185,6 +186,65 @@ func _test_required_rotations_stay_frozen() -> void:
 	_expect(
 		state.jump.required_rotations == required_at_takeoff,
 		"The takeoff rotation requirement must remain frozen during flight."
+	)
+
+
+func _test_release_deadline_timing() -> void:
+	var state := _flight_state()
+	state.kinematics.vertical_position = -10.0
+	state.kinematics.vertical_speed = 10.0
+	state.jump.release_deadline_y = 0.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+	_expect(
+		not state.jump.release_deadline_crossed,
+		"Ascending or non-crossing flight must not trigger the release deadline."
+	)
+	state.kinematics.vertical_speed = 1000.0
+	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+	_expect(
+		state.jump.release_deadline_crossed, "Descending through the lip height must trigger once."
+	)
+	var deadline_crossed := state.jump.release_deadline_crossed
+	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+	_expect(
+		state.jump.release_deadline_crossed == deadline_crossed,
+		"The release deadline must remain triggered after its first crossing."
+	)
+	var early_release := _flight_state()
+	var early_grab_input := RiderInputFrameScene.new()
+	early_grab_input.grab_pressed = true
+	early_grab_input.grab_just_pressed = true
+	AirTrickController.new().update_input(early_release, early_grab_input, _tuning)
+	AirTrickController.new().update_input(early_release, RiderInputFrameScene.new(), _tuning)
+	early_release.jump.release_deadline_crossed = true
+	_expect(
+		not early_release.jump.grab_released_after_deadline,
+		"A grab released before the deadline must remain clean-eligible."
+	)
+	var late_release := _flight_state()
+	late_release.kinematics.vertical_position = -10.0
+	late_release.kinematics.vertical_speed = 1000.0
+	late_release.jump.release_deadline_y = 0.0
+	var held_grab_input := RiderInputFrameScene.new()
+	held_grab_input.grab_pressed = true
+	held_grab_input.grab_just_pressed = true
+	_simulation.step(late_release, held_grab_input, _course, _tuning, DELTA)
+	_expect(
+		late_release.jump.grab_active_at_deadline,
+		"The deadline must capture an active grab at the crossing."
+	)
+	AirTrickController.new().update_input(late_release, RiderInputFrameScene.new(), _tuning)
+	_expect(
+		late_release.jump.grab_released_after_deadline,
+		"A grab released after the deadline must be marked sketchy-eligible."
+	)
+	var grab_input := RiderInputFrameScene.new()
+	grab_input.grab_pressed = true
+	grab_input.grab_just_pressed = true
+	AirTrickController.new().update_input(state, grab_input, _tuning)
+	_expect(
+		state.jump.grab_released_after_deadline,
+		"A grab started after the release deadline must be immediately late."
 	)
 
 

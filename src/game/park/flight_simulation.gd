@@ -66,15 +66,28 @@ func step(
 	landing: LandingSimulation
 ) -> float:
 	_tricks.update_input(state, input, tuning)
+	var previous_y := state.kinematics.vertical_position
 	var result := _integrator.advance(state, course, tuning, delta)
 	var airtime_delta := float(result["airtime_delta"])
 	_tricks.advance(state, tuning, airtime_delta)
 	state.jump.airtime += airtime_delta
 	if result.has("contact"):
+		_cross_release_deadline(state, previous_y, float(result["contact"]["position"].y))
 		landing.resolve_contact(state, result["contact"])
 		return float(result["remaining_delta"])
+	_cross_release_deadline(state, previous_y, state.kinematics.vertical_position)
 	if _integrator.has_overshot_landing(state, course):
 		landing.crash(state, tuning)
 	elif _integrator.should_abandon(state, course):
 		landing.begin_abandoned_runout(state, course)
 	return -1.0
+
+
+func _cross_release_deadline(state: RiderState, previous_y: float, current_y: float) -> void:
+	if state.jump.release_deadline_crossed:
+		return
+	if state.kinematics.vertical_speed <= 0.0:
+		return
+	if previous_y < state.jump.release_deadline_y and current_y >= state.jump.release_deadline_y:
+		state.jump.release_deadline_crossed = true
+		state.jump.grab_active_at_deadline = state.jump.trick_tracker.grab_active

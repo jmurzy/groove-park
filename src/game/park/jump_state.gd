@@ -27,6 +27,8 @@ var takeoff_pop_impulse := 0.0
 var takeoff_tangent := Vector2.RIGHT
 var takeoff_normal := Vector2.UP
 var release_deadline_y := 0.0
+var release_deadline_crossed := false
+var grab_released_after_deadline := false
 var approach_speed := 0.0
 var approach_speed_captured := false
 
@@ -50,6 +52,7 @@ var landing_prep_active := false
 var grab_reach_active := false
 var tweak_active := false
 var grab_started_airtime := -1.0
+var grab_active_at_deadline := false
 var grab_active_at_landing := false
 var trick_tracker: TrickTracker = TrickTrackerScene.new()
 var trick_call := ""

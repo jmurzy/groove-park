@@ -15,7 +15,9 @@ func begin(state: RiderState, takeoff_speed: float, tuning: RiderTuning) -> void
 	state.jump.grab_reach_active = false
 	state.jump.tweak_active = false
 	state.jump.grab_started_airtime = -1.0
+	state.jump.grab_active_at_deadline = false
 	state.jump.grab_active_at_landing = false
+	state.jump.grab_released_after_deadline = false
 	state.jump.trick_tracker.reset(state.jump.orientation)
 	state.jump.trick_call = ""
 
@@ -47,12 +49,16 @@ func _update_grab_input(state: RiderState, input: RiderInputFrame, tuning: Rider
 func _start_grab(state: RiderState, tweak: bool) -> void:
 	state.jump.trick_tracker.start_grab()
 	state.jump.grab_started_airtime = state.jump.airtime
+	if state.jump.release_deadline_crossed:
+		state.jump.grab_released_after_deadline = true
 	state.jump.grab_reach_active = not tweak
 	state.jump.tweak_active = tweak
 
 
 func _release_grab(state: RiderState, tuning: RiderTuning) -> void:
 	state.jump.trick_tracker.release_grab(state.jump.airtime, tuning.minimum_grab_duration)
+	if state.jump.release_deadline_crossed:
+		state.jump.grab_released_after_deadline = true
 	state.jump.grab_reach_active = false
 	state.jump.tweak_active = false
 
