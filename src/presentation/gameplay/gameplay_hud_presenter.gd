@@ -15,7 +15,6 @@ var _elapsed := 0.0
 func build(ui_layer: CanvasLayer, rider_kind: StringName) -> void:
 	_hud = GameplayHudScene.new()
 	ui_layer.add_child(_hud)
-	_hud.set_rider_text("RIDER")
 	_ready_label = ArcadeTheme.make_label(_ready_text(rider_kind), 42, Color("fff7cf"))
 	_ready_label.position = Vector2(0, 430)
 	_ready_label.size = Vector2(DESIGN_SIZE.x, 72)
@@ -39,6 +38,7 @@ func update(
 		"PRESS START OR R TO RESTART" if run_manager.is_crashed() else _ready_text(rider_kind)
 	)
 	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
+	_update_rotation(run_manager.rider_state)
 	_update_action_hint(delta, input, run_manager.rider_state)
 
 
@@ -51,6 +51,8 @@ func reset(rider_kind: StringName) -> void:
 	_action_label.hide()
 	_hud.show()
 	_hud.set_speed(0.0)
+	_hud.set_rotation_text("+0°")
+	_hud.set_rotation_quota_text("--")
 	_ready_label.text = _ready_text(rider_kind)
 
 
@@ -64,6 +66,18 @@ func update_rider_occlusion(rider_rect: Rect2) -> void:
 
 func _ready_text(rider_kind: StringName) -> String:
 	return "%s READY" % rider_kind.to_upper()
+
+
+func _update_rotation(state: RiderState) -> void:
+	var rotation_degrees := roundi(rad_to_deg(state.jump.trick_tracker.cumulative_rotation))
+	var sign_prefix := "+" if rotation_degrees >= 0 else ""
+	_hud.set_rotation_text("%s%d°" % [sign_prefix, rotation_degrees])
+	if state.run.run_phase == RiderRunState.RunPhase.APPROACH:
+		_hud.set_rotation_quota_text("--")
+		return
+	_hud.set_rotation_quota_text(
+		"%d / %d" % [state.jump.completed_rotations, state.jump.required_rotations]
+	)
 
 
 func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState) -> void:

@@ -1,17 +1,16 @@
-## In-run HUD data: rider, speed, jump, score, and rotation metric labels.
+## In-run HUD data: speed, jump, score, rotation, and rotation quota labels.
 ## Background frame rendering lives in `HudFrame`; this node owns the values so
-## score/jump/rotation can go live without touching the painter.
+## metrics can go live without touching the painter.
 ## Example: `hud.set_speed(state.kinematics.ground_velocity.length())`.
 class_name GameplayHud
 extends Control
 
 var _frame: HudFrame
-var _rider_title: Label
-var _rider_value: Label
 var _speed_value: Label
 var _jump_value: Label
 var _score_value: Label
 var _rotation_value: Label
+var _rotation_quota_value: Label
 
 
 static func speed_to_mph(world_speed: float) -> int:
@@ -34,10 +33,6 @@ func _ready() -> void:
 	_frame.queue_redraw()
 
 
-func set_rider_text(rider_text: String) -> void:
-	_rider_title.text = rider_text
-
-
 func set_speed(world_speed: float) -> void:
 	_speed_value.text = "%d MPH" % speed_to_mph(world_speed)
 
@@ -54,13 +49,16 @@ func set_rotation_text(rotation_text: String) -> void:
 	_rotation_value.text = rotation_text
 
 
+func set_rotation_quota_text(rotation_quota_text: String) -> void:
+	_rotation_quota_value.text = rotation_quota_text
+
+
 func _build_metrics() -> void:
-	_rider_title = _add_metric_title("RIDER", 506, Color("ffe126"))
-	_rider_value = _add_metric_value("JAKE", 506, Color("f3f6ff"))
-	_speed_value = _add_metric("SPEED", "0 MPH", 780, Color("42eaff"), Color("f3f6ff"))
-	_jump_value = _add_metric("JUMP", "01 / 01", 1054, Color("42eaff"), Color("f3f6ff"))
-	_score_value = _add_metric("SCORE", "0000", 1328, Color("42eaff"), Color("ffe126"))
-	_rotation_value = _add_metric("ROTATION", "+0", 1602, Color("42eaff"), Color("f3f6ff"))
+	_score_value = _add_metric("SCORE", "0000", 506, Color("42eaff"), Color("ffe126"))
+	_jump_value = _add_metric("JUMP", "01 / 01", 780, Color("42eaff"), Color("f3f6ff"))
+	_speed_value = _add_metric("SPEED", "0 MPH", 1054, Color("42eaff"), Color("f3f6ff"))
+	_rotation_value = _add_metric("ROTATION", "+0°", 1328, Color("42eaff"), Color("f3f6ff"))
+	_rotation_quota_value = _add_metric("SPINS", "--", 1602, Color("42eaff"), Color("f3f6ff"))
 
 
 func _add_metric(

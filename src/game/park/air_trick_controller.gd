@@ -9,6 +9,7 @@ func begin(state: RiderState, takeoff_speed: float, tuning: RiderTuning) -> void
 	_sync_spin_gesture(state)
 	state.jump.rotation_rate = _rotation_rate_for_speed(takeoff_speed, tuning)
 	state.jump.completed_rotations = 0
+	state.jump.required_rotations = _required_rotations_for_speed(takeoff_speed, tuning)
 	state.jump.rotation_incomplete = false
 	state.jump.airtime = 0.0
 	state.jump.grab_reach_active = false
@@ -119,3 +120,9 @@ func _rotation_rate_for_speed(takeoff_speed: float, tuning: RiderTuning) -> floa
 	elif takeoff_speed >= tuning.max_rotation_speed:
 		speed_factor = 1.0
 	return lerpf(tuning.min_rotation_rate, tuning.max_rotation_rate, speed_factor)
+
+
+func _required_rotations_for_speed(takeoff_speed: float, tuning: RiderTuning) -> int:
+	var excess_speed := maxf(0.0, takeoff_speed - tuning.safe_no_rotation_speed)
+	var speed_per_rotation := maxf(tuning.speed_per_required_rotation, 0.001)
+	return ceili(excess_speed / speed_per_rotation)

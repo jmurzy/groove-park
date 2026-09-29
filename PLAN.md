@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 8 are complete. Rotation requirements and final landing judgment remain incremental later milestones.
+Milestones 1 through 9 are complete. Release timing and final landing judgment remain incremental later milestones.
 
 ## Goal
 
@@ -726,20 +726,22 @@ Manual acceptance:
 - Each tap feels discrete and readable on the cabinet triggers.
 - The 180-degree hold and its prompt read clearly before the second tap.
 
-### Milestone 9: Rotation Requirement and HUD
+### Milestone 9: Rotation Requirement and HUD - Complete
 
 Implementation:
 
-- Calculate required rotations at takeoff.
-- Freeze the requirement for the jump.
-- Display completed and required counts.
-- Add debug output for takeoff speed and rotation rate.
+- Added exported safe-speed and per-rotation speed-band tuning.
+- Calculated and froze the required rotation count from captured world-space takeoff speed.
+- Displayed completed rotations against the frozen requirement after takeoff.
+- Added verbose debug output for takeoff speed, required rotations, and rotation rate.
+- Tuned ordinary shipped-route launches for one required rotation while preserving unsafe higher-speed bands.
 
 Automated acceptance:
 
 - Speeds below the safe threshold require zero rotations.
 - Crossing each configured speed band increases the requirement.
 - Requirement does not change during flight.
+- Restart clears the frozen requirement.
 
 Manual acceptance:
 

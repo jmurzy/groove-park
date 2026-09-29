@@ -41,6 +41,7 @@ var spin_grab_tweak := false
 var spin_gesture: SpinGestureController = SpinGestureControllerScene.new()
 var rotation_rate := 0.0
 var completed_rotations := 0
+var required_rotations := 0
 var rotation_incomplete := false
 var airtime := 0.0
 var body_compact := false

@@ -34,6 +34,8 @@ extends Resource
 @export var max_rotation_speed := 500.0
 @export var min_rotation_rate := TAU
 @export var max_rotation_rate := TAU * 2.0
+@export var safe_no_rotation_speed := 500.0
+@export var speed_per_required_rotation := 175.0
 @export var air_torque := 25.0
 @export var maximum_angular_velocity := 12.0
 @export var air_angular_damping := 1.2

@@ -32,6 +32,8 @@ func _init() -> void:
 	_tuning.air_time_scale = 1.0
 	_tuning.min_rotation_rate = TAU
 	_tuning.max_rotation_rate = TAU * 2.0
+	_tuning.safe_no_rotation_speed = 200.0
+	_tuning.speed_per_required_rotation = 100.0
 	_test_lt_completes_left_regular_rotation()
 	_test_rt_completes_right_tweak_rotation()
 	_test_first_half_holds_and_requires_rearm()
@@ -39,6 +41,8 @@ func _init() -> void:
 	_test_held_trigger_does_not_repeat()
 	_test_second_pair_counts_again()
 	_test_faster_takeoff_rotates_faster()
+	_test_takeoff_speed_sets_required_rotations()
+	_test_required_rotations_stay_frozen()
 	_test_rotation_requires_active_grab()
 	_test_early_grab_release_freezes_incomplete_rotation()
 	_test_rotation_does_not_change_trajectory_or_pitch()
@@ -153,6 +157,34 @@ func _test_faster_takeoff_rotates_faster() -> void:
 	_expect(
 		fast.jump.spin_progress > slow.jump.spin_progress,
 		"Faster takeoff must advance a spin faster."
+	)
+
+
+func _test_takeoff_speed_sets_required_rotations() -> void:
+	var safe := _takeoff_state(150.0)
+	var first_band := _takeoff_state(201.0)
+	var second_band := _takeoff_state(301.0)
+	_expect(safe.jump.required_rotations == 0, "Safe takeoff speed must require no rotations.")
+	_expect(
+		first_band.jump.required_rotations == 1,
+		"Speed above the safe threshold must require one rotation."
+	)
+	_expect(
+		second_band.jump.required_rotations == 2,
+		"Crossing another speed band must increase the rotation requirement."
+	)
+
+
+func _test_required_rotations_stay_frozen() -> void:
+	var state := _takeoff_state(301.0)
+	var required_at_takeoff := state.jump.required_rotations
+	state.kinematics.course_speed = 1000.0
+	state.kinematics.vertical_speed = 1000.0
+	for _tick in 10:
+		_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+	_expect(
+		state.jump.required_rotations == required_at_takeoff,
+		"The takeoff rotation requirement must remain frozen during flight."
 	)
 
 
