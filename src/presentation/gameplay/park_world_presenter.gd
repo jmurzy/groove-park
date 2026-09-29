@@ -19,6 +19,7 @@ var course: ParkCourse
 var show_terrain := false
 var compression_window_distance := 0.0
 var rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
+var _tuning: RiderTuning
 var _rider: RiderView
 var _info_marker: InfoMarker
 var _performance_marker: PerformanceMarker
@@ -34,7 +35,7 @@ var _marker_presenter: ParkMarkerPresenter
 func setup(
 	next_course: ParkCourse,
 	next_show_terrain: bool,
-	next_compression_window_distance: float,
+	next_tuning: RiderTuning,
 	next_rider_kind: StringName
 ) -> void:
 	name = "ParkWorld"
@@ -42,7 +43,8 @@ func setup(
 	course = next_course
 	_projection = ParkProjectionScene.new(course)
 	show_terrain = next_show_terrain
-	compression_window_distance = next_compression_window_distance
+	_tuning = next_tuning
+	compression_window_distance = next_tuning.compression_window_distance
 	rider_kind = next_rider_kind
 	_build_world()
 
@@ -117,7 +119,7 @@ func _build_world() -> void:
 		_debug_overlay = ParkDebugOverlayScene.new()
 		_debug_overlay.name = "ParkDebugOverlay"
 		_debug_overlay.z_index = 3
-		_debug_overlay.setup(_projection, compression_window_distance)
+		_debug_overlay.setup(_projection, compression_window_distance, _tuning)
 		add_child(_debug_overlay)
 		_debug_overlay.refresh()
 
@@ -177,3 +179,4 @@ func _update_debug_overlay(state: RiderState) -> void:
 	if route_index < 0:
 		route_index = state.kinematics.approach_path_target
 	_debug_overlay.set_active_route_index(route_index)
+	_debug_overlay.set_rider_state(state)

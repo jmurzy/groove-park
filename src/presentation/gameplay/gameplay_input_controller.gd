@@ -43,7 +43,10 @@ func screen_command(event: InputEvent, run_manager: RiderRunManager) -> StringNa
 		and (event as InputEventKey).keycode == KEY_R
 	):
 		return &"restart"
-	if run_manager.is_crashed() and event.is_action_pressed(&"controller_start"):
+	if (
+		(run_manager.is_crashed() or run_manager.is_complete())
+		and event.is_action_pressed(&"controller_start")
+	):
 		return &"restart"
 	if (
 		event.is_action_pressed(&"exit_escape")

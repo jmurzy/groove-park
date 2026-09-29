@@ -14,6 +14,8 @@ const ABANDON_FLOOR_LINE := Color("fff16add")
 const ABANDON_TRIGGER_LINE := Color("ffffffff")
 const COMPRESSION_FILL_ALPHA := 0.28
 const COMPRESSION_ACTIVE_ALPHA := 0.72
+const FLIGHT_DEBUG_COLOR := Color("68efff")
+const CONTACT_DEBUG_COLOR := Color("ff75e1")
 
 
 static func draw_course_debug(
@@ -243,3 +245,36 @@ static func _draw_grid(canvas: CanvasItem, world_bounds: Rect2) -> void:
 			Color("68efff88"),
 			1.0
 		)
+
+
+static func draw_flight_debug(canvas: CanvasItem, state: RiderState, tuning: RiderTuning) -> void:
+	if state.run.run_phase != RiderRunState.RunPhase.FLIGHT:
+		if state.jump.landing_resolved:
+			canvas.draw_circle(state.jump.landing_position, 12.0, CONTACT_DEBUG_COLOR, false, 3.0)
+			canvas.draw_string(
+				ThemeDB.fallback_font,
+				state.jump.landing_position + Vector2(16, -14),
+				"FIRST CONTACT",
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1.0,
+				14.0,
+				CONTACT_DEBUG_COLOR
+			)
+		return
+	var position := Vector2(state.kinematics.course_progress, state.kinematics.vertical_position)
+	var velocity := Vector2(state.kinematics.course_speed, state.kinematics.vertical_speed)
+	canvas.draw_line(position, position + velocity * 0.25, FLIGHT_DEBUG_COLOR, 3.0)
+	var previous_position := position
+	for _step in 24:
+		velocity.y += tuning.gravity * 0.05
+		velocity = velocity.move_toward(Vector2.ZERO, tuning.air_drag * 0.05)
+		position += velocity * 0.05
+		canvas.draw_dashed_line(previous_position, position, FLIGHT_DEBUG_COLOR, 2.0, 6.0)
+		previous_position = position
+	canvas.draw_dashed_line(
+		Vector2(state.kinematics.course_progress - 220.0, state.jump.release_deadline_y),
+		Vector2(state.kinematics.course_progress + 220.0, state.jump.release_deadline_y),
+		Color("ffe126"),
+		2.0,
+		8.0
+	)

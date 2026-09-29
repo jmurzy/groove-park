@@ -31,11 +31,19 @@ func update(
 ) -> void:
 	_elapsed += delta
 	_ready_label.visible = (
-		(not run_manager.has_started_moving or run_manager.is_crashed())
+		(
+			not run_manager.has_started_moving
+			or run_manager.is_crashed()
+			or run_manager.is_complete()
+		)
 		and fmod(_elapsed, 0.8) < 0.56
 	)
 	_ready_label.text = (
-		"PRESS START OR R TO RESTART" if run_manager.is_crashed() else _ready_text(rider_kind)
+		"CHALLENGE COMPLETE!"
+		if run_manager.is_complete()
+		else (
+			"PRESS START OR R TO RESTART" if run_manager.is_crashed() else _ready_text(rider_kind)
+		)
 	)
 	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
 	_update_rotation(run_manager.rider_state)

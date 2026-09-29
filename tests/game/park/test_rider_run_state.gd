@@ -78,6 +78,10 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.rider_state.jump.tweak_active = true
 	manager.rider_state.jump.grab_started_airtime = 1.0
 	manager.rider_state.jump.required_rotations = 3
+	manager.rider_state.jump.completed_rotations = 2
+	manager.rider_state.jump.rotation_incomplete = true
+	manager.rider_state.jump.release_deadline_crossed = true
+	manager.rider_state.jump.grab_released_after_deadline = true
 	manager.has_started_moving = true
 	_expect(manager.is_complete(), "A complete primary phase must mark the manager complete.")
 	manager.reset_run(ShippedParkCourse)
@@ -121,8 +125,19 @@ func _test_reset_restores_run_lifecycle() -> void:
 		"Reset must clear grab state."
 	)
 	_expect(
-		manager.rider_state.jump.required_rotations == 0,
-		"Reset must clear the required rotation count."
+		(
+			manager.rider_state.jump.required_rotations == 0
+			and manager.rider_state.jump.completed_rotations == 0
+			and not manager.rider_state.jump.rotation_incomplete
+		),
+		"Reset must clear rotation state."
+	)
+	_expect(
+		(
+			not manager.rider_state.jump.release_deadline_crossed
+			and not manager.rider_state.jump.grab_released_after_deadline
+		),
+		"Reset must clear release-deadline state."
 	)
 
 

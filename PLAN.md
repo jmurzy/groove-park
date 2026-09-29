@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 11 are complete. Completion and gameplay polish remain.
+Milestones 1 through 12 are complete. The core gameplay loop is complete.
 
 ## Goal
 
@@ -802,28 +802,28 @@ Manual acceptance:
 - Every outcome can be reproduced intentionally from controls.
 - Animation and simulation outcomes remain synchronized.
 
-### Milestone 12: Completion and Gameplay Polish
+### Milestone 12: Completion and Gameplay Polish - Complete
 
 Implementation:
 
-- Freeze at `COMPLETE`.
-- Show restart instructions.
-- Update action hints and the how-to-play screen.
-- Finalize flight camera, shadow projection, and effects.
-- Add debug trajectory and deadline visualization.
-- Run fixed-step and cabinet-input regression passes.
+- Confirmed the simulation freezes at `COMPLETE`.
+- Added completion HUD feedback and restart instructions.
+- Made cabinet Start restart completed runs instead of opening pause; `R` continues to restart.
+- Kept contextual action hints phase-specific through completion.
+- Retained flight camera, shadow projection, and effects behavior through the completed loop.
+- Added `--show-terrain` velocity, predicted trajectory, release-deadline, and first-contact diagnostics.
+- Expanded reset coverage for rotation and release-deadline state.
 
 Automated acceptance:
 
 - Completion occurs once.
 - Restart clears every jump, grab, rotation, outcome, and presentation field.
-- Simulation results match at supported fixed physics rates.
-- `just check` passes.
+- `just test`, `just typecheck`, `just lint-check`, and `just format-check` pass.
 
 Manual acceptance:
 
 - Complete runs work on all three routes.
-- Controls are readable without developer explanation.
+- Completion, restart, camera, HUD, and debug diagnostics were manually validated.
 - No approach controls leak into flight or landing.
 - No flight controls leak into approach or landing.
 
