@@ -75,7 +75,10 @@ test: import
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_park_course.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_park_path_geometry.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_run_state.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_simulation.gd
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_approach_simulation.gd
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_takeoff_simulation.gd
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_flight_simulation.gd
+    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_runout_simulation.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_grabs.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_rotation.gd
     "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_spin_gesture_controller.gd

@@ -1,6 +1,7 @@
-## Headless checks for approach movement and run-phase transitions.
+## Shared fixtures and assertions for focused park simulation test suites.
 # gdlint: disable=max-file-lines
-extends SceneTree
+class_name ParkSimulationHarness
+extends RefCounted
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
 const ParkProjectionScene := preload("res://src/presentation/gameplay/park_projection.gd")
@@ -11,7 +12,7 @@ const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
 
 const DELTA := 1.0 / 60.0
-var _failures := PackedStringArray()
+var failures := PackedStringArray()
 var _course: ParkCourse
 var _simulation: RiderSimulation
 var _tuning: RiderTuning
@@ -21,6 +22,9 @@ func _init() -> void:
 	_course = _approach_course()
 	_simulation = RiderSimulationScene.new()
 	_tuning = RiderTuningScene.new()
+
+
+func run_approach_checks() -> void:
 	_test_neutral_input_does_not_start_a_run()
 	_test_shipped_course_has_an_approach_line()
 	_test_downhill_input_starts_a_run()
@@ -30,6 +34,14 @@ func _init() -> void:
 	_test_vertical_heading_does_not_free_carve()
 	_test_vertical_input_switches_approach_paths_smoothly()
 	_test_braking_reduces_speed()
+	_test_path_change_is_rejected_too_close_to_lip()
+	_test_route_tangent_follows_selected_path()
+	_test_gradient_sign_matches_terrain_pitch()
+	_test_uphill_stalls_without_momentum()
+	_test_uphill_clears_with_momentum()
+
+
+func run_takeoff_checks() -> void:
 	_test_compression_only_charges_near_lip()
 	_test_compression_charge_caps_at_maximum()
 	_test_compression_release_records_timing_quality()
@@ -38,14 +50,20 @@ func _init() -> void:
 	_test_flight_route_transitions_at_lip()
 	_test_arc_height_multiplier_steepens_uphill_launch()
 	_test_takeoff_speed_cap_shortens_fast_launches()
-	_test_arc_height_multiplier_preserves_flight_range()
 	_test_lip_crossing_is_fixed_step_safe()
+
+
+func run_flight_checks() -> void:
+	_test_arc_height_multiplier_preserves_flight_range()
 	_test_ballistic_flight_matches_known_step()
 	_test_air_drag_cannot_reverse_velocity()
 	_test_air_input_does_not_steer()
 	_test_flight_projection_uses_landing_path()
 	_test_swept_landing_contact_resolves_once()
 	_test_flight_only_hits_selected_landing_path()
+
+
+func run_runout_checks() -> void:
 	_test_runout_ignores_input_and_completes()
 	_test_descending_below_abandon_line_enters_runout()
 	_test_ascending_below_abandon_line_can_recover()
@@ -53,18 +71,6 @@ func _init() -> void:
 	_test_missed_flight_is_terminal()
 	_test_shipped_routes_complete_cleanly()
 	_test_ground_route_transitions_to_landing()
-	_test_path_change_is_rejected_too_close_to_lip()
-	_test_route_tangent_follows_selected_path()
-	_test_gradient_sign_matches_terrain_pitch()
-	_test_uphill_stalls_without_momentum()
-	_test_uphill_clears_with_momentum()
-	if _failures.is_empty():
-		print("Rider simulation checks passed.")
-		quit(0)
-	else:
-		for failure in _failures:
-			push_error(failure)
-		quit(1)
 
 
 func _test_neutral_input_does_not_start_a_run() -> void:
@@ -1002,4 +1008,4 @@ func _test_uphill_clears_with_momentum() -> void:
 
 func _expect(condition: bool, message: String) -> void:
 	if not condition:
-		_failures.append(message)
+		failures.append(message)
