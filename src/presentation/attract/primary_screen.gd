@@ -44,15 +44,15 @@ var liftie_state_service: LiftieStateService
 var logo_bob_time := 0.0
 var logo_subtitle: Label
 var gondola: AnimatedSprite2D
-var start_button: Button
-var controls_button: Button
-var exit_button: Button
+var start_button: ArcadeMenuButton
+var controls_button: ArcadeMenuButton
+var exit_button: ArcadeMenuButton
 var confirmation_sound: AudioStreamPlayer
 var switch_sound: AudioStreamPlayer
 var back_sound: AudioStreamPlayer
 var player_select: PlayerSelectScreen
 var controls_screen: HowToPlayScreen
-var _focused_menu_button: Button
+var _has_menu_focus := false
 
 
 func _ready() -> void:
@@ -82,7 +82,6 @@ func _ready() -> void:
 	add_child(controls_button)
 	exit_button = _build_exit_button()
 	add_child(exit_button)
-	_apply_attract_menu_style()
 	_wire_menu_button_focus()
 	if show_diagnostics:
 		add_child(_build_diagnostics())
@@ -159,103 +158,36 @@ func _apply_logo_subtitle_wave() -> void:
 	logo_subtitle.material = material
 
 
-func _build_start_button() -> Button:
-	var button := Button.new()
-	button.name = "StartGameButton"
-	button.text = "START GAME"
-	button.position = Vector2(681, 766.1)
-	button.size = Vector2(558, 109.8)
-	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_override("font", ARCADE_FONT)
-	button.add_theme_font_size_override("font_size", 43)
-	button.add_theme_color_override("font_color", Color("fff7cf"))
-	button.add_theme_color_override("font_hover_color", Color("ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("fff19a"))
-	button.add_theme_color_override("font_focus_color", Color("ffffff"))
-	button.add_theme_color_override("font_outline_color", Color("260700"))
-	button.add_theme_constant_override("outline_size", 8)
-	button.add_theme_stylebox_override(
-		"normal", ArcadeTheme.button_style(Color("d92c0ba6"), Color("ffb000"), 7, 12)
-	)
-	button.add_theme_stylebox_override(
-		"hover", ArcadeTheme.button_style(Color("f0440dbf"), Color("ffe04a"), 9, 14)
-	)
-	button.add_theme_stylebox_override(
-		"pressed", ArcadeTheme.button_style(Color("9f1607e6"), Color("ff8a00"), 7, 5)
-	)
-	button.add_theme_stylebox_override(
-		"focus", ArcadeTheme.button_style(Color("f0440dbf"), Color("fff16a"), 9, 14)
-	)
+func _build_start_button() -> ArcadeMenuButton:
+	var button := _build_menu_button("StartGameButton", "START GAME", Vector2(665, 724))
 	button.pressed.connect(_open_player_select)
-	button.focus_entered.connect(_on_menu_button_focused.bind(button))
-	button.mouse_entered.connect(button.grab_focus)
+	button.selection_focused.connect(_on_menu_button_focused)
 	button.call_deferred("grab_focus")
 	return button
 
 
-func _build_exit_button() -> Button:
-	var button := Button.new()
-	button.name = "ExitButton"
-	button.text = "EXIT"
-	button.position = Vector2(780, 926.0)
-	button.size = Vector2(360, 73.8)
-	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_override("font", ARCADE_FONT)
-	button.add_theme_font_size_override("font_size", 27)
-	button.add_theme_color_override("font_color", Color("fff4ff"))
-	button.add_theme_color_override("font_hover_color", Color("ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("aefcff"))
-	button.add_theme_color_override("font_focus_color", Color("ffffff"))
-	button.add_theme_color_override("font_outline_color", Color("28002f"))
-	button.add_theme_constant_override("outline_size", 6)
-	button.add_theme_stylebox_override(
-		"normal", ArcadeTheme.button_style(Color("b000d4a6"), Color("43f4ff"), 5, 8)
-	)
-	button.add_theme_stylebox_override(
-		"hover", ArcadeTheme.button_style(Color("e000cfbf"), Color("aefcff"), 7, 10)
-	)
-	button.add_theme_stylebox_override(
-		"pressed", ArcadeTheme.button_style(Color("7200a8e6"), Color("20dfea"), 5, 4)
-	)
-	button.add_theme_stylebox_override(
-		"focus", ArcadeTheme.button_style(Color("e000cfbf"), Color("ffffff"), 7, 10)
-	)
+func _build_exit_button() -> ArcadeMenuButton:
+	var button := _build_menu_button("ExitButton", "EXIT", Vector2(665, 798))
 	button.pressed.connect(_on_exit_pressed)
-	button.focus_entered.connect(_on_menu_button_focused.bind(button))
-	button.mouse_entered.connect(button.grab_focus)
+	button.selection_focused.connect(_on_menu_button_focused)
 	return button
 
 
-func _build_controls_button() -> Button:
-	var button := Button.new()
-	button.name = "ControlsButton"
-	button.text = "HOW TO PLAY"
-	button.position = Vector2(681, 852.0)
-	button.size = Vector2(558, 58)
-	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_font_override("font", ARCADE_FONT)
-	button.add_theme_font_size_override("font_size", 22)
-	button.add_theme_color_override("font_color", Color("d4efff"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color("aefcff"))
-	button.add_theme_color_override("font_focus_color", Color.WHITE)
-	button.add_theme_color_override("font_outline_color", Color("061020"))
-	button.add_theme_constant_override("outline_size", 5)
-	button.add_theme_stylebox_override(
-		"normal", ArcadeTheme.button_style(Color("062a55cc"), Color("238bd4"), 5, 7)
-	)
-	button.add_theme_stylebox_override(
-		"hover", ArcadeTheme.button_style(Color("0a3d78e6"), Color("aefcff"), 7, 9)
-	)
-	button.add_theme_stylebox_override(
-		"pressed", ArcadeTheme.button_style(Color("041a38e6"), Color("238bd4"), 5, 4)
-	)
-	button.add_theme_stylebox_override(
-		"focus", ArcadeTheme.button_style(Color("0a3d78e6"), Color("fff16a"), 7, 9)
-	)
+func _build_controls_button() -> ArcadeMenuButton:
+	var button := _build_menu_button("ControlsButton", "HOW TO PLAY", Vector2(665, 650))
 	button.pressed.connect(_open_controls)
-	button.focus_entered.connect(_on_menu_button_focused.bind(button))
-	button.mouse_entered.connect(button.grab_focus)
+	button.selection_focused.connect(_on_menu_button_focused)
+	return button
+
+
+func _build_menu_button(
+	button_name: StringName, button_text: String, button_position: Vector2
+) -> ArcadeMenuButton:
+	var button := ArcadeMenuButton.new()
+	button.name = button_name
+	button.position = button_position
+	button.size = Vector2(590, 54)
+	button.configure(button_text, 28, true)
 	return button
 
 
@@ -268,69 +200,10 @@ func _wire_menu_button_focus() -> void:
 	exit_button.focus_neighbor_bottom = NodePath(".")
 
 
-func _apply_attract_menu_style() -> void:
-	_style_attract_menu_button(controls_button, Vector2(665, 650))
-	_style_attract_menu_button(start_button, Vector2(665, 724))
-	_style_attract_menu_button(exit_button, Vector2(665, 798))
-
-
-func _style_attract_menu_button(button: Button, button_position: Vector2) -> void:
-	button.position = button_position
-	button.size = Vector2(590, 54)
-	button.add_theme_font_size_override("font_size", 28)
-	button.add_theme_color_override("font_color", Color("e8f7ff"))
-	button.add_theme_color_override("font_hover_color", Color("fff7cf"))
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_focus_color", Color("fff16a"))
-	button.add_theme_color_override("font_outline_color", Color("010713"))
-	button.add_theme_constant_override("outline_size", 8)
-	button.add_theme_color_override("font_shadow_color", Color("01040aff"))
-	button.add_theme_constant_override("shadow_offset_x", 4)
-	button.add_theme_constant_override("shadow_offset_y", 4)
-	button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	button.add_theme_stylebox_override("hover", _selected_menu_style())
-	button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	button.add_theme_stylebox_override("focus", _selected_menu_style())
-	_set_menu_button_text(button, false)
-
-
-func _selected_menu_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("03162be0")
-	style.border_color = Color("fff16a")
-	style.set_border_width_all(3)
-	style.corner_radius_top_left = 0
-	style.corner_radius_top_right = 0
-	style.corner_radius_bottom_left = 0
-	style.corner_radius_bottom_right = 0
-	style.shadow_color = Color("01040add")
-	style.shadow_size = 5
-	style.shadow_offset = Vector2(0, 5)
-	return style
-
-
-func _set_menu_button_text(button: Button, selected: bool) -> void:
-	var label := ""
-	match button.name:
-		"StartGameButton":
-			label = "START GAME"
-		"ControlsButton":
-			label = "HOW TO PLAY"
-		"ExitButton":
-			label = "EXIT"
-	button.text = ">  %s  <" % label if selected else label
-
-
-func _on_menu_button_focused(button: Button) -> void:
-	if _focused_menu_button == button:
-		return
-	var is_first_focus := _focused_menu_button == null
-	if _focused_menu_button:
-		_set_menu_button_text(_focused_menu_button, false)
-	_focused_menu_button = button
-	_set_menu_button_text(button, true)
-	if not is_first_focus:
+func _on_menu_button_focused() -> void:
+	if _has_menu_focus:
 		switch_sound.play()
+	_has_menu_focus = true
 
 
 func _open_player_select() -> void:
