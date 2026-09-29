@@ -63,6 +63,33 @@ func validation_errors() -> PackedStringArray:
 		elif route_index_for_id(route.id) != route_index:
 			errors.append("Route id %s is duplicated." % route.id)
 		errors.append_array(route.validation_errors(route_index))
+	if routes.size() == ROUTE_COUNT:
+		for route_index in ROUTE_COUNT:
+			var route := routes[route_index]
+			if route == null:
+				continue
+			var expected_kind := (
+				ParkRoute.Kind.GROUND_RUNOUT
+				if route_index == ROUTE_COUNT - 1
+				else ParkRoute.Kind.FLIGHT
+			)
+			if route.kind != expected_kind:
+				(
+					errors
+					. append(
+						(
+							"Route %d must be %s."
+							% [
+								route_index,
+								(
+									"GROUND_RUNOUT"
+									if expected_kind == ParkRoute.Kind.GROUND_RUNOUT
+									else "FLIGHT"
+								),
+							]
+						)
+					)
+				)
 	if route_index_for_id(default_route_id) < 0:
 		errors.append("ParkCourse default route %s is missing." % default_route_id)
 	if lane_min >= lane_max:

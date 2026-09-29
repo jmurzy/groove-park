@@ -9,6 +9,7 @@ var _failures := PackedStringArray()
 
 func _init() -> void:
 	_test_shipped_course_contract()
+	_test_route_kinds_match_fixed_route_roles()
 	_test_flight_landing_must_start_after_lip()
 	_test_ground_route_requires_a_continuous_join()
 	_test_landing_paths_are_ordered()
@@ -42,6 +43,21 @@ func _test_shipped_course_contract() -> void:
 			and ShippedParkCourse.route_at(2).kind == ParkRoute.Kind.GROUND_RUNOUT
 		),
 		"The upper and center routes should fly while the lower route stays grounded."
+	)
+
+
+func _test_route_kinds_match_fixed_route_roles() -> void:
+	var course := _valid_course()
+	course.route_at(0).kind = ParkRoute.Kind.GROUND_RUNOUT
+	_expect(
+		course.validation_errors().has("Route 0 must be FLIGHT."),
+		"The upper route must be a flight route."
+	)
+	course = _valid_course()
+	course.route_at(2).kind = ParkRoute.Kind.FLIGHT
+	_expect(
+		course.validation_errors().has("Route 2 must be GROUND_RUNOUT."),
+		"The lower route must be a grounded runout."
 	)
 
 
