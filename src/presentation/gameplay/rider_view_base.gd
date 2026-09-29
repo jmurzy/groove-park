@@ -11,7 +11,6 @@ const CANVAS_SIZE := Vector2(1024, 1024)
 const SPRITE_SCALE := 0.0846
 const LOOP_FPS := 9.0
 const TRANSITION_FPS := 12.0
-const GLIDE_REFERENCE_SPEED_MPH := 25.0
 
 var _sprite: AnimatedSprite2D
 var _show_source_bounds := false
@@ -62,17 +61,22 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 	)
 	if state.jump.landing_resolved or is_playing_landing_animation():
 		set_preview_speed_scale(1.0)
-		play_landing_animation(_landing_animation_for_state(state))
+		play_landing_animation(RiderAnimationPolicy.landing_animation_for_state(state))
 		return
-	if _spin_is_visible(state):
-		play_preview_frame(_spin_animation_for_state(state), _spin_frame(state.jump.spin_progress))
+	if RiderAnimationPolicy.spin_is_visible(state):
+		play_preview_frame(
+			RiderAnimationPolicy.spin_animation_for_state(state, _visual_definition()),
+			RiderAnimationPolicy.spin_frame(state.jump.spin_progress)
+		)
 		set_preview_speed_scale(1.0)
 		return
-	var animation := _animation_for_state(state)
+	var animation := RiderAnimationPolicy.animation_for_state(state, _visual_definition())
 	_play(animation)
 	set_preview_speed_scale(
 		(
-			neutral_glide_speed_scale(state.kinematics.ground_velocity.length())
+			RiderAnimationPolicy.neutral_glide_speed_scale(
+				state.kinematics.ground_velocity.length()
+			)
 			if animation == &"neutral_glide"
 			else 1.0
 		)
@@ -81,82 +85,8 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 		pause_idle_animation()
 
 
-static func neutral_glide_speed_scale(world_speed: float) -> float:
-	var speed_mph := float(GameConstants.speed_to_mph(world_speed))
-	return neutral_glide_speed_scale_for_mph(speed_mph)
-
-
-static func neutral_glide_speed_scale_for_mph(speed_mph: float) -> float:
-	return speed_mph / GLIDE_REFERENCE_SPEED_MPH
-
-
-func _landing_animation_for_state(state: RiderState) -> StringName:
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
-		return &"crash"
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY:
-		return &"sketchy_recovery"
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.ABANDON:
-		return &"deep_landing"
-	return &"celebration"
-
-
-func _animation_for_state(state: RiderState) -> StringName:
-	var animation: StringName = &"neutral_glide"
-	if state.run.run_phase == RiderRunState.RunPhase.FLIGHT:
-		if state.jump.landing_prep_active:
-			animation = &"landing_prep"
-		elif state.jump.grab_reach_active:
-			animation = &"grab_reach"
-		elif state.jump.tweak_active:
-			animation = &"grab_tweak"
-		elif state.jump.trick_tracker.grab_active:
-			animation = &"grab_hold"
-		elif state.kinematics.vertical_speed < 0.0:
-			animation = &"takeoff_extension"
-		else:
-			animation = &"neutral_air"
-	elif state.run.run_phase == RiderRunState.RunPhase.LANDING:
-		match state.run.landing_outcome:
-			RiderRunState.LandingOutcome.CRASH:
-				animation = &"crash"
-			RiderRunState.LandingOutcome.SKETCHY:
-				animation = &"sketchy_recovery"
-			RiderRunState.LandingOutcome.ABANDON:
-				animation = &"deep_landing"
-			_:
-				animation = &"deep_landing"
-	elif state.jump.compression_active:
-		animation = &"compression"
-	elif state.run.tuck_active:
-		animation = &"tuck"
-	elif state.run.edge_active or state.run.brake_active:
-		animation = _carve_animation(state)
-	return animation
-
-
-func _carve_animation(_state: RiderState) -> StringName:
-	return &"neutral_glide"
-
-
-func _spin_animation_for_state(_state: RiderState) -> StringName:
-	return &"neutral_air"
-
-
-func _spin_is_visible(state: RiderState) -> bool:
-	return (
-		state.run.run_phase == RiderRunState.RunPhase.FLIGHT
-		and state.jump.spin_direction != 0
-		and (
-			state.jump.rotation_incomplete
-			or state.jump.rotation_gesture_phase != JumpState.RotationGesturePhase.WAITING_DIRECTION
-			or is_equal_approx(state.jump.spin_progress, TAU)
-		)
-	)
-
-
-func _spin_frame(progress: float) -> int:
-	var step := mini(roundi(clampf(progress / TAU, 0.0, 1.0) * 8.0), 8)
-	return 0 if step >= 8 else step
+func _visual_definition() -> RiderVisualDefinition:
+	return RiderVisualDefinition.new()
 
 
 func play_landing_animation(animation_name: StringName) -> void:

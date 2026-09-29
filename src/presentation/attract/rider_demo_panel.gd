@@ -166,7 +166,7 @@ func set_speed_mph(speed_mph: float) -> void:
 
 
 func _neutral_glide_speed_scale() -> float:
-	return RiderViewBase.neutral_glide_speed_scale_for_mph(_speed_mph)
+	return RiderAnimationPolicy.neutral_glide_speed_scale_for_mph(_speed_mph)
 
 
 func _update_speed(delta: float) -> void:
@@ -265,8 +265,7 @@ func _update_air_rotation(delta: float) -> void:
 
 
 func _spin_frame() -> int:
-	var step := mini(roundi(_spin_gesture.progress * 8.0), 8)
-	return 0 if step >= 8 else step
+	return RiderAnimationPolicy.spin_frame(_spin_gesture.progress * TAU)
 
 
 func _skier_spin_animation() -> StringName:

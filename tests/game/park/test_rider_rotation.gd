@@ -9,6 +9,9 @@ const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
 const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
 const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
 const RiderViewScene := preload("res://src/presentation/gameplay/rider_view.gd")
+const RiderAnimationPolicyScene := preload(
+	"res://src/presentation/gameplay/rider_animation_policy.gd"
+)
 const RiderVisualDefinitionScene := preload(
 	"res://src/presentation/gameplay/rider_visual_definition.gd"
 )
@@ -41,6 +44,7 @@ func _init() -> void:
 	_test_rotation_does_not_change_trajectory_or_pitch()
 	_test_takeoff_resets_spin_state()
 	_test_directional_view_clips()
+	_test_animation_policy()
 	_test_spin_performance_feedback()
 	if _failures.is_empty():
 		print("Rider rotation checks passed.")
@@ -260,6 +264,29 @@ func _test_directional_view_clips() -> void:
 		)
 	skier.free()
 	snowboarder.free()
+
+
+func _test_animation_policy() -> void:
+	var state := RiderStateScene.new()
+	var skier := RiderVisualDefinitionScene.skier()
+	state.run.edge_active = true
+	state.kinematics.heading = Vector2(1.0, -1.0)
+	_expect(
+		RiderAnimationPolicyScene.animation_for_state(state, skier) == &"carve_uphill",
+		"Negative lateral heading must select the skier's first carve clip."
+	)
+	state.run.run_phase = RiderRunState.RunPhase.FLIGHT
+	state.jump.spin_direction = 1
+	state.jump.spin_grab_tweak = true
+	state.jump.rotation_incomplete = true
+	_expect(
+		RiderAnimationPolicyScene.spin_animation_for_state(state, skier) == &"spin_tweak_right",
+		"Positive tweak spins must select the skier's right spin clip."
+	)
+	_expect(
+		RiderAnimationPolicyScene.spin_frame(TAU) == 0,
+		"Completed spins must wrap to the first sprite frame."
+	)
 
 
 func _test_spin_performance_feedback() -> void:

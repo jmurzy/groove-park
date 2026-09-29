@@ -15,23 +15,5 @@ func _ready() -> void:
 	_play(&"neutral_glide")
 
 
-func _carve_animation(state: RiderState) -> StringName:
-	return (
-		_definition.carve_a_animation
-		if state.kinematics.heading.y < 0.0
-		else _definition.carve_b_animation
-	)
-
-
-func _spin_animation_for_state(state: RiderState) -> StringName:
-	if state.jump.spin_grab_tweak:
-		return (
-			_definition.spin_tweak_negative
-			if state.jump.spin_direction < 0
-			else _definition.spin_tweak_positive
-		)
-	return (
-		_definition.spin_regular_negative
-		if state.jump.spin_direction < 0
-		else _definition.spin_regular_positive
-	)
+func _visual_definition() -> RiderVisualDefinition:
+	return _definition
