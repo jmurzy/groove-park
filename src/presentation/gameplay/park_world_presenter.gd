@@ -23,7 +23,6 @@ var course: ParkCourse
 var show_terrain := false
 var compression_window_distance := 0.0
 var _snowboarder: RiderView
-var _skier: RiderView
 var _rider_marker: RiderMarker
 var _performance_marker: PerformanceMarker
 var _rider_effects: RiderEffects
@@ -86,10 +85,6 @@ func _build_world() -> void:
 	_snowboarder.z_index = 2
 	_snowboarder.set_show_source_bounds(show_terrain)
 	add_child(_snowboarder)
-	_skier = RiderView.new(RiderVisualDefinition.skier())
-	_skier.z_index = 2
-	_skier.set_show_source_bounds(show_terrain)
-	add_child(_skier)
 	_rider_marker = RiderMarkerScene.new()
 	add_child(_rider_marker)
 	_performance_marker = PerformanceMarkerScene.new()
@@ -129,7 +124,6 @@ func _build_logotype() -> AnimatedSprite2D:
 
 func _update_rider_views(run_manager: RiderRunManager) -> void:
 	_update_rider_view(_snowboarder, run_manager.rider_state)
-	_update_rider_view(_skier, run_manager.skier_state)
 
 
 func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:

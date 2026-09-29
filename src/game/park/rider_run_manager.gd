@@ -1,12 +1,11 @@
-## Steps the park run for both riders (snowboarder primary + skier ghost).
-## Owns the two RiderStates, the shared RiderSimulation, and run lifecycle:
+## Steps the park run for its rider.
+## Owns the RiderState, the shared RiderSimulation, and run lifecycle:
 ## setup / step / restart / spawn placement. Presentation (views, HUD, camera)
 ## stays in GameplayScreen. Example: `run.step(input, course, tuning, delta)`.
 class_name RiderRunManager
 extends RefCounted
 
 var rider_state: RiderState
-var skier_state: RiderState
 var has_started_moving := false
 
 var _simulation: RiderSimulation
@@ -15,20 +14,17 @@ var _simulation: RiderSimulation
 func setup(course: ParkCourse) -> void:
 	_simulation = RiderSimulation.new()
 	rider_state = _spawn_at_route(course, course.default_route_index())
-	_reset_skier_state(course)
 	has_started_moving = false
 
 
 func step(input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
 	_simulation.step(rider_state, input, course, tuning, delta)
-	_simulation.step(skier_state, input, course, tuning, delta)
 	if not has_started_moving and rider_state.kinematics.ground_velocity.length() > 1.0:
 		has_started_moving = true
 
 
 func reset_run(course: ParkCourse) -> void:
 	rider_state = _spawn_at_route(course, course.default_route_index())
-	_reset_skier_state(course)
 	has_started_moving = false
 
 
@@ -38,15 +34,6 @@ func is_crashed() -> bool:
 
 func is_complete() -> bool:
 	return rider_state.run.run_phase == RiderRunState.RunPhase.COMPLETE
-
-
-func _reset_skier_state(course: ParkCourse) -> void:
-	var route_index := course.default_route_index()
-	skier_state = _spawn_at_route(course, route_index)
-	var center_path := course.route_at(route_index).approach_path
-	var skier_index := mini(4, center_path.size() - 1)
-	skier_state.kinematics.course_progress = center_path[skier_index].x
-	_sync_spawn_position(skier_state, course)
 
 
 func _spawn_at_route(course: ParkCourse, route_index: int) -> RiderState:

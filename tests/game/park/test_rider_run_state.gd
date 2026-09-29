@@ -10,7 +10,7 @@ var _failures := PackedStringArray()
 
 func _init() -> void:
 	_test_new_rider_starts_approaching()
-	_test_manager_setup_initializes_both_riders()
+	_test_manager_setup_initializes_rider()
 	_test_crash_status_uses_landing_outcome()
 	_test_reset_restores_run_lifecycle()
 	if _failures.is_empty():
@@ -38,16 +38,12 @@ func _test_new_rider_starts_approaching() -> void:
 	)
 
 
-func _test_manager_setup_initializes_both_riders() -> void:
+func _test_manager_setup_initializes_rider() -> void:
 	var manager := RiderRunManagerScene.new()
 	manager.setup(ShippedParkCourse)
 	_expect(
 		manager.rider_state.run.run_phase == RiderRunState.RunPhase.APPROACH,
 		"The primary rider must start in the approach phase."
-	)
-	_expect(
-		manager.skier_state.run.run_phase == RiderRunState.RunPhase.APPROACH,
-		"The skier must start in the approach phase."
 	)
 	_expect(
 		manager.rider_state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
@@ -81,9 +77,6 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.rider_state.jump.grab_reach_active = true
 	manager.rider_state.jump.tweak_active = true
 	manager.rider_state.jump.grab_started_airtime = 1.0
-	manager.skier_state.run.run_phase = RiderRunState.RunPhase.FLIGHT
-	manager.skier_state.run.landing_outcome = RiderRunState.LandingOutcome.SKETCHY
-	manager.skier_state.kinematics.active_route_index = 0
 	manager.has_started_moving = true
 	_expect(manager.is_complete(), "A complete primary phase must mark the manager complete.")
 	manager.reset_run(ShippedParkCourse)
@@ -96,19 +89,8 @@ func _test_reset_restores_run_lifecycle() -> void:
 		"Reset must clear the primary landing outcome."
 	)
 	_expect(
-		manager.skier_state.run.run_phase == RiderRunState.RunPhase.APPROACH,
-		"Reset must return the skier to approach."
-	)
-	_expect(
-		manager.skier_state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
-		"Reset must clear the skier landing outcome."
-	)
-	_expect(
-		(
-			manager.rider_state.kinematics.active_route_index == -1
-			and manager.skier_state.kinematics.active_route_index == -1
-		),
-		"Reset must clear each rider's frozen route."
+		manager.rider_state.kinematics.active_route_index == -1,
+		"Reset must clear the rider's frozen route."
 	)
 	_expect(not manager.has_started_moving, "Reset must clear the movement-started flag.")
 	_expect(not manager.is_crashed(), "Reset must clear the manager crash status.")
