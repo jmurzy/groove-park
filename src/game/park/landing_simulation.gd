@@ -42,22 +42,7 @@ func begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
 		state.kinematics.course_progress, state.kinematics.active_route_index
 	)
 	state.jump.takeoff_pop_impulse = 0.0
-	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
-	state.run.current_surface_id = &"landing"
-	state.jump.landing_resolved = true
-	state.jump.landing_label = "ABANDON"
-	state.jump.landing_quality = 0.0
-	state.jump.landing_position = Vector2(
-		state.kinematics.course_progress, state.kinematics.vertical_position
-	)
-	state.jump.landing_tangent = tangent
-	state.jump.landing_normal = Vector2(tangent.y, -tangent.x)
-	state.jump.landing_in_zone = false
-	state.kinematics.vertical_speed = 0.0
-	state.jump.orientation = tangent.angle()
-	state.jump.angular_velocity = 0.0
-	state.run.completion_time_remaining = 0.0
+	_begin_runout(state, &"landing", tangent)
 
 
 func begin_abandoned_runout(state: RiderState, course: ParkCourse) -> void:
@@ -75,28 +60,13 @@ func begin_abandoned_runout(state: RiderState, course: ParkCourse) -> void:
 	var forward_speed := maxf(
 		Vector2(state.kinematics.course_speed, state.kinematics.vertical_speed).dot(tangent), 0.0
 	)
-	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
-	state.run.current_surface_id = &"abandon"
-	state.jump.landing_resolved = true
-	state.jump.landing_label = "ABANDON"
-	state.jump.landing_quality = 0.0
-	state.jump.landing_position = Vector2(
-		state.kinematics.course_progress, state.kinematics.vertical_position
-	)
-	state.jump.landing_tangent = tangent
-	state.jump.landing_normal = Vector2(tangent.y, -tangent.x)
-	state.jump.landing_in_zone = false
+	_begin_runout(state, &"abandon", tangent)
 	state.kinematics.ground_position = Vector2(
 		state.kinematics.course_progress, state.kinematics.lane_position
 	)
 	state.kinematics.ground_velocity = Vector2(forward_speed * tangent.x, 0.0)
 	state.kinematics.course_speed = state.kinematics.ground_velocity.x
 	state.kinematics.lane_speed = 0.0
-	state.kinematics.vertical_speed = 0.0
-	state.jump.orientation = tangent.angle()
-	state.jump.angular_velocity = 0.0
-	state.run.completion_time_remaining = 0.0
 
 
 func crash(state: RiderState, tuning: RiderTuning) -> void:
@@ -114,6 +84,25 @@ func crash(state: RiderState, tuning: RiderTuning) -> void:
 	state.kinematics.course_speed = 0.0
 	state.kinematics.lane_speed = 0.0
 	state.kinematics.vertical_speed = 0.0
+
+
+func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) -> void:
+	state.run.run_phase = RiderRunState.RunPhase.LANDING
+	state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
+	state.run.current_surface_id = surface_id
+	state.jump.landing_resolved = true
+	state.jump.landing_label = "ABANDON"
+	state.jump.landing_quality = 0.0
+	state.jump.landing_position = Vector2(
+		state.kinematics.course_progress, state.kinematics.vertical_position
+	)
+	state.jump.landing_tangent = tangent
+	state.jump.landing_normal = Vector2(tangent.y, -tangent.x)
+	state.jump.landing_in_zone = false
+	state.kinematics.vertical_speed = 0.0
+	state.jump.orientation = tangent.angle()
+	state.jump.angular_velocity = 0.0
+	state.run.completion_time_remaining = 0.0
 
 
 func step(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
