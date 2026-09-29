@@ -1,0 +1,256 @@
+## Advances a rider across an authored approach and reports unused tick time at the lip.
+class_name ApproachSimulation
+extends RefCounted
+
+const PATH_SWITCH_SPEED := 2.5
+const COAST_PREDICTION_STEP := 1.0 / 60.0
+
+
+func step(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> float:
+	if (
+		state.course_progress < course.route_start_at(state.approach_path_position)
+		or state.course_progress > _end(state, course)
+	):
+		_stop_at_edge(state)
+		return -1.0
+
+	state.run_phase = RiderState.RunPhase.APPROACH
+	state.current_surface_id = StringName()
+	var steering_heading := Vector2(input.heading.x, 0.0)
+	# The approach only permits downhill and across-slope steering, never uphill travel.
+	steering_heading.x = maxf(steering_heading.x, 0.0)
+	if not steering_heading.is_zero_approx():
+		steering_heading = steering_heading.normalized()
+	var downhill_held := input.heading.x > 0.0
+	var left_braking := input.heading.x < 0.0
+	state.tuck_active = input.tuck_pressed
+	state.brake_active = input.brake_pressed or left_braking
+	state.edge_active = not downhill_held and not state.ground_velocity.is_zero_approx()
+	_update_path(state, input, course, tuning, delta)
+	_update_compression(state, input, course, tuning, delta)
+
+	if not steering_heading.is_zero_approx():
+		state.desired_heading = steering_heading
+		if not state.has_ground_intent and downhill_held:
+			state.has_ground_intent = true
+	if not state.has_ground_intent:
+		_sync_ground_state(state, course)
+		return -1.0
+
+	_turn_toward_input(state, steering_heading, input, tuning, delta)
+	_apply_forces(state, input, course, tuning, delta, downhill_held, left_braking)
+	var remaining_delta := _move_within_bounds(state, course, delta)
+	_sync_ground_state(state, course)
+	return remaining_delta
+
+
+func cross_endpoint(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> int:
+	var route_index := clampi(
+		roundi(state.approach_path_position), 0, course.approach_paths.size() - 1
+	)
+	state.active_route_index = route_index
+	state.approach_path_target = route_index
+	state.approach_path_position = float(route_index)
+	var lip: Vector2 = course.approach_paths[route_index][-1]
+	state.course_progress = lip.x
+	state.lane_position = 0.0
+	state.ground_position = Vector2(lip.x, 0.0)
+	state.vertical_position = lip.y
+	if state.compression_active:
+		release_compression(state, course, tuning, lip.x)
+		state.compression_auto_released = true
+		state.compression_release_quality = clampf(
+			tuning.compression_auto_release_quality, 0.0, 1.0
+		)
+	_clear_controls(state)
+	return route_index
+
+
+func release_compression(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, release_progress: float
+) -> void:
+	state.compression_active = false
+	state.compression_auto_released = false
+	state.compression_release_progress = release_progress
+	var window_distance := maxf(tuning.compression_window_distance, 0.0)
+	if is_zero_approx(window_distance):
+		state.compression_release_quality = (
+			1.0 if is_equal_approx(release_progress, _end(state, course)) else 0.0
+		)
+		return
+	state.compression_release_quality = clampf(
+		1.0 - (_end(state, course) - release_progress) / window_distance, 0.0, 1.0
+	)
+
+
+func _turn_toward_input(
+	state: RiderState,
+	steering_heading: Vector2,
+	input: RiderInputFrame,
+	tuning: RiderTuning,
+	delta: float
+) -> void:
+	if steering_heading.is_zero_approx():
+		return
+	var turn_rate := tuning.maximum_turn_rate
+	if input.tuck_pressed:
+		turn_rate *= tuning.tuck_steering_multiplier
+	if input.brake_pressed:
+		turn_rate *= tuning.brake_turn_multiplier
+	state.heading = state.heading.rotated(
+		clampf(state.heading.angle_to(steering_heading), -turn_rate * delta, turn_rate * delta)
+	)
+
+
+func _apply_forces(
+	state: RiderState,
+	input: RiderInputFrame,
+	course: ParkCourse,
+	tuning: RiderTuning,
+	delta: float,
+	downhill_held: bool,
+	left_braking: bool
+) -> void:
+	var gradient := course.route_gradient_at(state.course_progress, state.approach_path_position)
+	state.ground_velocity.x += (
+		tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient) * delta
+	)
+	if downhill_held:
+		var pump_scale := clampf(
+			1.0 + gradient / maxf(tuning.uphill_pump_cut_gradient, 0.01), 0.0, 1.0
+		)
+		state.ground_velocity += Vector2.RIGHT * tuning.fall_line_acceleration * pump_scale * delta
+	var speed := state.ground_velocity.length()
+	if speed > 0.0 and state.ground_velocity.x >= 0.0:
+		state.ground_velocity = state.ground_velocity.move_toward(
+			state.heading * speed, tuning.steering_response * delta
+		)
+	var drag := tuning.snow_resistance + tuning.aerodynamic_drag * speed * speed
+	drag += tuning.edge_drag * absf(state.heading.y)
+	if input.tuck_pressed:
+		drag *= tuning.tuck_drag_multiplier
+	if input.brake_pressed or left_braking:
+		drag += tuning.brake_drag
+	if not downhill_held:
+		drag += tuning.release_carve_drag
+	state.ground_velocity = state.ground_velocity.move_toward(Vector2.ZERO, drag * delta)
+	if state.ground_velocity.length() <= 1.0:
+		_stop_at_edge(state)
+
+
+func _update_compression(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	var distance_to_lip := maxf(_end(state, course) - state.course_progress, 0.0)
+	var in_window := distance_to_lip <= maxf(tuning.compression_window_distance, 0.0)
+	if input.pop_pressed and in_window and not state.compression_active:
+		state.compression_active = true
+		if input.pop_just_pressed:
+			state.compression_amount = 0.0
+			state.compression_release_progress = -1.0
+			state.compression_release_quality = 0.0
+			state.compression_auto_released = false
+	if state.compression_active and input.pop_pressed:
+		state.compression_amount = minf(
+			state.compression_amount + tuning.compression_rate * delta,
+			maxf(tuning.maximum_compression, 0.0)
+		)
+	if state.compression_active and input.pop_just_released:
+		release_compression(state, course, tuning, state.course_progress)
+
+
+func _move_within_bounds(state: RiderState, course: ParkCourse, delta: float) -> float:
+	var next_position := (
+		Vector2(state.course_progress, state.lane_position) + state.ground_velocity * delta
+	)
+	var approach_end := _end(state, course)
+	if next_position.x >= approach_end and state.ground_velocity.x > 0.0:
+		var time_to_endpoint := (approach_end - state.course_progress) / state.ground_velocity.x
+		state.course_progress = approach_end
+		state.lane_position = 0.0
+		return maxf(delta - time_to_endpoint, 0.0)
+	state.course_progress = clampf(
+		next_position.x, course.route_start_at(state.approach_path_position), approach_end
+	)
+	state.lane_position = 0.0
+	if not is_equal_approx(state.course_progress, next_position.x):
+		_stop_at_edge(state)
+	return -1.0
+
+
+func _stop_at_edge(state: RiderState) -> void:
+	state.ground_velocity = Vector2.ZERO
+	_clear_controls(state)
+
+
+func _clear_controls(state: RiderState) -> void:
+	state.has_ground_intent = false
+	state.tuck_active = false
+	state.brake_active = false
+	state.edge_active = false
+
+
+func _end(state: RiderState, course: ParkCourse) -> float:
+	return course.route_end_at(state.approach_path_position)
+
+
+func _sync_ground_state(state: RiderState, course: ParkCourse) -> void:
+	state.ground_position = Vector2(state.course_progress, state.lane_position)
+	state.vertical_position = course.route_surface_y_at(
+		state.course_progress, state.approach_path_position
+	)
+	state.course_speed = state.ground_velocity.x
+	state.lane_speed = state.ground_velocity.y
+
+
+func _update_path(
+	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	if course.approach_paths.size() != ParkCourse.ROUTE_COUNT:
+		return
+	var requested_path := clampi(
+		state.approach_path_target + input.approach_path_change, 0, course.approach_paths.size() - 1
+	)
+	if (
+		requested_path != state.approach_path_target
+		and _can_coast_through_path_change(state, requested_path, course, tuning)
+	):
+		state.approach_path_target = requested_path
+	state.approach_path_position = move_toward(
+		state.approach_path_position, float(state.approach_path_target), PATH_SWITCH_SPEED * delta
+	)
+
+
+func _can_coast_through_path_change(
+	state: RiderState, requested_path: int, course: ParkCourse, tuning: RiderTuning
+) -> bool:
+	var remaining_transition_time := (
+		absf(float(requested_path) - state.approach_path_position) / PATH_SWITCH_SPEED
+	)
+	var simulated_progress := state.course_progress
+	var simulated_speed := maxf(state.ground_velocity.x, 0.0)
+	var simulated_route_position := state.approach_path_position
+	while remaining_transition_time > 0.0:
+		var step := minf(COAST_PREDICTION_STEP, remaining_transition_time)
+		simulated_route_position = move_toward(
+			simulated_route_position, float(requested_path), PATH_SWITCH_SPEED * step
+		)
+		var gradient := course.route_gradient_at(simulated_progress, simulated_route_position)
+		simulated_speed += (
+			tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient) * step
+		)
+		var drag := (
+			tuning.snow_resistance
+			+ tuning.aerodynamic_drag * simulated_speed * simulated_speed
+			+ tuning.release_carve_drag
+		)
+		simulated_speed = move_toward(simulated_speed, 0.0, drag * step)
+		if simulated_speed <= 1.0:
+			return false
+		simulated_progress += simulated_speed * step
+		if simulated_progress >= course.route_end_at(simulated_route_position):
+			return false
+		remaining_transition_time -= step
+	return true
