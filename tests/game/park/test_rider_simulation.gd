@@ -73,7 +73,7 @@ func _test_neutral_input_does_not_start_a_run() -> void:
 
 
 func _test_shipped_course_has_an_approach_line() -> void:
-	_expect(ShippedParkCourse.approach_paths.size() == 3, "The shipped course needs three paths.")
+	_expect(ShippedParkCourse.routes.size() == 3, "The shipped course needs three paths.")
 
 
 func _test_downhill_input_starts_a_run() -> void:
@@ -718,7 +718,9 @@ func _test_ascending_below_abandon_line_can_recover() -> void:
 func _test_abandon_floor_does_not_preempt_landing_contact() -> void:
 	var routed_course := _approach_course()
 	routed_course.flight_abandon_y = 100.0
-	routed_course.landing_paths[1] = PackedVector2Array([Vector2(100, 0), Vector2(200, 200)])
+	routed_course.route_at(1).landing_path = PackedVector2Array(
+		[Vector2(100, 0), Vector2(200, 200)]
+	)
 	var state := RiderStateScene.new()
 	state.run.run_phase = RiderRunState.RunPhase.FLIGHT
 	state.kinematics.active_route_index = 1
@@ -785,7 +787,9 @@ func _test_shipped_routes_complete_cleanly() -> void:
 		var jump := state.jump
 		kinematics.approach_path_target = route_index
 		kinematics.approach_path_position = float(route_index)
-		kinematics.course_progress = ShippedParkCourse.approach_paths[route_index][-1].x - 5.0
+		kinematics.course_progress = (
+			ShippedParkCourse.route_at(route_index).approach_path[-1].x - 5.0
+		)
 		kinematics.vertical_position = ShippedParkCourse.route_surface_y_at(
 			kinematics.course_progress, kinematics.approach_path_position
 		)
@@ -802,7 +806,7 @@ func _test_shipped_routes_complete_cleanly() -> void:
 			"Route %d should complete." % route_index
 		)
 		var outcome_is_valid := run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
-		if ShippedParkCourse.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
+		if ShippedParkCourse.route_at(route_index).kind == ParkRoute.Kind.FLIGHT:
 			outcome_is_valid = (
 				outcome_is_valid or (run.landing_outcome == RiderRunState.LandingOutcome.CLEAN)
 			)

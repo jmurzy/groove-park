@@ -258,7 +258,7 @@ func _rotation_rate_for_speed(takeoff_speed: float, tuning: RiderTuning) -> floa
 func _has_overshot_landing(state: RiderState, course: ParkCourse) -> bool:
 	return (
 		state.kinematics.course_progress
-		> course.landing_paths[state.kinematics.active_route_index][-1].x
+		> course.landing_end_at(state.kinematics.active_route_index).x
 	)
 
 

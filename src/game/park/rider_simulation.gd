@@ -26,7 +26,7 @@ func _step_approach(
 	if remaining_delta < 0.0:
 		return
 	var route_index := _approach.cross_endpoint(state, course, tuning)
-	if course.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
+	if course.route_at(route_index).kind == ParkRoute.Kind.FLIGHT:
 		_flight.begin(state, course, tuning, route_index)
 		if remaining_delta > 0.0:
 			# Approach-held buttons cannot become grabs during the takeoff tick.

@@ -29,23 +29,24 @@ static func draw_course_debug(
 	canvas.draw_rect(world_bounds, Color("ff5d52"), false, 3.0)
 	_draw_grid(canvas, world_bounds)
 	_draw_abandon_zone(canvas, course, world_bounds, active_route_index)
-	_draw_paths(canvas, course.approach_paths, APPROACH_PATH_NAMES, 6.0)
+	_draw_paths(canvas, course, true, APPROACH_PATH_NAMES, 6.0)
 	_draw_compression_windows(canvas, course, active_route_index, compression_window_distance)
-	_draw_paths(canvas, course.landing_paths, LANDING_PATH_NAMES, 5.0)
+	_draw_paths(canvas, course, false, LANDING_PATH_NAMES, 5.0)
 	_draw_route_transitions(canvas, course)
 
 
 static func draw_terrain_handles(canvas: CanvasItem, projection: ParkProjection) -> void:
 	var course := projection.course
-	_draw_path_handles(canvas, course.approach_paths, "A")
-	_draw_path_handles(canvas, course.landing_paths, "L")
+	_draw_path_handles(canvas, course, true, "A")
+	_draw_path_handles(canvas, course, false, "L")
 
 
 static func _draw_path_handles(
-	canvas: CanvasItem, paths: Array[PackedVector2Array], point_prefix: String
+	canvas: CanvasItem, course: ParkCourse, use_approach: bool, point_prefix: String
 ) -> void:
-	for path_index in paths.size():
-		var path: PackedVector2Array = paths[path_index]
+	for path_index in course.routes.size():
+		var route := course.route_at(path_index)
+		var path: PackedVector2Array = route.approach_path if use_approach else route.landing_path
 		var color: Color = APPROACH_PATH_COLORS[path_index % APPROACH_PATH_COLORS.size()]
 		for point_index in path.size():
 			var screen_point := path[point_index]
@@ -63,10 +64,11 @@ static func _draw_path_handles(
 
 
 static func _draw_paths(
-	canvas: CanvasItem, paths: Array[PackedVector2Array], path_names: Array, width: float
+	canvas: CanvasItem, course: ParkCourse, use_approach: bool, path_names: Array, width: float
 ) -> void:
-	for path_index in paths.size():
-		var path: PackedVector2Array = paths[path_index]
+	for path_index in course.routes.size():
+		var route := course.route_at(path_index)
+		var path: PackedVector2Array = route.approach_path if use_approach else route.landing_path
 		var color: Color = APPROACH_PATH_COLORS[path_index % APPROACH_PATH_COLORS.size()]
 		for point_index in range(path.size() - 1):
 			canvas.draw_line(path[point_index], path[point_index + 1], color, width)
@@ -87,12 +89,10 @@ static func _draw_paths(
 
 
 static func _draw_route_transitions(canvas: CanvasItem, course: ParkCourse) -> void:
-	var route_count := mini(
-		mini(course.approach_paths.size(), course.landing_paths.size()), course.route_kinds.size()
-	)
-	for route_index in route_count:
-		var approach := course.approach_paths[route_index]
-		var landing := course.landing_paths[route_index]
+	for route_index in course.routes.size():
+		var route := course.route_at(route_index)
+		var approach := route.approach_path
+		var landing := route.landing_path
 		if approach.is_empty() or landing.is_empty():
 			continue
 		var color: Color = APPROACH_PATH_COLORS[route_index % APPROACH_PATH_COLORS.size()]
@@ -100,7 +100,7 @@ static func _draw_route_transitions(canvas: CanvasItem, course: ParkCourse) -> v
 		var landing_start := landing[0]
 		canvas.draw_circle(approach_end, 9.0, color, false, 3.0)
 		canvas.draw_circle(landing_start, 9.0, color, false, 3.0)
-		if course.route_kinds[route_index] == ParkCourse.RouteKind.FLIGHT:
+		if route.kind == ParkRoute.Kind.FLIGHT:
 			continue
 		canvas.draw_string(
 			ThemeDB.fallback_font,
@@ -118,8 +118,8 @@ static func _draw_compression_windows(
 ) -> void:
 	if window_distance <= 0.0:
 		return
-	for route_index in course.approach_paths.size():
-		var path := course.approach_paths[route_index]
+	for route_index in course.routes.size():
+		var path := course.route_at(route_index).approach_path
 		if path.size() < 2:
 			continue
 		var lip := path[-1]
@@ -148,13 +148,10 @@ static func _draw_compression_windows(
 static func _draw_abandon_zone(
 	canvas: CanvasItem, course: ParkCourse, _world_bounds: Rect2, route_index: int
 ) -> void:
-	var route_count := mini(
-		mini(course.approach_paths.size(), course.landing_paths.size()), course.route_kinds.size()
-	)
 	if (
 		route_index < 0
-		or route_index >= route_count
-		or course.route_kinds[route_index] != ParkCourse.RouteKind.FLIGHT
+		or route_index >= course.routes.size()
+		or course.route_at(route_index).kind != ParkRoute.Kind.FLIGHT
 	):
 		return
 	var boundary := course.flight_miss_boundary_points(route_index)

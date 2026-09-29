@@ -28,19 +28,21 @@ func load_from_course() -> void:
 	if course == null:
 		push_error("Could not load ParkCourse from %s." % PARK_COURSE_PATH)
 		return
-	_load_paths(course.approach_paths, _park_approach_paths, "approach")
-	_load_paths(course.landing_paths, _park_landing_paths, "landing")
+	_load_paths(course.routes, _park_approach_paths, true)
+	_load_paths(course.routes, _park_landing_paths, false)
 
 
 func _load_paths(
-	paths: Array[PackedVector2Array], editor_paths: Array[ParkCoursePath], label: String
+	routes: Array[ParkRoute], editor_paths: Array[ParkCoursePath], use_approach: bool
 ) -> void:
-	if paths.size() != editor_paths.size():
-		push_error("ParkCourse needs exactly three %s paths." % label)
+	if routes.size() != editor_paths.size():
+		push_error("ParkCourse needs exactly three routes.")
 		return
 	for path_index in editor_paths.size():
 		var curve := Curve2D.new()
-		for point in paths[path_index]:
+		var route := routes[path_index]
+		var path := route.approach_path if use_approach else route.landing_path
+		for point in path:
 			curve.add_point(point)
 		editor_paths[path_index].curve = curve
 		editor_paths[path_index].refresh_preview()
@@ -55,8 +57,15 @@ func save_to_course() -> void:
 	var landing_paths := _paths_from_editor(_park_landing_paths)
 	if approach_paths.is_empty() or landing_paths.is_empty():
 		return
-	course.approach_paths = approach_paths
-	course.landing_paths = landing_paths
+	if (
+		course.routes.size() != approach_paths.size()
+		or course.routes.size() != landing_paths.size()
+	):
+		push_error("ParkCourse needs exactly three routes.")
+		return
+	for route_index in course.routes.size():
+		course.routes[route_index].approach_path = approach_paths[route_index]
+		course.routes[route_index].landing_path = landing_paths[route_index]
 	var errors := course.validation_errors()
 	if not errors.is_empty():
 		push_error("Park course not saved:\n%s" % "\n".join(errors))

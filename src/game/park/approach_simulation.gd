@@ -53,12 +53,12 @@ func step(
 
 func cross_endpoint(state: RiderState, course: ParkCourse, tuning: RiderTuning) -> int:
 	var route_index := clampi(
-		roundi(state.kinematics.approach_path_position), 0, course.approach_paths.size() - 1
+		roundi(state.kinematics.approach_path_position), 0, course.routes.size() - 1
 	)
 	state.kinematics.active_route_index = route_index
 	state.kinematics.approach_path_target = route_index
 	state.kinematics.approach_path_position = float(route_index)
-	var lip: Vector2 = course.approach_paths[route_index][-1]
+	var lip: Vector2 = course.route_at(route_index).approach_path[-1]
 	state.kinematics.course_progress = lip.x
 	state.kinematics.lane_position = 0.0
 	state.kinematics.ground_position = Vector2(lip.x, 0.0)
@@ -230,12 +230,12 @@ func _sync_ground_state(state: RiderState, course: ParkCourse) -> void:
 func _update_path(
 	state: RiderState, input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	if course.approach_paths.size() != ParkCourse.ROUTE_COUNT:
+	if course.routes.size() != ParkCourse.ROUTE_COUNT:
 		return
 	var requested_path := clampi(
 		state.kinematics.approach_path_target + input.approach_path_change,
 		0,
-		course.approach_paths.size() - 1
+		course.routes.size() - 1
 	)
 	if (
 		requested_path != state.kinematics.approach_path_target

@@ -62,8 +62,9 @@ func begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
 
 func begin_abandoned_runout(state: RiderState, course: ParkCourse) -> void:
 	var route_index := state.kinematics.active_route_index
-	var landing_path := course.landing_paths[route_index]
-	var lip_progress := course.approach_paths[route_index][-1].x
+	var route := course.route_at(route_index)
+	var landing_path := route.landing_path
+	var lip_progress := route.approach_path[-1].x
 	state.kinematics.course_progress = clampf(
 		state.kinematics.course_progress, lip_progress, landing_path[-1].x
 	)
@@ -167,8 +168,9 @@ func _runout_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
 
 func _abandon_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
 	var route_index := state.kinematics.active_route_index
-	var start_x := course.approach_paths[route_index][-1].x
-	var end_x := course.landing_paths[route_index][-1].x
+	var route := course.route_at(route_index)
+	var start_x := route.approach_path[-1].x
+	var end_x := route.landing_path[-1].x
 	var before_x := maxf(state.kinematics.course_progress - 1.0, start_x)
 	var after_x := minf(state.kinematics.course_progress + 1.0, end_x)
 	if is_equal_approx(before_x, after_x):

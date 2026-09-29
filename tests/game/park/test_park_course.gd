@@ -28,21 +28,18 @@ func _init() -> void:
 func _test_shipped_course_contract() -> void:
 	_expect(ShippedParkCourse.is_valid(), "The shipped park course must be valid.")
 	_expect(
-		ShippedParkCourse.approach_paths.size() == ParkCourse.ROUTE_COUNT,
+		ShippedParkCourse.routes.size() == ParkCourse.ROUTE_COUNT,
 		"The shipped course must define three approach paths."
 	)
 	_expect(
-		ShippedParkCourse.landing_paths.size() == ParkCourse.ROUTE_COUNT,
+		ShippedParkCourse.routes.size() == ParkCourse.ROUTE_COUNT,
 		"The shipped course must define three landing paths."
 	)
 	_expect(
 		(
-			ShippedParkCourse.route_kinds
-			== [
-				ParkCourse.RouteKind.FLIGHT,
-				ParkCourse.RouteKind.FLIGHT,
-				ParkCourse.RouteKind.GROUND_RUNOUT,
-			]
+			ShippedParkCourse.route_at(0).kind == ParkRoute.Kind.FLIGHT
+			and ShippedParkCourse.route_at(1).kind == ParkRoute.Kind.FLIGHT
+			and ShippedParkCourse.route_at(2).kind == ParkRoute.Kind.GROUND_RUNOUT
 		),
 		"The upper and center routes should fly while the lower route stays grounded."
 	)
@@ -50,9 +47,9 @@ func _test_shipped_course_contract() -> void:
 
 func _test_flight_landing_must_start_after_lip() -> void:
 	var course := _valid_course()
-	var landing_path := course.landing_paths[0]
-	landing_path[0] = course.approach_paths[0][-1]
-	course.landing_paths[0] = landing_path
+	var landing_path := course.route_at(0).landing_path
+	landing_path[0] = course.route_at(0).approach_path[-1]
+	course.route_at(0).landing_path = landing_path
 	_expect(
 		course.validation_errors().has("Flight route 0 landing must start after its lip."),
 		"A flight landing path must begin after its approach lip."
@@ -61,9 +58,9 @@ func _test_flight_landing_must_start_after_lip() -> void:
 
 func _test_ground_route_requires_a_continuous_join() -> void:
 	var course := _valid_course()
-	var landing_path := course.landing_paths[2]
+	var landing_path := course.route_at(2).landing_path
 	landing_path[0] += Vector2(1.0, 0.0)
-	course.landing_paths[2] = landing_path
+	course.route_at(2).landing_path = landing_path
 	_expect(
 		course.validation_errors().has(
 			"Ground route 2 landing must start at its approach endpoint."
@@ -74,7 +71,7 @@ func _test_ground_route_requires_a_continuous_join() -> void:
 
 func _test_landing_paths_are_ordered() -> void:
 	var course := _valid_course()
-	course.landing_paths[1] = PackedVector2Array([Vector2(300, 100), Vector2(200, 200)])
+	course.route_at(1).landing_path = PackedVector2Array([Vector2(300, 100), Vector2(200, 200)])
 	_expect(
 		course.validation_errors().has(
 			"Landing path 1 points must be strictly ordered by progress."
@@ -103,7 +100,7 @@ func _test_landing_collision_uses_authored_segments_only() -> void:
 
 func _test_landing_collision_handles_segment_seams() -> void:
 	var course := _valid_course()
-	course.landing_paths[0] = PackedVector2Array(
+	course.route_at(0).landing_path = PackedVector2Array(
 		[Vector2(100, 10), Vector2(150, 20), Vector2(200, 30)]
 	)
 	var contact := course.landing_swept_terrain_intersection(Vector2(140, 0), Vector2(160, 40), 0)
@@ -120,11 +117,11 @@ func _test_flight_miss_boundary_connects_lip_and_landing() -> void:
 	var course := _valid_course()
 	var boundary := course.flight_miss_boundary_points(0)
 	_expect(
-		boundary[0].is_equal_approx(course.approach_paths[0][-1]),
+		boundary[0].is_equal_approx(course.route_at(0).approach_path[-1]),
 		"The miss boundary should begin at the selected approach lip."
 	)
 	_expect(
-		boundary[-1].is_equal_approx(course.landing_paths[0][-1]),
+		boundary[-1].is_equal_approx(course.route_at(0).landing_path[-1]),
 		"The miss boundary should follow the landing path to its endpoint."
 	)
 	_expect(
@@ -139,7 +136,7 @@ func _test_flight_abandon_floor_stays_below_landing_geometry() -> void:
 	var miss_boundary := course.flight_miss_boundary_points(0)
 	var abandon_floor := course.flight_abandon_floor_points(0)
 	_expect(
-		abandon_floor[-1].y >= course.landing_paths[0][-1].y,
+		abandon_floor[-1].y >= course.route_at(0).landing_path[-1].y,
 		"The abandon floor must not preempt a later landing-path intersection."
 	)
 	_expect(
@@ -177,17 +174,39 @@ func _test_flight_abandon_floor_stays_below_landing_geometry() -> void:
 
 func _valid_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
-	course.approach_paths = [
-		PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
-		PackedVector2Array([Vector2(0, 100), Vector2(100, 100)]),
-		PackedVector2Array([Vector2(0, 200), Vector2(100, 200)]),
-	]
-	course.landing_paths = [
-		PackedVector2Array([Vector2(200, 100), Vector2(300, 200)]),
-		PackedVector2Array([Vector2(220, 200), Vector2(320, 300)]),
-		PackedVector2Array([Vector2(100, 200), Vector2(300, 300)]),
+	course.routes = [
+		_route(
+			&"upper",
+			PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
+			PackedVector2Array([Vector2(200, 100), Vector2(300, 200)])
+		),
+		_route(
+			&"center",
+			PackedVector2Array([Vector2(0, 100), Vector2(100, 100)]),
+			PackedVector2Array([Vector2(220, 200), Vector2(320, 300)])
+		),
+		_route(
+			&"lower",
+			PackedVector2Array([Vector2(0, 200), Vector2(100, 200)]),
+			PackedVector2Array([Vector2(100, 200), Vector2(300, 300)]),
+			ParkRoute.Kind.GROUND_RUNOUT
+		),
 	]
 	return course
+
+
+func _route(
+	id: StringName,
+	approach_path: PackedVector2Array,
+	landing_path: PackedVector2Array,
+	kind := ParkRoute.Kind.FLIGHT
+) -> ParkRoute:
+	var route := ParkRoute.new()
+	route.id = id
+	route.approach_path = approach_path
+	route.landing_path = landing_path
+	route.kind = kind
+	return route
 
 
 func _expect(condition: bool, message: String) -> void:

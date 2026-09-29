@@ -1,60 +1,71 @@
 @tool
-## Authored terrain profiles for the three selectable park routes.
+## Authored terrain profiles for the selectable park routes.
 class_name ParkCourse
 extends Resource
 
-enum RouteKind { FLIGHT, GROUND_RUNOUT }
+enum RouteKind { FLIGHT = ParkRoute.Kind.FLIGHT, GROUND_RUNOUT = ParkRoute.Kind.GROUND_RUNOUT }
 
 const ROUTE_COUNT := 3
 const FLIGHT_ABANDON_CLEARANCE := 0.0
 const FLIGHT_ABANDON_CURVE_SEGMENTS := 24
 const FLIGHT_ABANDON_TRIGGER_RATIO := 0.5
 
-@export var course_version := "park-course-v2"
-## Three editor-authored routes ordered top-to-bottom.
-@export var approach_paths: Array[PackedVector2Array] = []
-## Matching landing/runout routes ordered top-to-bottom.
-@export var landing_paths: Array[PackedVector2Array] = []
-@export
-var route_kinds: Array[RouteKind] = [RouteKind.FLIGHT, RouteKind.FLIGHT, RouteKind.GROUND_RUNOUT]
+@export var course_version := "park-course-v3"
+@export var routes: Array[ParkRoute] = []
+@export var default_route_id: StringName = &"center"
 @export var flight_abandon_y := 624.0
 @export var lane_min := -360.0
 @export var lane_max := 360.0
 
+# Temporary serialization/test migration accessors. Route data is stored only in `routes`.
+var approach_paths: Array[PackedVector2Array]:
+	get:
+		var paths: Array[PackedVector2Array] = []
+		for route in routes:
+			paths.append(route.approach_path)
+		return paths
+	set(value):
+		_ensure_routes(value.size())
+		for route_index in value.size():
+			routes[route_index].approach_path = value[route_index]
+var landing_paths: Array[PackedVector2Array]:
+	get:
+		var paths: Array[PackedVector2Array] = []
+		for route in routes:
+			paths.append(route.landing_path)
+		return paths
+	set(value):
+		_ensure_routes(value.size())
+		for route_index in value.size():
+			routes[route_index].landing_path = value[route_index]
+var route_kinds: Array[ParkRoute.Kind]:
+	get:
+		var kinds: Array[ParkRoute.Kind] = []
+		for route in routes:
+			kinds.append(route.kind)
+		return kinds
+	set(value):
+		_ensure_routes(value.size())
+		for route_index in value.size():
+			routes[route_index].kind = value[route_index]
+
 
 func validation_errors() -> PackedStringArray:
 	var errors := PackedStringArray()
-	_append_path_errors(errors, approach_paths, "Approach")
-	_append_path_errors(errors, landing_paths, "Landing")
-	if route_kinds.size() != ROUTE_COUNT:
-		errors.append("ParkCourse needs exactly three route kinds.")
-	if (
-		approach_paths.size() == ROUTE_COUNT
-		and landing_paths.size() == ROUTE_COUNT
-		and route_kinds.size() == ROUTE_COUNT
-	):
-		for route_index in ROUTE_COUNT:
-			if approach_paths[route_index].is_empty() or landing_paths[route_index].is_empty():
-				continue
-			var approach_end := approach_paths[route_index][-1]
-			var landing_start := landing_paths[route_index][0]
-			match route_kinds[route_index]:
-				RouteKind.FLIGHT:
-					if landing_start.x <= approach_end.x:
-						errors.append(
-							"Flight route %d landing must start after its lip." % route_index
-						)
-				RouteKind.GROUND_RUNOUT:
-					if not landing_start.is_equal_approx(approach_end):
-						errors.append(
-							(
-								"Ground route %d landing must start at its approach endpoint."
-								% route_index
-							)
-						)
-				_:
-					errors.append("Route %d has an unknown route kind." % route_index)
-
+	if routes.size() != ROUTE_COUNT:
+		errors.append("ParkCourse needs exactly three routes.")
+	for route_index in routes.size():
+		var route := routes[route_index]
+		if route == null:
+			errors.append("Route %d is missing." % route_index)
+			continue
+		if route.id.is_empty():
+			errors.append("Route %d needs an id." % route_index)
+		elif route_index_for_id(route.id) != route_index:
+			errors.append("Route id %s is duplicated." % route.id)
+		errors.append_array(route.validation_errors(route_index))
+	if route_index_for_id(default_route_id) < 0:
+		errors.append("ParkCourse default route %s is missing." % default_route_id)
 	if lane_min >= lane_max:
 		errors.append("ParkCourse lane_min must be less than lane_max.")
 	return errors
@@ -64,13 +75,28 @@ func is_valid() -> bool:
 	return validation_errors().is_empty()
 
 
+func route_at(route_index: int) -> ParkRoute:
+	return routes[clampi(route_index, 0, routes.size() - 1)]
+
+
+func route_index_for_id(route_id: StringName) -> int:
+	for route_index in routes.size():
+		if routes[route_index] != null and routes[route_index].id == route_id:
+			return route_index
+	return -1
+
+
+func default_route_index() -> int:
+	return route_index_for_id(default_route_id)
+
+
 func route_surface_y_at(course_progress: float, route_position: float) -> float:
-	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
-	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
+	var lower_index := clampi(floori(route_position), 0, routes.size() - 1)
+	var upper_index := clampi(lower_index + 1, 0, routes.size() - 1)
 	var blend := clampf(route_position - lower_index, 0.0, 1.0)
 	return lerpf(
-		_path_surface_y_at(approach_paths[lower_index], course_progress),
-		_path_surface_y_at(approach_paths[upper_index], course_progress),
+		route_at(lower_index).approach_surface_y_at(course_progress),
+		route_at(upper_index).approach_surface_y_at(course_progress),
 		blend
 	)
 
@@ -92,18 +118,15 @@ func route_tangent_at(course_progress: float, route_position: float) -> Vector2:
 
 
 func route_lip_tangent(route_index: int) -> Vector2:
-	var path := approach_paths[clampi(route_index, 0, approach_paths.size() - 1)]
-	return (path[-1] - path[-2]).normalized()
+	return route_at(route_index).lip_tangent()
 
 
 func route_lip_normal(route_index: int) -> Vector2:
-	var tangent := route_lip_tangent(route_index)
-	return Vector2(tangent.y, -tangent.x)
+	return route_at(route_index).lip_normal()
 
 
 func landing_surface_y_at(course_progress: float, route_index: int) -> float:
-	var path := landing_paths[clampi(route_index, 0, landing_paths.size() - 1)]
-	return _path_surface_y_at(path, course_progress)
+	return route_at(route_index).landing_surface_y_at(course_progress)
 
 
 func landing_surface_position_at(course_progress: float, route_index: int) -> Vector2:
@@ -111,17 +134,11 @@ func landing_surface_position_at(course_progress: float, route_index: int) -> Ve
 
 
 func landing_tangent_at(course_progress: float, route_index: int) -> Vector2:
-	var path := landing_paths[clampi(route_index, 0, landing_paths.size() - 1)]
-	if course_progress <= path[0].x:
-		return (path[1] - path[0]).normalized()
-	for point_index in range(path.size() - 1):
-		if course_progress <= path[point_index + 1].x:
-			return (path[point_index + 1] - path[point_index]).normalized()
-	return (path[-1] - path[-2]).normalized()
+	return route_at(route_index).landing_tangent_at(course_progress)
 
 
 func landing_end_at(route_index: int) -> Vector2:
-	return landing_paths[clampi(route_index, 0, landing_paths.size() - 1)][-1]
+	return route_at(route_index).landing_path[-1]
 
 
 func flight_miss_boundary_y_at(course_progress: float, route_index: int) -> float:
@@ -129,19 +146,7 @@ func flight_miss_boundary_y_at(course_progress: float, route_index: int) -> floa
 
 
 func flight_miss_boundary_points(route_index: int) -> PackedVector2Array:
-	var clamped_index := clampi(route_index, 0, landing_paths.size() - 1)
-	var landing_path := landing_paths[clamped_index]
-	var points := PackedVector2Array([approach_paths[clamped_index][-1]])
-	points.append_array(landing_path)
-	return points
-
-
-func _flight_abandon_y_at(route_index: int) -> float:
-	var landing_path := landing_paths[clampi(route_index, 0, landing_paths.size() - 1)]
-	var lowest_landing_y := landing_path[0].y
-	for point in landing_path:
-		lowest_landing_y = maxf(lowest_landing_y, point.y)
-	return maxf(flight_abandon_y, lowest_landing_y + FLIGHT_ABANDON_CLEARANCE)
+	return route_at(route_index).flight_miss_boundary_points()
 
 
 func flight_abandon_floor_points(route_index: int) -> PackedVector2Array:
@@ -171,63 +176,51 @@ func flight_abandon_trigger_y_at(course_progress: float, route_index: int) -> fl
 
 
 func route_end_at(route_position: float) -> float:
-	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
-	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
-	var blend := clampf(route_position - lower_index, 0.0, 1.0)
-	return lerpf(approach_paths[lower_index][-1].x, approach_paths[upper_index][-1].x, blend)
+	return _blend_approach_x(route_position, true)
 
 
 func route_start_at(route_position: float) -> float:
-	var lower_index := clampi(floori(route_position), 0, approach_paths.size() - 1)
-	var upper_index := clampi(lower_index + 1, 0, approach_paths.size() - 1)
-	var blend := clampf(route_position - lower_index, 0.0, 1.0)
-	return lerpf(approach_paths[lower_index][0].x, approach_paths[upper_index][0].x, blend)
+	return _blend_approach_x(route_position, false)
 
 
 func landing_swept_terrain_intersection(
 	previous_position: Vector2, next_position: Vector2, route_index: int
 ) -> Dictionary:
-	# Only explicitly authored landing segments participate in flight collision.
-	if next_position.x <= previous_position.x:
+	if route_index < 0 or route_index >= routes.size():
 		return {}
-	if route_index < 0 or route_index >= landing_paths.size():
-		return {}
-	var path := landing_paths[route_index]
-	var earliest_contact := {}
-	for point_index in range(path.size() - 1):
-		var terrain_start := path[point_index]
-		var terrain_end := path[point_index + 1]
-		if terrain_end.x < previous_position.x or terrain_start.x > next_position.x:
-			continue
-		var contact := _segment_intersection(
-			previous_position, next_position, terrain_start, terrain_end
+	return routes[route_index].landing_swept_terrain_intersection(previous_position, next_position)
+
+
+func _ensure_routes(route_count: int) -> void:
+	while routes.size() < route_count:
+		var route := ParkRoute.new()
+		route.id = (
+			[&"upper", &"center", &"lower"][routes.size()]
+			if routes.size() < 3
+			else &"route_%d" % routes.size()
 		)
-		if contact.is_empty():
-			continue
-		if earliest_contact.is_empty() or float(contact["time"]) < float(earliest_contact["time"]):
-			earliest_contact = contact
-			var tangent := (terrain_end - terrain_start).normalized()
-			earliest_contact["tangent"] = tangent
-			earliest_contact["normal"] = Vector2(tangent.y, -tangent.x)
-	return earliest_contact
+		route.kind = ParkRoute.Kind.GROUND_RUNOUT if routes.size() == 2 else ParkRoute.Kind.FLIGHT
+		routes.append(route)
+	if routes.size() > route_count:
+		routes.resize(route_count)
 
 
-func _append_path_errors(
-	errors: PackedStringArray, paths: Array[PackedVector2Array], label: String
-) -> void:
-	if paths.size() != ROUTE_COUNT:
-		errors.append("ParkCourse needs exactly three %s paths." % label.to_lower())
-		return
-	for path_index in paths.size():
-		if paths[path_index].size() < 2:
-			errors.append("%s path %d needs at least two points." % [label, path_index])
-			continue
-		for point_index in range(paths[path_index].size() - 1):
-			if paths[path_index][point_index + 1].x <= paths[path_index][point_index].x:
-				errors.append(
-					"%s path %d points must be strictly ordered by progress." % [label, path_index]
-				)
-				break
+func _flight_abandon_y_at(route_index: int) -> float:
+	var landing_path := route_at(route_index).landing_path
+	var lowest_landing_y := landing_path[0].y
+	for point in landing_path:
+		lowest_landing_y = maxf(lowest_landing_y, point.y)
+	return maxf(flight_abandon_y, lowest_landing_y + FLIGHT_ABANDON_CLEARANCE)
+
+
+func _blend_approach_x(route_position: float, use_end: bool) -> float:
+	var lower_index := clampi(floori(route_position), 0, routes.size() - 1)
+	var upper_index := clampi(lower_index + 1, 0, routes.size() - 1)
+	var blend := clampf(route_position - lower_index, 0.0, 1.0)
+	var lower_path := route_at(lower_index).approach_path
+	var upper_path := route_at(upper_index).approach_path
+	var point_index := -1 if use_end else 0
+	return lerpf(lower_path[point_index].x, upper_path[point_index].x, blend)
 
 
 func _path_surface_y_at(path: PackedVector2Array, course_progress: float) -> float:
@@ -239,20 +232,3 @@ func _path_surface_y_at(path: PackedVector2Array, course_progress: float) -> flo
 		if course_progress <= end.x:
 			return lerpf(start.y, end.y, inverse_lerp(start.x, end.x, course_progress))
 	return path[-1].y
-
-
-func _segment_intersection(
-	flight_start: Vector2, flight_end: Vector2, terrain_start: Vector2, terrain_end: Vector2
-) -> Dictionary:
-	var flight := flight_end - flight_start
-	var terrain := terrain_end - terrain_start
-	var denominator := flight.cross(terrain)
-	if is_zero_approx(denominator):
-		return {}
-	var offset := terrain_start - flight_start
-	var flight_time := offset.cross(terrain) / denominator
-	var terrain_time := offset.cross(flight) / denominator
-	# A takeoff starts on terrain; that separation point is not a landing.
-	if flight_time <= 0.0001 or flight_time > 1.0 or terrain_time < 0.0 or terrain_time > 1.0:
-		return {}
-	return {"position": flight_start.lerp(flight_end, flight_time), "time": flight_time}

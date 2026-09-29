@@ -14,18 +14,7 @@ var _simulation: RiderSimulation
 
 func setup(course: ParkCourse) -> void:
 	_simulation = RiderSimulation.new()
-	rider_state = RiderState.new()
-	rider_state.kinematics.approach_path_target = 1
-	rider_state.kinematics.approach_path_position = 1.0
-	rider_state.kinematics.course_progress = course.route_start_at(
-		rider_state.kinematics.approach_path_position
-	)
-	rider_state.kinematics.ground_position = Vector2(
-		rider_state.kinematics.course_progress, rider_state.kinematics.lane_position
-	)
-	rider_state.kinematics.vertical_position = course.route_surface_y_at(
-		rider_state.kinematics.course_progress, rider_state.kinematics.approach_path_position
-	)
+	rider_state = _spawn_at_route(course, course.default_route_index())
 	_reset_skier_state(course)
 	has_started_moving = false
 
@@ -38,19 +27,8 @@ func step(input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta
 
 
 func reset_run(course: ParkCourse) -> void:
-	rider_state = RiderState.new()
-	rider_state.kinematics.approach_path_target = 1
-	rider_state.kinematics.approach_path_position = 1.0
+	rider_state = _spawn_at_route(course, course.default_route_index())
 	_reset_skier_state(course)
-	rider_state.kinematics.course_progress = course.route_start_at(
-		rider_state.kinematics.approach_path_position
-	)
-	rider_state.kinematics.ground_position = Vector2(
-		rider_state.kinematics.course_progress, rider_state.kinematics.lane_position
-	)
-	rider_state.kinematics.vertical_position = course.route_surface_y_at(
-		rider_state.kinematics.course_progress, rider_state.kinematics.approach_path_position
-	)
 	has_started_moving = false
 
 
@@ -63,15 +41,29 @@ func is_complete() -> bool:
 
 
 func _reset_skier_state(course: ParkCourse) -> void:
-	skier_state = RiderState.new()
-	skier_state.kinematics.approach_path_target = 1
-	skier_state.kinematics.approach_path_position = 1.0
-	var center_path := course.approach_paths[1]
+	var route_index := course.default_route_index()
+	skier_state = _spawn_at_route(course, route_index)
+	var center_path := course.route_at(route_index).approach_path
 	var skier_index := mini(4, center_path.size() - 1)
 	skier_state.kinematics.course_progress = center_path[skier_index].x
-	skier_state.kinematics.ground_position = Vector2(
-		skier_state.kinematics.course_progress, skier_state.kinematics.lane_position
+	_sync_spawn_position(skier_state, course)
+
+
+func _spawn_at_route(course: ParkCourse, route_index: int) -> RiderState:
+	var state := RiderState.new()
+	state.kinematics.approach_path_target = route_index
+	state.kinematics.approach_path_position = float(route_index)
+	state.kinematics.course_progress = course.route_start_at(
+		state.kinematics.approach_path_position
 	)
-	skier_state.kinematics.vertical_position = course.route_surface_y_at(
-		skier_state.kinematics.course_progress, skier_state.kinematics.approach_path_position
+	_sync_spawn_position(state, course)
+	return state
+
+
+func _sync_spawn_position(state: RiderState, course: ParkCourse) -> void:
+	state.kinematics.ground_position = Vector2(
+		state.kinematics.course_progress, state.kinematics.lane_position
+	)
+	state.kinematics.vertical_position = course.route_surface_y_at(
+		state.kinematics.course_progress, state.kinematics.approach_path_position
 	)
