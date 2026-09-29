@@ -15,7 +15,7 @@ var _elapsed := 0.0
 func build(ui_layer: CanvasLayer, rider_kind: StringName) -> void:
 	_hud = GameplayHudScene.new()
 	ui_layer.add_child(_hud)
-	_hud.set_rider_text(rider_kind.to_upper())
+	_hud.set_rider_text("RIDER")
 	_ready_label = ArcadeTheme.make_label(_ready_text(rider_kind), 42, Color("fff7cf"))
 	_ready_label.position = Vector2(0, 430)
 	_ready_label.size = Vector2(DESIGN_SIZE.x, 72)
