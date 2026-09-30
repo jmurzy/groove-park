@@ -34,16 +34,15 @@ func update(
 		(
 			not run_manager.has_started_moving
 			or run_manager.is_crashed()
+			or run_manager.is_abandoned()
 			or run_manager.is_complete()
 		)
 		and fmod(_elapsed, 0.8) < 0.56
 	)
 	_ready_label.text = (
-		"CHALLENGE COMPLETE!"
-		if run_manager.is_complete()
-		else (
-			"PRESS START OR R TO RESTART" if run_manager.is_crashed() else _ready_text(rider_kind)
-		)
+		"PRESS START OR R TO RESTART"
+		if run_manager.is_crashed() or run_manager.is_abandoned()
+		else "CHALLENGE COMPLETE!" if run_manager.is_complete() else _ready_text(rider_kind)
 	)
 	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
 	_update_rotation(run_manager.rider_state)
@@ -94,6 +93,8 @@ func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState
 		action_message = "SKETCHY RECOVERY"
 	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
 		action_message = "CRASH"
+	elif state.run.landing_outcome == RiderRunState.LandingOutcome.ABANDON:
+		action_message = "ABANDON"
 	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN:
 		action_message = "CLEAN LANDING"
 	elif state.run.run_phase == RiderRunState.RunPhase.APPROACH:

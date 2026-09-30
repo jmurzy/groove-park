@@ -44,7 +44,7 @@ func screen_command(event: InputEvent, run_manager: RiderRunManager) -> StringNa
 	):
 		return &"restart"
 	if (
-		(run_manager.is_crashed() or run_manager.is_complete())
+		(run_manager.is_crashed() or run_manager.is_abandoned() or run_manager.is_complete())
 		and event.is_action_pressed(&"controller_start")
 	):
 		return &"restart"

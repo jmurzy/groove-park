@@ -12,6 +12,7 @@ func _init() -> void:
 	_test_new_rider_starts_approaching()
 	_test_manager_setup_initializes_rider()
 	_test_crash_status_uses_landing_outcome()
+	_test_abandon_status_uses_landing_outcome()
 	_test_reset_restores_run_lifecycle()
 	if _failures.is_empty():
 		print("Rider run-state checks passed.")
@@ -60,6 +61,14 @@ func _test_crash_status_uses_landing_outcome() -> void:
 	_expect(manager.is_crashed(), "A crash landing outcome must mark the run as crashed.")
 
 
+func _test_abandon_status_uses_landing_outcome() -> void:
+	var manager := RiderRunManagerScene.new()
+	manager.setup(ShippedParkCourse)
+	manager.rider_state.run.run_phase = RiderRunState.RunPhase.LANDING
+	manager.rider_state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
+	_expect(manager.is_abandoned(), "An abandoned landing outcome must mark the run as abandoned.")
+
+
 func _test_reset_restores_run_lifecycle() -> void:
 	var manager := RiderRunManagerScene.new()
 	manager.setup(ShippedParkCourse)
@@ -99,6 +108,7 @@ func _test_reset_restores_run_lifecycle() -> void:
 	)
 	_expect(not manager.has_started_moving, "Reset must clear the movement-started flag.")
 	_expect(not manager.is_crashed(), "Reset must clear the manager crash status.")
+	_expect(not manager.is_abandoned(), "Reset must clear the manager abandon status.")
 	_expect(not manager.is_complete(), "Reset must clear the manager completion status.")
 	_expect(
 		is_zero_approx(manager.rider_state.run.completion_time_remaining),

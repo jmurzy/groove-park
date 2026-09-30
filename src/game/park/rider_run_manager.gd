@@ -32,6 +32,10 @@ func is_crashed() -> bool:
 	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH
 
 
+func is_abandoned() -> bool:
+	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
+
+
 func is_complete() -> bool:
 	return rider_state.run.run_phase == RiderRunState.RunPhase.COMPLETE
 
