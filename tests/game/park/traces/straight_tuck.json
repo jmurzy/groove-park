@@ -1,8 +1,0 @@
-{
-  "physics_delta": 0.016666667,
-  "frames": [
-    { "heading": [1, 0], "tuck_pressed": true },
-    { "heading": [1, 0], "tuck_pressed": true },
-    { "heading": [1, 0], "tuck_pressed": true }
-  ]
-}

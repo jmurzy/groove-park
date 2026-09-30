@@ -15,7 +15,7 @@ env:
   GODOT_TEMPLATE_VERSION: 4.6.3.stable
 
 jobs:
-  static-checks:
+  checks:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -69,13 +69,13 @@ jobs:
             /usr/local/bin/godot
           godot --version
 
-      - name: Typecheck GDScript
+      - name: Run checks
         env:
           GODOT_BIN: godot
-        run: just typecheck
+        run: just check
 
   build:
-    needs: static-checks
+    needs: checks
     runs-on: ubuntu-24.04
     permissions:
       contents: read

@@ -99,6 +99,6 @@ Early unsigned builds may trigger Microsoft Defender SmartScreen. Only continue 
 | PowerShell blocks Install.ps1 | Run it as `powershell -ExecutionPolicy Bypass -File .\Install.ps1` from the extracted folder |
 | Artwork does not appear | Confirm lowercase names (`header.png`, `hero.png`, `marquee.png`) under `assets\drm-free\HEAVENLY\`; uppercase names are ignored by AGS |
 | Marquee does not appear | Confirm Windows detects both extended displays; primary-only mode is valid |
-| Marquee appears on the wrong screen | Record Windows and Godot screen mappings in Plan 00's completion record |
-| Both windows remain after exit | Record whether Escape and Start + Back behave differently |
+| Marquee appears on the wrong screen | Run with diagnostics enabled and compare the logged Windows and Godot screen mappings |
+| Both windows remain after exit | Compare Escape and Start + Back behavior and include the result in the issue report |
 | Artifact is unavailable | Artifacts expire; run the workflow again or install a tagged Release |

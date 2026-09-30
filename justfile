@@ -103,6 +103,6 @@ package: export
     cp "tools/Install.ps1" "dist/Install.ps1"
     # Ship heavenly.cfg without dev comments: only section/key lines go to the cabinet.
     grep -v '^[[:space:]]*;' "heavenly.cfg.example" > "dist/game/heavenly.cfg"
-    if [ -d "artwork/ags/export" ]; then for f in artwork/ags/export/*.png artwork/ags/export/*.jpg artwork/ags/export/*.jpeg; do [ -e "$f" ] || continue; cp "$f" "dist/artwork/"; done; fi
+    for f in header.png hero.png marquee.png; do cp "artwork/ags/export/$f" "dist/artwork/$f"; done
     (cd dist && zip -r ../HEAVENLY-windows-x86_64.zip Install.ps1 game artwork)
     if command -v sha256sum >/dev/null 2>&1; then sha256sum HEAVENLY-windows-x86_64.zip; else shasum -a 256 HEAVENLY-windows-x86_64.zip; fi > HEAVENLY-windows-x86_64.zip.sha256
