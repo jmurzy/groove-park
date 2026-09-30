@@ -4,7 +4,6 @@ extends RefCounted
 
 
 func begin(state: RiderState, takeoff_speed: float, tuning: RiderTuning) -> void:
-	state.jump.angular_velocity = 0.0
 	state.jump.spin_gesture.reset()
 	_sync_spin_gesture(state)
 	state.jump.rotation_rate = _rotation_rate_for_speed(takeoff_speed, tuning)
@@ -16,9 +15,8 @@ func begin(state: RiderState, takeoff_speed: float, tuning: RiderTuning) -> void
 	state.jump.tweak_active = false
 	state.jump.grab_started_airtime = -1.0
 	state.jump.grab_active_at_deadline = false
-	state.jump.grab_active_at_landing = false
 	state.jump.grab_released_after_deadline = false
-	state.jump.trick_tracker.reset(state.jump.orientation)
+	state.jump.trick_tracker.reset()
 
 
 func update_input(state: RiderState, input: RiderInputFrame, tuning: RiderTuning) -> void:
@@ -89,18 +87,14 @@ func _update_rotation_gesture_input(state: RiderState, input: RiderInputFrame) -
 	)
 	if not state.jump.trick_tracker.grab_active and was_advancing:
 		state.jump.rotation_incomplete = true
-		state.jump.angular_velocity = 0.0
 	_sync_spin_gesture(state)
 
 
 func _advance_rotation(state: RiderState, delta: float) -> void:
 	var gesture := state.jump.spin_gesture
 	if not state.jump.trick_tracker.grab_active or not gesture.is_advancing():
-		state.jump.angular_velocity = 0.0
 		return
-	state.jump.angular_velocity = state.jump.rotation_rate * gesture.direction
 	var completed_rotation := gesture.advance(delta, state.jump.rotation_rate)
-	state.jump.angular_velocity = 0.0
 	if completed_rotation:
 		state.jump.completed_rotations += 1
 		state.jump.trick_tracker.complete_rotation(gesture.direction)

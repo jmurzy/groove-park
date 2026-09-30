@@ -9,7 +9,6 @@ const SnowfallLayerScene := preload("res://src/presentation/effects/snowfall_lay
 const MarqueeTickerScene := preload("res://src/presentation/marquee/marquee_ticker.gd")
 const MarqueeRiderLoopScene := preload("res://src/presentation/marquee/marquee_rider_loop.gd")
 const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
-const MARQUEE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const LiveIndicatorScene := preload("res://src/presentation/marquee/live_indicator.gd")
 const BORDER_WIDTH := 14.0
 const SNOW_SAFE_INSET := 40.0

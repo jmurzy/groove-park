@@ -29,16 +29,11 @@ func begin(state: RiderState, course: ParkCourse, tuning: RiderTuning, route_ind
 	state.run.current_surface_id = &"flight"
 	state.jump.takeoff_position = Vector2(lip_progress, state.kinematics.vertical_position)
 	state.jump.takeoff_velocity = takeoff_velocity
-	state.jump.takeoff_course_speed = takeoff_velocity.x
-	state.jump.takeoff_lane_speed = state.kinematics.ground_velocity.y
-	state.jump.takeoff_vertical_speed = takeoff_velocity.y
 	state.jump.takeoff_pop_impulse = pop_impulse
 	state.jump.takeoff_tangent = tangent
 	state.jump.takeoff_normal = normal
 	state.jump.release_deadline_y = state.kinematics.vertical_position
 	state.jump.landing_prep_active = false
-	state.jump.approach_speed = takeoff_speed
-	state.jump.approach_speed_captured = true
 	state.kinematics.course_speed = takeoff_velocity.x
 	state.kinematics.lane_speed = state.kinematics.ground_velocity.y
 	state.kinematics.vertical_speed = takeoff_velocity.y

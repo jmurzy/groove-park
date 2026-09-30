@@ -244,10 +244,6 @@ func _test_flight_route_transitions_at_lip() -> void:
 		jump.takeoff_position.is_equal_approx(Vector2(3000.0, 1500.0)), "Wrong takeoff position."
 	)
 	_expect(jump.takeoff_velocity.x > 0.0, "Takeoff must preserve approach momentum.")
-	_expect(
-		is_equal_approx(jump.takeoff_velocity.x, jump.takeoff_course_speed),
-		"Takeoff should preserve its captured horizontal velocity."
-	)
 	_expect(jump.takeoff_velocity.y > 0.0, "A downhill lip should add downward launch velocity.")
 	_expect(
 		jump.takeoff_tangent.is_equal_approx(Vector2(2.0, 1.0).normalized()),
@@ -287,13 +283,13 @@ func _test_arc_height_multiplier_steepens_uphill_launch() -> void:
 	tuning.maximum_takeoff_course_speed = 10_000.0
 	_simulation.step(state, input, routed_course, tuning, DELTA)
 	var unboosted_vertical_speed := (
-		jump.takeoff_course_speed * jump.takeoff_tangent.y / jump.takeoff_tangent.x
+		jump.takeoff_velocity.x * jump.takeoff_tangent.y / jump.takeoff_tangent.x
 	)
 	_expect(
-		is_equal_approx(jump.takeoff_vertical_speed, unboosted_vertical_speed * 1.5),
+		is_equal_approx(jump.takeoff_velocity.y, unboosted_vertical_speed * 1.5),
 		"Wrong multiplier."
 	)
-	_expect(jump.takeoff_vertical_speed < unboosted_vertical_speed, "The launch should be steeper.")
+	_expect(jump.takeoff_velocity.y < unboosted_vertical_speed, "The launch should be steeper.")
 
 
 func _test_takeoff_speed_cap_shortens_fast_launches() -> void:
@@ -314,10 +310,8 @@ func _test_takeoff_speed_cap_shortens_fast_launches() -> void:
 	tuning.flight_arc_height_multiplier = 1.5
 	tuning.maximum_takeoff_course_speed = 300.0
 	_simulation.step(state, input, routed_course, tuning, DELTA)
-	_expect(jump.takeoff_course_speed <= 300.0, "Fast approaches must respect the speed cap.")
-	_expect(
-		absf(jump.takeoff_vertical_speed) > jump.takeoff_course_speed, "The cap must preserve lift."
-	)
+	_expect(jump.takeoff_velocity.x <= 300.0, "Fast approaches must respect the speed cap.")
+	_expect(absf(jump.takeoff_velocity.y) > jump.takeoff_velocity.x, "The cap must preserve lift.")
 
 
 func _test_arc_height_multiplier_preserves_flight_range() -> void:

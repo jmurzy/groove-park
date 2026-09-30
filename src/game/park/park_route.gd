@@ -35,10 +35,6 @@ func approach_surface_y_at(course_progress: float) -> float:
 	return ParkPathGeometry.surface_y_at(approach_path, course_progress)
 
 
-func approach_gradient_at(course_progress: float, sample_distance := 4.0) -> float:
-	return ParkPathGeometry.gradient_at(approach_path, course_progress, sample_distance)
-
-
 func lip_tangent() -> Vector2:
 	return ParkPathGeometry.end_tangent(approach_path)
 

@@ -2,7 +2,6 @@
 class_name ParkWorldPresenter
 extends Node2D
 
-const DESIGN_SIZE := Vector2(1920, 1080)
 const GAMEPLAY_BG := preload("res://artwork/gameplay/gameplay_bg.png")
 const HeavenlyLogomarkScene := preload("res://src/presentation/features/heavenly_logomark.gd")
 const HeavenlyLogotypeScene := preload("res://src/presentation/features/heavenly_logotype.gd")
@@ -62,7 +61,6 @@ func update_from_run(run_manager: RiderRunManager, delta: float, hud_occlusion: 
 
 func reset_presentation(run_manager: RiderRunManager, hud_occlusion: Callable) -> void:
 	_rider.reset_presentation()
-	_performance_marker.reset_feedback()
 	_marker_presenter.reset()
 	_camera.zoom = ParkCameraController.CAMERA_ZOOM
 	update_from_run(run_manager, 0.0, hud_occlusion)
@@ -162,14 +160,6 @@ func _update_rider_view(view: RiderViewBase, state: RiderState) -> void:
 			. angle()
 		)
 	view.update_from_state(state, _projection.project_rider(state), ground_rotation)
-
-
-static func _spin_half_turns(spin_progress: float) -> int:
-	return ParkMarkerPresenter.spin_half_turns(spin_progress)
-
-
-static func _spin_feedback_text(spin_direction: int, degrees: int) -> String:
-	return ParkMarkerPresenter.spin_feedback_text(spin_direction, degrees)
 
 
 func _update_debug_overlay(state: RiderState) -> void:

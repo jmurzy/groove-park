@@ -6,7 +6,9 @@ const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd"
 const RiderSimulationScene := preload("res://src/game/park/rider_simulation.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const RiderTuningScene := preload("res://src/game/park/rider_tuning.gd")
-const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
+const ParkMarkerPresenterScene := preload(
+	"res://src/presentation/gameplay/park_marker_presenter.gd"
+)
 const PerformanceMarkerScene := preload("res://src/presentation/gameplay/performance_marker.gd")
 const RiderViewScene := preload("res://src/presentation/gameplay/rider_view.gd")
 const RiderAnimationPolicyScene := preload(
@@ -134,10 +136,6 @@ func _test_second_pair_counts_again() -> void:
 	_complete_rotation(state, 1)
 	_expect(
 		state.jump.completed_rotations == 2, "A second trigger pair must count a second rotation."
-	)
-	_expect(
-		state.jump.trick_tracker.completed_rotations == 2,
-		"The trick tracker must count opposite completed turns independently."
 	)
 
 
@@ -383,23 +381,23 @@ func _test_animation_policy() -> void:
 
 func _test_spin_performance_feedback() -> void:
 	_expect(
-		ParkWorldPresenterScene._spin_half_turns(PI - 0.01) == 0,
+		ParkMarkerPresenterScene.spin_half_turns(PI - 0.01) == 0,
 		"An incomplete half-turn must not trigger spin feedback."
 	)
 	_expect(
-		ParkWorldPresenterScene._spin_half_turns(PI) == 1,
+		ParkMarkerPresenterScene.spin_half_turns(PI) == 1,
 		"A completed half-turn must trigger 180-degree feedback."
 	)
 	_expect(
-		ParkWorldPresenterScene._spin_half_turns(TAU) == 2,
+		ParkMarkerPresenterScene.spin_half_turns(TAU) == 2,
 		"A completed turn must trigger 360-degree feedback."
 	)
 	_expect(
-		ParkWorldPresenterScene._spin_feedback_text(-1, 180) == "BACKSIDE 180",
+		ParkMarkerPresenterScene.spin_feedback_text(-1, 180) == "BACKSIDE 180",
 		"Negative snowboard rotation must be labeled backside."
 	)
 	_expect(
-		ParkWorldPresenterScene._spin_feedback_text(1, 360) == "FRONTSIDE 360",
+		ParkMarkerPresenterScene.spin_feedback_text(1, 360) == "FRONTSIDE 360",
 		"Positive snowboard rotation must be labeled frontside."
 	)
 	var marker := PerformanceMarkerScene.new()
@@ -513,7 +511,7 @@ func _flight_state() -> RiderState:
 	state.kinematics.course_speed = 10.0
 	state.jump.takeoff_velocity = Vector2(10.0, 0.0)
 	state.jump.orientation = 0.25
-	state.jump.trick_tracker.reset(state.jump.orientation)
+	state.jump.trick_tracker.reset()
 	return state
 
 

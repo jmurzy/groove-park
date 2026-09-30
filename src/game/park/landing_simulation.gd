@@ -14,7 +14,6 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	state.run.landing_outcome = _outcome_at_contact(state)
 	state.run.current_surface_id = &"landing"
 	state.jump.landing_resolved = true
-	state.jump.grab_active_at_landing = state.jump.trick_tracker.grab_active
 	state.jump.landing_position = contact_position
 	state.kinematics.course_progress = contact_position.x
 	state.kinematics.vertical_position = contact_position.y
@@ -30,7 +29,6 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	state.kinematics.lane_speed = 0.0
 	state.kinematics.vertical_speed = 0.0
 	state.jump.orientation = tangent.angle()
-	state.jump.angular_velocity = 0.0
 	state.run.completion_time_remaining = 0.0
 
 
@@ -103,7 +101,6 @@ func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) 
 	)
 	state.kinematics.vertical_speed = 0.0
 	state.jump.orientation = tangent.angle()
-	state.jump.angular_velocity = 0.0
 	state.run.completion_time_remaining = 0.0
 
 

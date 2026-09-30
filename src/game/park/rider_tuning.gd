@@ -16,10 +16,6 @@ extends Resource
 @export var maximum_turn_rate := 3.8
 @export var tuck_steering_multiplier := 0.42
 @export var brake_turn_multiplier := 1.85
-@export var turn_speed_penalty := 460.0
-@export var lane_boundary_margin := 90.0
-@export var lane_boundary_force := 1250.0
-@export var lane_boundary_damping := 6.0
 @export var compression_rate := 1.8
 @export var maximum_compression := 1.0
 @export var compression_window_distance := 220.0
@@ -36,15 +32,6 @@ extends Resource
 @export var max_rotation_rate := TAU * 2.0
 @export var safe_no_rotation_speed := 500.0
 @export var speed_per_required_rotation := 175.0
-@export var air_torque := 25.0
-@export var maximum_angular_velocity := 12.0
-@export var air_angular_damping := 1.2
-@export var compact_inertia_multiplier := 0.62
-@export var extended_inertia_multiplier := 1.55
-@export var landing_prep_damping := 11.0
-@export var landing_prep_alignment_assist_degrees := 14.0
-@export var grab_rotation_control_multiplier := 0.55
-@export var tweak_rotation_control_multiplier := 0.35
 @export var grab_reach_duration := 0.12
 @export var minimum_grab_duration := 0.2
 @export var runout_drag := 48.0
@@ -60,4 +47,3 @@ extends Resource
 @export var score_grab_per_second := 150
 @export var score_tweak_duration_cap := 0.6
 @export var score_tweak_per_second := 100
-@export var score_minimum_landing_multiplier := 0.45

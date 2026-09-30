@@ -1,12 +1,9 @@
-## Flight-only trick measurements: unwrapped rotation and grab/tweak timers.
+## Flight-only trick measurements: signed rotation and grab/tweak timers.
 class_name TrickTracker
 extends RefCounted
 
 # Flight-only measurements. Presentation and input events never author these values.
-var takeoff_orientation := 0.0
-var previous_orientation := 0.0
 var cumulative_rotation := 0.0
-var completed_rotations := 0
 var grab_active := false
 var grab_duration := 0.0
 var valid_grab_duration := 0.0
@@ -14,11 +11,8 @@ var tweak_duration := 0.0
 var grab_release_airtime := -1.0
 
 
-func reset(orientation: float) -> void:
-	takeoff_orientation = orientation
-	previous_orientation = orientation
+func reset() -> void:
 	cumulative_rotation = 0.0
-	completed_rotations = 0
 	grab_active = false
 	grab_duration = 0.0
 	valid_grab_duration = 0.0
@@ -26,15 +20,8 @@ func reset(orientation: float) -> void:
 	grab_release_airtime = -1.0
 
 
-func track_rotation(orientation: float) -> void:
-	cumulative_rotation += angle_difference(previous_orientation, orientation)
-	previous_orientation = orientation
-	completed_rotations = floori(absf(cumulative_rotation) / TAU)
-
-
 func complete_rotation(direction: int) -> void:
 	cumulative_rotation += signi(direction) * TAU
-	completed_rotations += 1
 
 
 func start_grab() -> void:
