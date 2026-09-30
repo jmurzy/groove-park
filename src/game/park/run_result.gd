@@ -2,21 +2,22 @@
 class_name RunResult
 extends RefCounted
 
-var participant_results: Array[ParticipantRunResult]:
+var jump_results: Array[JumpResult]:
 	get:
-		return _participant_results.duplicate()
-var primary_result: ParticipantRunResult:
+		return _jump_results.duplicate()
+var total_score: int:
 	get:
-		return _participant_results[0] if not _participant_results.is_empty() else null
+		return _total_score
 
-var _participant_results: Array[ParticipantRunResult]
-
-
-func _init(initial_participant_results: Array[ParticipantRunResult]) -> void:
-	_participant_results = initial_participant_results.duplicate()
+var _jump_results: Array[JumpResult]
+var _total_score := 0
 
 
-static func from_primary_rider(
-	rider_state: RiderState, _course: ParkCourse, _tuning: RiderTuning
-) -> RunResult:
-	return RunResult.new([ParticipantRunResult.from_rider_state(1, rider_state)])
+func _init(initial_jump_results: Array[JumpResult]) -> void:
+	_jump_results = initial_jump_results.duplicate()
+	for jump_result in _jump_results:
+		_total_score += jump_result.score
+
+
+static func from_rider_state(rider_state: RiderState) -> RunResult:
+	return RunResult.new([JumpResult.from_rider_state(rider_state)])

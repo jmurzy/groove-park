@@ -855,7 +855,6 @@ The following work is intentionally excluded from this implementation sequence:
 - Trick naming and result summaries.
 - Free angular torque.
 - Compact, extend, or landing-prep controls.
-- Multiplayer input-device separation.
 - Final results-screen navigation.
 
 Future grabs can add button-specific identities without changing the flight state machine,

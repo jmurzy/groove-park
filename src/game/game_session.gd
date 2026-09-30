@@ -100,7 +100,7 @@ func show_results() -> void:
 		push_error("Cannot show results without an active run.")
 		return
 	_set_run_score(run_manager.rider_state.jump.jump_score)
-	results = RunResult.from_primary_rider(run_manager.rider_state, _active_course, _active_tuning)
+	results = RunResult.from_rider_state(run_manager.rider_state)
 	_set_presentation_state(PresentationState.RESULTS)
 	results_ready.emit(results)
 

@@ -73,12 +73,9 @@ func _test_abandon_status_uses_landing_outcome() -> void:
 func _test_result_snapshots_landing_outcome() -> void:
 	var state := RiderStateScene.new()
 	state.run.landing_outcome = RiderRunState.LandingOutcome.SKETCHY
-	var result := RunResult.from_primary_rider(state, ShippedParkCourse, RiderTuning.new())
+	var result := RunResult.from_rider_state(state)
 	_expect(
-		(
-			result.primary_result.jump_results[0].landing_outcome
-			== RiderRunState.LandingOutcome.SKETCHY
-		),
+		result.jump_results[0].landing_outcome == RiderRunState.LandingOutcome.SKETCHY,
 		"A completed run must snapshot the landing outcome enum."
 	)
 

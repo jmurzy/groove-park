@@ -49,7 +49,7 @@ The Sente uses Polycade Neo-Arcade Controller Boards in XInput mode. The game ma
 | Sharp carve | Y | `I` |
 | Exit to AGS | Hold EXIT, or Start + Select | `Esc` opens the in-game exit flow |
 
-The cabinet panel provides matching control sets for Players 1 and 2. See [POLYCADE_SENTE_CONTROLS.md](POLYCADE_SENTE_CONTROLS.md) for the complete panel and XInput mapping.
+The cabinet panel provides two matching control stations. HEAVENLY is a solo game: either station supplies input for the active rider. See [POLYCADE_SENTE_CONTROLS.md](POLYCADE_SENTE_CONTROLS.md) for the complete panel and XInput mapping.
 
 On a cabinet with two displays, the primary window opens on the main display and the marquee opens on the other display. On a single display, The game runs primary-only unless marquee development overrides are enabled.
 
