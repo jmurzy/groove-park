@@ -5,9 +5,9 @@ extends RefCounted
 var score: int:
 	get:
 		return _score
-var landing_label: String:
+var landing_outcome: int:
 	get:
-		return _landing_label
+		return _landing_outcome
 var trick_call: String:
 	get:
 		return _trick_call
@@ -16,24 +16,27 @@ var score_breakdown: Dictionary:
 		return _score_breakdown.duplicate(true)
 
 var _score: int
-var _landing_label: String
+var _landing_outcome: int
 var _trick_call: String
 var _score_breakdown: Dictionary
 
 
 func _init(
 	initial_score: int,
-	initial_landing_label: String,
+	initial_landing_outcome: int,
 	initial_trick_call: String,
 	initial_score_breakdown: Dictionary
 ) -> void:
 	_score = initial_score
-	_landing_label = initial_landing_label
+	_landing_outcome = initial_landing_outcome
 	_trick_call = initial_trick_call
 	_score_breakdown = initial_score_breakdown.duplicate(true)
 
 
-static func from_jump_state(jump: JumpState) -> JumpResult:
+static func from_rider_state(rider_state: RiderState) -> JumpResult:
 	return JumpResult.new(
-		jump.jump_score, jump.landing_label, jump.trick_call, jump.score_breakdown
+		rider_state.jump.jump_score,
+		rider_state.run.landing_outcome,
+		rider_state.jump.trick_call,
+		rider_state.jump.score_breakdown
 	)

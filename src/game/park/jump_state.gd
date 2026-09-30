@@ -58,7 +58,6 @@ var trick_tracker: TrickTracker = TrickTrackerScene.new()
 var trick_call := ""
 
 var landing_resolved := false
-var landing_label := ""
 var landing_quality := 0.0
 var landing_position := Vector2.ZERO
 var landing_tangent := Vector2.RIGHT

@@ -25,4 +25,4 @@ func _init(initial_player_index: int, initial_jump_results: Array[JumpResult]) -
 
 
 static func from_rider_state(player_index: int, rider_state: RiderState) -> ParticipantRunResult:
-	return ParticipantRunResult.new(player_index, [JumpResult.from_jump_state(rider_state.jump)])
+	return ParticipantRunResult.new(player_index, [JumpResult.from_rider_state(rider_state)])

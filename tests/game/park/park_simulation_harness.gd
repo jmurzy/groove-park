@@ -391,7 +391,6 @@ func _test_ground_route_transitions_to_landing() -> void:
 	_expect(
 		(
 			run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
-			and jump.landing_label == "ABANDON"
 			and is_equal_approx(jump.landing_position.x, 3200.0)
 		),
 		"Grounded runout should abandon at the approach endpoint."
@@ -683,7 +682,6 @@ func _test_descending_below_abandon_line_enters_runout() -> void:
 	var state := flight_state()
 	var kinematics := state.kinematics
 	var run := state.run
-	var jump := state.jump
 	kinematics.course_progress = 3050.0
 	kinematics.vertical_position = (
 		_course.flight_abandon_trigger_y_at(
@@ -703,7 +701,6 @@ func _test_descending_below_abandon_line_enters_runout() -> void:
 		(
 			run.run_phase == RiderRunState.RunPhase.LANDING
 			and run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
-			and jump.landing_label == "ABANDON"
 			and run.current_surface_id == &"abandon"
 		),
 		"A descending rider below the abandon line should enter automatic runout."

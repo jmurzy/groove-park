@@ -16,7 +16,6 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	state.run.current_surface_id = &"landing"
 	state.jump.landing_resolved = true
 	state.jump.grab_active_at_landing = state.jump.trick_tracker.grab_active
-	state.jump.landing_label = _label_for_outcome(state.run.landing_outcome)
 	state.jump.landing_quality = _quality_for_outcome(state.run.landing_outcome)
 	state.jump.landing_position = contact_position
 	state.jump.landing_tangent = tangent
@@ -53,17 +52,6 @@ func _outcome_at_contact(state: RiderState) -> int:
 	if state.jump.grab_released_after_deadline:
 		return RiderRunState.LandingOutcome.SKETCHY
 	return RiderRunState.LandingOutcome.CLEAN
-
-
-func _label_for_outcome(outcome: int) -> String:
-	match outcome:
-		RiderRunState.LandingOutcome.CLEAN:
-			return "CLEAN"
-		RiderRunState.LandingOutcome.SKETCHY:
-			return "SKETCHY"
-		RiderRunState.LandingOutcome.CRASH:
-			return "CRASH"
-	return "ABANDON"
 
 
 func _quality_for_outcome(outcome: int) -> float:
@@ -107,7 +95,6 @@ func crash(state: RiderState, tuning: RiderTuning) -> void:
 	state.run.landing_outcome = RiderRunState.LandingOutcome.CRASH
 	state.run.current_surface_id = &"landing"
 	state.jump.landing_resolved = true
-	state.jump.landing_label = "CRASH"
 	state.jump.landing_quality = 0.0
 	state.jump.landing_position = Vector2(
 		state.kinematics.course_progress, state.kinematics.vertical_position
@@ -125,7 +112,6 @@ func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) 
 	state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
 	state.run.current_surface_id = surface_id
 	state.jump.landing_resolved = true
-	state.jump.landing_label = "ABANDON"
 	state.jump.landing_quality = 0.0
 	state.jump.landing_position = Vector2(
 		state.kinematics.course_progress, state.kinematics.vertical_position
