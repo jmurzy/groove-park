@@ -1,4 +1,4 @@
-## Flashing world-space performance feedback below the primary rider.
+## Flashing world-space performance feedback below the rider.
 class_name PerformanceMarker
 extends RiderMarker
 

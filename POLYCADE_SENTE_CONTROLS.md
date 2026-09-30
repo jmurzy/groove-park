@@ -1,8 +1,9 @@
 ## Polycade Sente controls
 
-The Polycade Sente supports two players, with a complete and identical set of
-controls for each player. The table below describes one set; the same controls
-and mappings apply to both Player 1 and Player 2.
+The Polycade Sente cabinet has two complete, identical control stations. The
+table below describes one station; the same controls and mappings apply to
+both. Heavenly is a solo game, so either station supplies input for the active
+rider.
 
 | Panel control | Color | Controller mapping | Location |
 | --- | --- | --- | --- |
@@ -42,11 +43,10 @@ controller protocol used by Windows PC games, including many games available
 through Steam. Its standardized controls provide broad compatibility with both
 classic and modern games and reduce the need to remap buttons for each game.
 
-Each board has a fixed player position configured in hardware. This keeps the
-two control sets assigned consistently to Player 1 and Player 2 instead of
-allowing their order to change between sessions. Neo-Arcade boards support
-fixed positions for configurations of up to four players, although the Sente
-panel provides controls for two players.
+Each board has a fixed hardware position. This keeps the two control stations
+assigned consistently instead of allowing their order to change between
+sessions. Neo-Arcade boards support fixed positions for configurations of up
+to four stations, although the Sente panel provides two.
 
 The boards operate exclusively in XInput mode. They do not provide a protocol
 switch that could accidentally change them to DInput or keyboard mode and

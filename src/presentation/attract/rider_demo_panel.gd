@@ -1,4 +1,4 @@
-## How-to-play live demo: two rider lanes mirroring the selected phase's inputs,
+## How-to-play live demo: skier and snowboarder preview lanes mirroring the selected phase's inputs,
 ## including frame-selected horizontal spin artwork.
 class_name RiderDemoPanel
 extends Control

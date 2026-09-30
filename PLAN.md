@@ -411,7 +411,7 @@ true while LT is held and `spin_rt_pressed` is true while RT is held, with match
 - The warning becomes urgent while a grab is active.
 - Landing shows clean, sketchy, or crash feedback.
 - Complete shows a restart prompt.
-- The metric HUD hides while the primary rider's rendered bounds overlap its frame, then returns when clear.
+- The metric HUD hides while the rider's rendered bounds overlap its frame, then returns when clear.
 
 ### Debug Overlay
 
@@ -562,7 +562,7 @@ Implementation:
 - Added `RunPhase` and `LandingOutcome`.
 - Migrated simulation, manager, effects, and rider presentation to the new lifecycle state.
 - Removed `MotionPhase`, `ControlMode`, and control-zone state after replacing all references.
-- Added setup, crash-status, and reset coverage for both managed riders.
+- Added setup, crash-status, and reset coverage for the managed rider.
 - Kept runtime behavior approach-only during this milestone.
 
 Automated acceptance:

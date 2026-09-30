@@ -45,7 +45,7 @@ func _test_manager_setup_initializes_rider() -> void:
 	manager.setup(ShippedParkCourse)
 	_expect(
 		manager.rider_state.run.run_phase == RiderRunState.RunPhase.APPROACH,
-		"The primary rider must start in the approach phase."
+		"The rider must start in the approach phase."
 	)
 	_expect(
 		manager.rider_state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
@@ -107,7 +107,7 @@ func _test_reset_restores_run_lifecycle() -> void:
 	manager.reset_run(ShippedParkCourse)
 	_expect(
 		manager.rider_state.run.run_phase == RiderRunState.RunPhase.APPROACH,
-		"Reset must return the primary rider to approach."
+		"Reset must return the rider to approach."
 	)
 	_expect(
 		manager.rider_state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
