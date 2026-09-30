@@ -520,9 +520,14 @@ func _flight_state() -> RiderState:
 func _test_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
 	var approach := PackedVector2Array([Vector2(0, 0), Vector2(100, 0)])
-	course.approach_paths = [approach, approach, approach]
 	var landing := PackedVector2Array([Vector2(1000, 1000), Vector2(2000, 1000)])
-	course.landing_paths = [landing, landing, landing]
+	var route_ids: Array[StringName] = [&"upper", &"center", &"lower"]
+	for route_id in route_ids:
+		var route := ParkRoute.new()
+		route.id = route_id
+		route.approach_path = approach
+		route.landing_path = landing
+		course.routes.append(route)
 	course.flight_abandon_y = 2000.0
 	return course
 

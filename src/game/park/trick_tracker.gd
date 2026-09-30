@@ -1,5 +1,4 @@
-## Flight-only trick measurements: unwrapped rotation, grab/tweak timers, and the
-## display string. Example: `track_rotation(orientation)`, then `trick_call()`.
+## Flight-only trick measurements: unwrapped rotation and grab/tweak timers.
 class_name TrickTracker
 extends RefCounted
 
@@ -57,15 +56,3 @@ func step_grab(delta: float, tweak_pressed: bool) -> void:
 	grab_duration += delta
 	if tweak_pressed:
 		tweak_duration += delta
-
-
-func trick_call() -> String:
-	var parts := PackedStringArray()
-	if completed_rotations > 0:
-		var direction := "FORWARD" if cumulative_rotation > 0.0 else "BACKWARD"
-		parts.append("%d %s" % [completed_rotations * 360, direction])
-	if valid_grab_duration > 0.0:
-		parts.append("SIGNATURE GRAB")
-	if tweak_duration > 0.0:
-		parts.append("TWEAK")
-	return " ".join(parts) if not parts.is_empty() else "STRAIGHT AIR"

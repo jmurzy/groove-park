@@ -47,16 +47,6 @@ extends Resource
 @export var tweak_rotation_control_multiplier := 0.35
 @export var grab_reach_duration := 0.12
 @export var minimum_grab_duration := 0.2
-@export var perfect_angle_degrees := 8.0
-@export var clean_angle_degrees := 24.0
-@export var crash_angle_degrees := 35.0
-@export var perfect_normal_impact := 110.0
-@export var crash_normal_impact := 625.0
-@export var perfect_angular_velocity := 1.2
-@export var crash_angular_velocity := 7.5
-@export var minimum_landing_alignment := 0.35
-@export var landing_recovery_duration := 0.45
-@export var sketchy_recovery_duration := 0.9
 @export var runout_drag := 48.0
 @export var minimum_runout_speed := 120.0
 @export var crash_completion_delay := 1.2

@@ -81,11 +81,14 @@ func _test_vertical_heading_does_not_free_carve() -> void:
 
 func _test_vertical_input_switches_approach_paths_smoothly() -> void:
 	var routed_course := _approach_course()
-	routed_course.approach_paths = [
-		PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
-		PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
-		PackedVector2Array([Vector2(0, 200), Vector2(3000, 200)]),
-	]
+	_set_approach_paths(
+		routed_course,
+		[
+			PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
+			PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
+			PackedVector2Array([Vector2(0, 200), Vector2(3000, 200)]),
+		]
+	)
 	var state := _new_state()
 	var kinematics := state.kinematics
 	kinematics.approach_path_target = 1
@@ -268,7 +271,7 @@ func _test_flight_route_transitions_at_lip() -> void:
 func _test_arc_height_multiplier_steepens_uphill_launch() -> void:
 	var routed_course := _approach_course()
 	var ramp := PackedVector2Array([Vector2(0, 100), Vector2(100, 0)])
-	routed_course.approach_paths = [ramp, ramp, ramp]
+	_set_approach_paths(routed_course, [ramp, ramp, ramp])
 	var state := RiderStateScene.new()
 	var jump := state.jump
 	state.kinematics.approach_path_target = 1
@@ -296,7 +299,7 @@ func _test_arc_height_multiplier_steepens_uphill_launch() -> void:
 func _test_takeoff_speed_cap_shortens_fast_launches() -> void:
 	var routed_course := _approach_course()
 	var ramp := PackedVector2Array([Vector2(0, 100), Vector2(100, 0)])
-	routed_course.approach_paths = [ramp, ramp, ramp]
+	_set_approach_paths(routed_course, [ramp, ramp, ramp])
 	var state := RiderStateScene.new()
 	var jump := state.jump
 	state.kinematics.approach_path_target = 1
@@ -367,11 +370,14 @@ func _test_arc_height_multiplier_preserves_flight_range() -> void:
 
 func _test_ground_route_transitions_to_landing() -> void:
 	var routed_course := _approach_course()
-	routed_course.approach_paths = [
-		PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
-		PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
-		PackedVector2Array([Vector2(0, 200), Vector2(3200, 200)]),
-	]
+	_set_approach_paths(
+		routed_course,
+		[
+			PackedVector2Array([Vector2(0, 0), Vector2(3000, 0)]),
+			PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
+			PackedVector2Array([Vector2(0, 200), Vector2(3200, 200)]),
+		]
+	)
 	var state := RiderStateScene.new()
 	var kinematics := state.kinematics
 	var run := state.run
@@ -621,11 +627,14 @@ func _test_contact_outcome_resolves_once() -> void:
 
 func _test_flight_only_hits_selected_landing_path() -> void:
 	var routed_course := _approach_course()
-	routed_course.landing_paths = [
-		PackedVector2Array([Vector2(100, 10), Vector2(200, 10)]),
-		PackedVector2Array([Vector2(100, 100), Vector2(200, 100)]),
-		PackedVector2Array([Vector2(100, 200), Vector2(200, 200)]),
-	]
+	_set_landing_paths(
+		routed_course,
+		[
+			PackedVector2Array([Vector2(100, 10), Vector2(200, 10)]),
+			PackedVector2Array([Vector2(100, 100), Vector2(200, 100)]),
+			PackedVector2Array([Vector2(100, 200), Vector2(200, 200)]),
+		]
+	)
 	var state := RiderStateScene.new()
 	state.run.run_phase = RiderRunState.RunPhase.FLIGHT
 	state.kinematics.active_route_index = 1
@@ -868,11 +877,14 @@ func _test_shipped_routes_complete_with_landing_prep() -> void:
 
 func _test_path_change_is_rejected_too_close_to_lip() -> void:
 	var routed_course := _approach_course()
-	routed_course.approach_paths = [
-		PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
-		PackedVector2Array([Vector2(0, 100), Vector2(100, 100)]),
-		PackedVector2Array([Vector2(0, 200), Vector2(100, 200)]),
-	]
+	_set_approach_paths(
+		routed_course,
+		[
+			PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
+			PackedVector2Array([Vector2(0, 100), Vector2(100, 100)]),
+			PackedVector2Array([Vector2(0, 200), Vector2(100, 200)]),
+		]
+	)
 	var state := RiderStateScene.new()
 	state.kinematics.approach_path_target = 1
 	state.kinematics.approach_path_position = 1.0
@@ -889,11 +901,14 @@ func _test_path_change_is_rejected_too_close_to_lip() -> void:
 
 func _test_route_tangent_follows_selected_path() -> void:
 	var routed_course := _approach_course()
-	routed_course.approach_paths = [
-		PackedVector2Array([Vector2(0, 200), Vector2(3000, 0)]),
-		PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
-		PackedVector2Array([Vector2(0, 0), Vector2(3000, 200)]),
-	]
+	_set_approach_paths(
+		routed_course,
+		[
+			PackedVector2Array([Vector2(0, 200), Vector2(3000, 0)]),
+			PackedVector2Array([Vector2(0, 100), Vector2(3000, 100)]),
+			PackedVector2Array([Vector2(0, 0), Vector2(3000, 200)]),
+		]
+	)
 	_expect(
 		routed_course.route_tangent_at(1000.0, 0.0).y < 0.0,
 		"The upper tangent should point uphill."
@@ -989,10 +1004,13 @@ func _runout_state() -> RiderState:
 func _approach_course() -> ParkCourse:
 	var course := ParkCourseScene.new()
 	var path := PackedVector2Array([Vector2(0, 0), Vector2(3000, 1500)])
-	course.approach_paths = [path, path, path]
 	var flight_landing := PackedVector2Array([Vector2(3100, 1700), Vector2(6000, 2000)])
 	var ground_runout := PackedVector2Array([Vector2(3000, 1500), Vector2(6000, 1800)])
-	course.landing_paths = [flight_landing, flight_landing, ground_runout]
+	course.routes = [
+		_route(&"upper", ParkRoute.Kind.FLIGHT, path, flight_landing),
+		_route(&"center", ParkRoute.Kind.FLIGHT, path, flight_landing),
+		_route(&"lower", ParkRoute.Kind.GROUND_RUNOUT, path, ground_runout),
+	]
 	course.flight_abandon_y = 1800.0
 	course.lane_min = -100.0
 	course.lane_max = 100.0
@@ -1008,13 +1026,37 @@ func _roller_course() -> ParkCourse:
 	var path := PackedVector2Array(
 		[Vector2(0, 400), Vector2(400, 560), Vector2(600, 360), Vector2(1000, 520)]
 	)
-	course.approach_paths = [path, path, path]
 	var flight_landing := PackedVector2Array([Vector2(1100, 600), Vector2(3000, 900)])
 	var ground_runout := PackedVector2Array([Vector2(1000, 520), Vector2(3000, 900)])
-	course.landing_paths = [flight_landing, flight_landing, ground_runout]
+	course.routes = [
+		_route(&"upper", ParkRoute.Kind.FLIGHT, path, flight_landing),
+		_route(&"center", ParkRoute.Kind.FLIGHT, path, flight_landing),
+		_route(&"lower", ParkRoute.Kind.GROUND_RUNOUT, path, ground_runout),
+	]
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course
+
+
+func _route(
+	id: StringName, kind: ParkRoute.Kind, approach: PackedVector2Array, landing: PackedVector2Array
+) -> ParkRoute:
+	var route := ParkRoute.new()
+	route.id = id
+	route.kind = kind
+	route.approach_path = approach
+	route.landing_path = landing
+	return route
+
+
+func _set_approach_paths(course: ParkCourse, paths: Array) -> void:
+	for route_index in paths.size():
+		course.routes[route_index].approach_path = paths[route_index]
+
+
+func _set_landing_paths(course: ParkCourse, paths: Array) -> void:
+	for route_index in paths.size():
+		course.routes[route_index].landing_path = paths[route_index]
 
 
 func _test_gradient_sign_matches_terrain_pitch() -> void:

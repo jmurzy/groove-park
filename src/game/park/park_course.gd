@@ -3,8 +3,6 @@
 class_name ParkCourse
 extends Resource
 
-enum RouteKind { FLIGHT = ParkRoute.Kind.FLIGHT, GROUND_RUNOUT = ParkRoute.Kind.GROUND_RUNOUT }
-
 const ROUTE_COUNT := 3
 const FLIGHT_ABANDON_CLEARANCE := 0.0
 const FLIGHT_ABANDON_CURVE_SEGMENTS := 24
@@ -15,38 +13,6 @@ const FLIGHT_ABANDON_TRIGGER_RATIO := 0.5
 @export var flight_abandon_y := 624.0
 @export var lane_min := -360.0
 @export var lane_max := 360.0
-
-# Temporary serialization/test migration accessors. Route data is stored only in `routes`.
-var approach_paths: Array[PackedVector2Array]:
-	get:
-		var paths: Array[PackedVector2Array] = []
-		for route in routes:
-			paths.append(route.approach_path)
-		return paths
-	set(value):
-		_ensure_routes(value.size())
-		for route_index in value.size():
-			routes[route_index].approach_path = value[route_index]
-var landing_paths: Array[PackedVector2Array]:
-	get:
-		var paths: Array[PackedVector2Array] = []
-		for route in routes:
-			paths.append(route.landing_path)
-		return paths
-	set(value):
-		_ensure_routes(value.size())
-		for route_index in value.size():
-			routes[route_index].landing_path = value[route_index]
-var route_kinds: Array[ParkRoute.Kind]:
-	get:
-		var kinds: Array[ParkRoute.Kind] = []
-		for route in routes:
-			kinds.append(route.kind)
-		return kinds
-	set(value):
-		_ensure_routes(value.size())
-		for route_index in value.size():
-			routes[route_index].kind = value[route_index]
 
 
 func validation_errors() -> PackedStringArray:
@@ -215,20 +181,6 @@ func landing_swept_terrain_intersection(
 	if route_index < 0 or route_index >= routes.size():
 		return {}
 	return routes[route_index].landing_swept_terrain_intersection(previous_position, next_position)
-
-
-func _ensure_routes(route_count: int) -> void:
-	while routes.size() < route_count:
-		var route := ParkRoute.new()
-		route.id = (
-			[&"upper", &"center", &"lower"][routes.size()]
-			if routes.size() < 3
-			else &"route_%d" % routes.size()
-		)
-		route.kind = ParkRoute.Kind.GROUND_RUNOUT if routes.size() == 2 else ParkRoute.Kind.FLIGHT
-		routes.append(route)
-	if routes.size() > route_count:
-		routes.resize(route_count)
 
 
 func _flight_abandon_y_at(route_index: int) -> float:

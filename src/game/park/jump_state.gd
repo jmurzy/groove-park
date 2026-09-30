@@ -58,14 +58,6 @@ var trick_tracker: TrickTracker = TrickTrackerScene.new()
 var trick_call := ""
 
 var landing_resolved := false
-var landing_quality := 0.0
 var landing_position := Vector2.ZERO
-var landing_tangent := Vector2.RIGHT
-var landing_normal := Vector2.UP
-var landing_angle_error_degrees := 0.0
-var landing_velocity_alignment := 0.0
-var landing_normal_impact := 0.0
-var landing_angular_speed := 0.0
-var landing_in_zone := false
 var jump_score := 0
 var score_breakdown: Dictionary = {}

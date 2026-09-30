@@ -12,5 +12,4 @@ var has_ground_intent := false
 var tuck_active := false
 var brake_active := false
 var edge_active := false
-var recovery_time_remaining := 0.0
 var completion_time_remaining := 0.0
