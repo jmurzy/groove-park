@@ -19,7 +19,6 @@ func begin(state: RiderState, takeoff_speed: float, tuning: RiderTuning) -> void
 	state.jump.grab_active_at_landing = false
 	state.jump.grab_released_after_deadline = false
 	state.jump.trick_tracker.reset(state.jump.orientation)
-	state.jump.trick_call = ""
 
 
 func update_input(state: RiderState, input: RiderInputFrame, tuning: RiderTuning) -> void:

@@ -1,5 +1,4 @@
-## Mutable measurements for the jump currently in progress. Reset this at
-## takeoff; turn it into a JumpResult once first landing contact resolves.
+## Mutable measurements for the jump currently in progress.
 class_name JumpState
 extends RefCounted
 
@@ -55,9 +54,6 @@ var grab_started_airtime := -1.0
 var grab_active_at_deadline := false
 var grab_active_at_landing := false
 var trick_tracker: TrickTracker = TrickTrackerScene.new()
-var trick_call := ""
 
 var landing_resolved := false
 var landing_position := Vector2.ZERO
-var jump_score := 0
-var score_breakdown: Dictionary = {}

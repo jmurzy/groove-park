@@ -13,7 +13,6 @@ func _init() -> void:
 	_test_manager_setup_initializes_rider()
 	_test_crash_status_uses_landing_outcome()
 	_test_abandon_status_uses_landing_outcome()
-	_test_result_snapshots_landing_outcome()
 	_test_reset_restores_run_lifecycle()
 	if _failures.is_empty():
 		print("Rider run-state checks passed.")
@@ -68,16 +67,6 @@ func _test_abandon_status_uses_landing_outcome() -> void:
 	manager.rider_state.run.run_phase = RiderRunState.RunPhase.LANDING
 	manager.rider_state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
 	_expect(manager.is_abandoned(), "An abandoned landing outcome must mark the run as abandoned.")
-
-
-func _test_result_snapshots_landing_outcome() -> void:
-	var state := RiderStateScene.new()
-	state.run.landing_outcome = RiderRunState.LandingOutcome.SKETCHY
-	var result := RunResult.from_rider_state(state)
-	_expect(
-		result.jump_results[0].landing_outcome == RiderRunState.LandingOutcome.SKETCHY,
-		"A completed run must snapshot the landing outcome enum."
-	)
 
 
 func _test_reset_restores_run_lifecycle() -> void:

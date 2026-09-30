@@ -49,10 +49,6 @@ func update(
 	_update_action_hint(delta, input, run_manager.rider_state)
 
 
-func set_score(score: int) -> void:
-	_hud.set_score("%04d" % score)
-
-
 func reset(rider_kind: StringName) -> void:
 	_action_hint_time = 0.0
 	_action_label.hide()

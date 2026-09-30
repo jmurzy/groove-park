@@ -7,8 +7,6 @@ extends Control
 
 var _frame: HudFrame
 var _speed_value: Label
-var _jump_value: Label
-var _score_value: Label
 var _rotation_value: Label
 var _rotation_quota_value: Label
 
@@ -37,14 +35,6 @@ func set_speed(world_speed: float) -> void:
 	_speed_value.text = "%d MPH" % speed_to_mph(world_speed)
 
 
-func set_jump(jump_text: String) -> void:
-	_jump_value.text = jump_text
-
-
-func set_score(score_text: String) -> void:
-	_score_value.text = score_text
-
-
 func set_rotation_text(rotation_text: String) -> void:
 	_rotation_value.text = rotation_text
 
@@ -54,8 +44,8 @@ func set_rotation_quota_text(rotation_quota_text: String) -> void:
 
 
 func _build_metrics() -> void:
-	_score_value = _add_metric("SCORE", "0000", 506, Color("42eaff"), Color("ffe126"))
-	_jump_value = _add_metric("JUMP", "01 / 01", 780, Color("42eaff"), Color("f3f6ff"))
+	_add_metric("SCORE", "0000", 506, Color("42eaff"), Color("ffe126"))
+	_add_metric("JUMP", "01 / 01", 780, Color("42eaff"), Color("f3f6ff"))
 	_speed_value = _add_metric("SPEED", "0 MPH", 1054, Color("42eaff"), Color("f3f6ff"))
 	_rotation_value = _add_metric("ROTATION", "+0°", 1328, Color("42eaff"), Color("f3f6ff"))
 	_rotation_quota_value = _add_metric("SPINS", "--", 1602, Color("42eaff"), Color("f3f6ff"))

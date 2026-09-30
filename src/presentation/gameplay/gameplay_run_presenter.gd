@@ -37,8 +37,6 @@ func setup(
 	_world.setup(course, show_terrain, tuning, session.rider_kind)
 	_world.update_from_run(_session.run_manager, 0.0, _hud.is_occluded)
 	_update_hud_occlusion()
-	_session.run_score_changed.connect(_hud.set_score)
-	_hud.set_score(_session.run_score)
 
 
 func update(delta: float) -> void:
