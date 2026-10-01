@@ -20,6 +20,8 @@ const SNOW_SAFE_INSET := 60.0
 const ARCADE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const FOOTER_COPYRIGHT_FORMAT := "© %d JULIA & JAKE MURZY - ALL RIGHTS RESERVED"
 const FOOTER_DEV_SUFFIX := "DEV BUILD: BUT EXPECT NO BUGS!"
+const FOOTER_AGS_SUFFIX := "AGS BUILD"
+const FOOTER_WEB_SUFFIX := "WEB BUILD"
 const LOGO_SUBTITLE_WAVE_SHADER := """
 shader_type canvas_item;
 
@@ -120,7 +122,12 @@ func _build_footer() -> Label:
 	var year: int = Time.get_datetime_dict_from_system().get("year", 2026)
 	var footer := Label.new()
 	footer.name = "FooterLabel"
-	footer.text = "%s   ◆   %s" % [FOOTER_COPYRIGHT_FORMAT % year, FOOTER_DEV_SUFFIX]
+	var build_suffix := FOOTER_DEV_SUFFIX
+	if OS.has_feature("ags"):
+		build_suffix = FOOTER_AGS_SUFFIX
+	elif OS.has_feature("wasm"):
+		build_suffix = FOOTER_WEB_SUFFIX
+	footer.text = "%s   ◆   %s" % [FOOTER_COPYRIGHT_FORMAT % year, build_suffix]
 	footer.position = Vector2(0, 1000)
 	footer.size = Vector2(DESIGN_SIZE.x, 34)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
