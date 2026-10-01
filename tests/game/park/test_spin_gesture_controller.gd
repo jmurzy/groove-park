@@ -9,7 +9,7 @@ var _failures := PackedStringArray()
 func _init() -> void:
 	_test_requires_release_and_matching_second_press()
 	_test_completion_preserves_full_turn()
-	_test_stop_preserves_incomplete_progress()
+	_test_pause_preserves_incomplete_rotation()
 	if _failures.is_empty():
 		print("Spin gesture controller checks passed.")
 		quit(0)
@@ -56,7 +56,7 @@ func _test_completion_preserves_full_turn() -> void:
 	_expect(gesture.direction == 1 and gesture.tweak, "Completion must retain style and direction.")
 
 
-func _test_stop_preserves_incomplete_progress() -> void:
+func _test_pause_preserves_incomplete_rotation() -> void:
 	var gesture := SpinGestureControllerScene.new()
 	gesture.update_input(true, false, true, false, true, false, PI, TAU)
 	gesture.advance(0.25, PI)
@@ -64,9 +64,9 @@ func _test_stop_preserves_incomplete_progress() -> void:
 	gesture.update_input(true, false, false, false, false, false, PI, TAU)
 	_expect(
 		is_equal_approx(gesture.progress, progress_before_stop),
-		"Stopping must preserve partial progress."
+		"Pausing must preserve partial progress."
 	)
-	_expect(not gesture.is_advancing(), "Stopping must end rotation.")
+	_expect(gesture.is_advancing(), "Pausing must preserve the interrupted half-turn.")
 
 
 func _expect(condition: bool, message: String) -> void:

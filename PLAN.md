@@ -74,7 +74,8 @@ Landing includes clean runout, sketchy recovery, and crash outcomes. The run end
 - Pressing the opposite trigger mid-spin is ignored; it neither completes nor cancels the active spin.
 - A completed turn returns to that direction set's authored 000-degree pose and counts one 360. The player must release the triggers again before beginning another turn.
 - Held triggers do not repeat input, and a new half-turn is accepted only after the previous half-turn reaches its target.
-- Releasing the active grab during either moving half-turn freezes the current spin pose and records an incomplete rotation.
+- Releasing the active grab before returning to the forward-facing 000-degree pose freezes the current spin pose and records an incomplete rotation.
+- Re-grabbing resumes the interrupted half-turn; completing the 360 restores a safe landing state.
 - Takeoff speed determines how quickly each half-turn advances. Faster takeoff speed therefore allows more complete rotations before the release deadline.
 - Rotations do not modify linear flight velocity or the ballistic trajectory.
 - Skier directions are labelled `LEFT` and `RIGHT`. Snowboarder directions are labelled `BACKSIDE` (LT) and `FRONTSIDE` (RT).
@@ -341,7 +342,7 @@ Behavior:
 - Both triggers must be released (`spin_rearmed`) before a fresh press of the same trigger starts the second half-turn.
 - Reaching the full-turn target increments `completed_rotations` and returns to `WAITING_DIRECTION`.
 - Releasing both grab buttons stops accepting rotation gestures.
-- Releasing the active grab during either rotating state freezes progress and records an incomplete rotation.
+- Releasing the active grab before returning to the forward-facing 000-degree pose freezes progress and records an incomplete rotation.
 
 Initial speed mapping:
 

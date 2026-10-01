@@ -21,11 +21,6 @@ func reset() -> void:
 	tweak = false
 
 
-func stop() -> void:
-	phase = Phase.WAITING_DIRECTION
-	target = progress
-
-
 func update_input(
 	left_pressed: bool,
 	right_pressed: bool,
@@ -39,7 +34,6 @@ func update_input(
 	if not left_pressed and not right_pressed:
 		rearmed = true
 	if not can_rotate:
-		stop()
 		return false
 	if (
 		phase == Phase.WAITING_DIRECTION

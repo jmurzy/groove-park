@@ -74,7 +74,9 @@ func _advance_grab(state: RiderState, tuning: RiderTuning, delta: float) -> void
 
 func _update_rotation_gesture_input(state: RiderState, input: RiderInputFrame) -> void:
 	var gesture := state.jump.spin_gesture
-	var was_advancing := gesture.is_advancing()
+	var was_facing_forward := (
+		is_zero_approx(gesture.progress) or is_equal_approx(gesture.progress, TAU)
+	)
 	gesture.update_input(
 		input.spin_lt_pressed,
 		input.spin_rt_pressed,
@@ -85,7 +87,7 @@ func _update_rotation_gesture_input(state: RiderState, input: RiderInputFrame) -
 		PI,
 		TAU
 	)
-	if not state.jump.trick_tracker.grab_active and was_advancing:
+	if not state.jump.trick_tracker.grab_active and not was_facing_forward:
 		state.jump.rotation_incomplete = true
 	_sync_spin_gesture(state)
 
@@ -97,6 +99,7 @@ func _advance_rotation(state: RiderState, delta: float) -> void:
 	var completed_rotation := gesture.advance(delta, state.jump.rotation_rate)
 	if completed_rotation:
 		state.jump.completed_rotations += 1
+		state.jump.rotation_incomplete = false
 		state.jump.trick_tracker.complete_rotation(gesture.direction)
 	_sync_spin_gesture(state)
 

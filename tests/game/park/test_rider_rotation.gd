@@ -48,6 +48,8 @@ func _init() -> void:
 	_test_release_deadline_timing()
 	_test_rotation_requires_active_grab()
 	_test_early_grab_release_freezes_incomplete_rotation()
+	_test_half_turn_grab_release_marks_incomplete_rotation()
+	_test_incomplete_rotation_can_regrab_and_complete()
 	_test_rotation_does_not_change_trajectory_or_pitch()
 	_test_takeoff_resets_spin_state()
 	_test_directional_view_clips()
@@ -275,6 +277,35 @@ func _test_early_grab_release_freezes_incomplete_rotation() -> void:
 	_expect(
 		is_equal_approx(state.jump.spin_progress, released_progress),
 		"An incomplete spin must freeze at its release progress."
+	)
+
+
+func _test_half_turn_grab_release_marks_incomplete_rotation() -> void:
+	var state := _grabbed_flight_state(false)
+	_complete_half_turn(state, -1)
+	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+	_expect(
+		state.jump.rotation_incomplete,
+		"Releasing a grab while held at 180 degrees must mark the landing unsafe."
+	)
+
+
+func _test_incomplete_rotation_can_regrab_and_complete() -> void:
+	var state := _grabbed_flight_state(false)
+	_press_trigger(state, -1)
+	for _tick in 5:
+		_step_spin(state, -1, false, true)
+	_simulation.step(state, RiderInputFrameScene.new(), _course, _tuning, DELTA)
+	_start_grab(state, false)
+	for _tick in 120:
+		if not _rotation_is_advancing(state):
+			break
+		_step_spin(state, -1, false, true)
+	_release_triggers(state)
+	_complete_half_turn(state, -1)
+	_expect(
+		state.jump.completed_rotations == 1 and not state.jump.rotation_incomplete,
+		"Re-grabbing and completing the turn must restore a safe landing state."
 	)
 
 
