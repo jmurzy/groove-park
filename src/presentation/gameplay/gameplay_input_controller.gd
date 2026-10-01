@@ -4,6 +4,12 @@ extends RefCounted
 
 const RiderInputFrameScene := preload("res://src/game/park/rider_input_frame.gd")
 
+var _debug_restart_enabled := false
+
+
+func configure(debug_restart_enabled: bool) -> void:
+	_debug_restart_enabled = debug_restart_enabled
+
 
 func sample_frame() -> RiderInputFrame:
 	var frame := RiderInputFrameScene.new()
@@ -35,17 +41,19 @@ func sample_frame() -> RiderInputFrame:
 	return frame
 
 
-func screen_command(event: InputEvent, run_manager: RiderRunManager) -> StringName:
+func screen_command(event: InputEvent, session: GameSession) -> StringName:
 	if (
-		event is InputEventKey
+		session.session_phase == RoundState.SessionPhase.JUMP_TALLY
+		and (event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"action_a"))
+	):
+		return &"continue"
+	if (
+		_debug_restart_enabled
+		and session.session_phase == RoundState.SessionPhase.JUMP_ACTIVE
+		and event is InputEventKey
 		and (event as InputEventKey).pressed
 		and not (event as InputEventKey).echo
 		and (event as InputEventKey).keycode == KEY_R
-	):
-		return &"restart"
-	if (
-		(run_manager.is_crashed() or run_manager.is_bailed() or run_manager.is_complete())
-		and event.is_action_pressed(&"controller_start")
 	):
 		return &"restart"
 	if (

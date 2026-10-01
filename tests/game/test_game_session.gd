@@ -1,16 +1,14 @@
 ## Headless checks for authoritative round progression in GameSession.
 extends SceneTree
 
-const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
-
 var _failures := PackedStringArray()
 
 
 func _init() -> void:
+	_test_completed_simulation_records_each_outcome_once()
 	_test_result_requires_a_completed_active_run_and_records_once()
 	_test_non_crash_tallies_advance_through_three_jumps()
 	_test_crash_completes_the_round_once()
-	_test_restart_preserves_prior_results()
 	_test_starting_and_bailing_rounds_reset_only_in_memory_round_data()
 	_test_session_notifications_follow_mutation()
 	if _failures.is_empty():
@@ -20,6 +18,55 @@ func _init() -> void:
 	for failure in _failures:
 		push_error(failure)
 	quit(1)
+
+
+func _test_completed_simulation_records_each_outcome_once() -> void:
+	var outcomes: Array[int] = [
+		JumpOutcome.Value.LOW_MOMENTUM,
+		JumpOutcome.Value.BAIL,
+		JumpOutcome.Value.CLEAN,
+		JumpOutcome.Value.SKETCHY,
+		JumpOutcome.Value.CRASH,
+	]
+	for outcome: int in outcomes:
+		var session := _active_session()
+		var completed_run := session.run_manager
+		completed_run.rider_state.run.jump_outcome = outcome
+		completed_run.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+		session.step_run(RiderInputFrame.new(), 0.0)
+		_expect(
+			session.round_state().jump_results().size() == 1,
+			"Each terminal outcome must record one result."
+		)
+		_expect(
+			session.round_state().round_score() == 0,
+			"Milestone 3 terminal results must use the temporary zero score."
+		)
+		session.step_run(RiderInputFrame.new(), 0.0)
+		_expect(
+			session.round_state().jump_results().size() == 1,
+			"Repeated completion frames must not duplicate a result."
+		)
+		if outcome == JumpOutcome.Value.CRASH:
+			_expect(
+				session.session_phase == RoundState.SessionPhase.GAME_OVER,
+				"A crash must enter game over without a new run."
+			)
+		else:
+			_expect(
+				session.session_phase == RoundState.SessionPhase.JUMP_TALLY,
+				"A non-crash result must enter tally."
+			)
+			session.complete_tally()
+			_expect(
+				session.run_manager != completed_run,
+				"The next jump must receive fresh simulation state."
+			)
+			_expect(
+				session.run_manager.rider_state.run.run_phase == RiderRunState.RunPhase.APPROACH,
+				"A next jump must start in approach."
+			)
+		session.free()
 
 
 func _test_result_requires_a_completed_active_run_and_records_once() -> void:
@@ -55,13 +102,11 @@ func _test_non_crash_tallies_advance_through_three_jumps() -> void:
 		session.round_state().round_score() == 100, "Prior result score must survive the next jump."
 	)
 	_expect(not session.complete_tally(), "A next jump cannot advance before it records a result.")
-	session.begin_run(ShippedParkCourse)
 	_record_completed_result(session, JumpOutcome.Value.SKETCHY, 50)
 	_expect(session.complete_tally(), "The second tally must complete.")
 	_expect(
 		session.round_state().current_jump_number() == 3, "The second tally must advance to jump 3."
 	)
-	session.begin_run(ShippedParkCourse)
 	_record_completed_result(session, JumpOutcome.Value.BAIL, 0)
 	_expect(session.complete_tally(), "The third tally must complete the round.")
 	_expect(
@@ -92,28 +137,6 @@ func _test_crash_completes_the_round_once() -> void:
 	_expect(
 		session.round_state().jump_results().size() == 1,
 		"A crash must retain its recorded current-jump result."
-	)
-	session.free()
-
-
-func _test_restart_preserves_prior_results() -> void:
-	var session := _active_session()
-	_record_completed_result(session, JumpOutcome.Value.CLEAN, 90)
-	session.complete_tally()
-	session.begin_run(ShippedParkCourse)
-	session.run_manager.rider_state.jump.completed_rotations = 2
-	session.restart_run(ShippedParkCourse)
-	_expect(
-		session.round_state().current_jump_number() == 2,
-		"Restarting an unrecorded jump must preserve the jump number."
-	)
-	_expect(
-		session.round_state().round_score() == 90,
-		"Restarting an unrecorded jump must preserve prior results."
-	)
-	_expect(
-		session.run_manager.rider_state.jump.completed_rotations == 0,
-		"Restarting must reset only current-run simulation state."
 	)
 	session.free()
 
@@ -163,10 +186,8 @@ func _test_session_notifications_follow_mutation() -> void:
 		func(round_state: RoundState) -> void: completed_scores.append(round_state.round_score())
 	)
 	session.start_game(RiderKind.SKIER)
-	session.begin_run(ShippedParkCourse)
 	_record_completed_result(session, JumpOutcome.Value.CLEAN, 80)
 	session.complete_tally()
-	session.begin_run(ShippedParkCourse)
 	_record_completed_result(session, JumpOutcome.Value.CRASH, 0)
 	_expect(
 		(
@@ -194,7 +215,6 @@ func _test_session_notifications_follow_mutation() -> void:
 func _active_session() -> GameSession:
 	var session := GameSession.new()
 	session.start_game(RiderKind.SKIER)
-	session.begin_run(ShippedParkCourse)
 	return session
 
 

@@ -6,8 +6,6 @@ signal return_to_title_requested
 
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
-const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
-const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
 const GameplayRunPresenterScene := preload(
 	"res://src/presentation/gameplay/gameplay_run_presenter.gd"
 )
@@ -17,10 +15,10 @@ const PauseFlowControllerScene := preload(
 
 var game_session: GameSession
 var show_terrain := OS.is_debug_build()
-var _course: ParkCourse = PARK_COURSE_RESOURCE.duplicate()
+var _course: ParkCourse
 var _run_presenter: GameplayRunPresenter
 var _pause_flow: PauseFlowController
-var _rider_tuning: RiderTuning = RIDER_TUNING_RESOURCE
+var _rider_tuning: RiderTuning
 var _ui_layer: CanvasLayer
 var _gameplay_music: AudioStreamPlayer
 
@@ -33,10 +31,11 @@ func _ready() -> void:
 	if game_session == null:
 		push_error("GameplayScreen requires a GameSession.")
 		return
+	_course = game_session.course()
+	_rider_tuning = game_session.tuning()
 	var course_errors := _course.validation_errors()
 	if not course_errors.is_empty():
 		push_error("Invalid ParkCourse:\n%s" % "\n".join(course_errors))
-	game_session.begin_run(_course)
 	_build_ui_layer()
 	_run_presenter = GameplayRunPresenterScene.new()
 	_run_presenter.setup(self, _ui_layer, game_session, _course, _rider_tuning, show_terrain)
@@ -74,6 +73,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _pause_flow.accepts_screen_input():
 		return
 	match _run_presenter.screen_command(event):
+		&"continue":
+			_run_presenter.continue_tally()
+			get_viewport().set_input_as_handled()
 		&"restart":
 			_restart_run()
 			get_viewport().set_input_as_handled()

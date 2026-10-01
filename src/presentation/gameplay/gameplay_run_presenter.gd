@@ -30,31 +30,43 @@ func setup(
 	_course = course
 	_tuning = tuning
 	_input = GameplayInputControllerScene.new()
+	_input.configure(show_terrain)
 	_hud = GameplayHudPresenterScene.new()
 	_hud.build(ui_layer, session.rider_kind)
 	_world = ParkWorldPresenterScene.new()
 	owner.add_child(_world)
 	_world.setup(course, show_terrain, tuning, session.rider_kind)
+	_session.jump_started.connect(_on_jump_started)
 	_world.update_from_run(_session.run_manager, 0.0, _hud.is_occluded)
 	_update_hud_occlusion()
 
 
 func update(delta: float) -> void:
-	_hud.update(delta, _session.run_manager, _session.rider_kind, _input.sample_frame())
+	_hud.update(delta, _session, _input.sample_frame())
 
 
 func physics_update(delta: float) -> void:
-	_session.step_run(_input.sample_frame(), _course, _tuning, delta)
+	_session.step_run(_input.sample_frame(), delta)
 	_world.update_from_run(_session.run_manager, delta, _hud.is_occluded)
 	_update_hud_occlusion()
 
 
 func screen_command(event: InputEvent) -> StringName:
-	return _input.screen_command(event, _session.run_manager)
+	return _input.screen_command(event, _session)
 
 
 func restart() -> void:
-	_session.restart_run(_course)
+	_session.restart_run()
+	_hud.reset(_session.rider_kind)
+	_world.reset_presentation(_session.run_manager, _hud.is_occluded)
+	_update_hud_occlusion()
+
+
+func continue_tally() -> void:
+	_session.complete_tally()
+
+
+func _on_jump_started(_round_state: RoundState) -> void:
 	_hud.reset(_session.rider_kind)
 	_world.reset_presentation(_session.run_manager, _hud.is_occluded)
 	_update_hud_occlusion()

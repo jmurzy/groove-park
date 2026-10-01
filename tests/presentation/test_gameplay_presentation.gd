@@ -1,22 +1,20 @@
 ## Headless checks for gameplay terminal controls and release-deadline presentation.
 extends SceneTree
 
-const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
 const GameplayInputControllerScene := preload(
 	"res://src/presentation/gameplay/gameplay_input_controller.gd"
 )
 const ReleaseDeadlineWarningScene := preload(
 	"res://src/presentation/gameplay/release_deadline_warning.gd"
 )
-const RiderRunManagerScene := preload("res://src/game/park/rider_run_manager.gd")
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 
 var _failures := PackedStringArray()
 
 
 func _init() -> void:
-	_test_terminal_start_restarts_and_active_start_pauses()
-	_test_r_key_restarts()
+	_test_tally_start_continues_and_active_start_pauses()
+	_test_r_key_requires_terrain_debug_mode()
 	_test_release_deadline_warning_visibility()
 	if _failures.is_empty():
 		print("Gameplay presentation checks passed.")
@@ -27,34 +25,44 @@ func _init() -> void:
 	quit(1)
 
 
-func _test_terminal_start_restarts_and_active_start_pauses() -> void:
+func _test_tally_start_continues_and_active_start_pauses() -> void:
 	var controller := GameplayInputControllerScene.new()
-	var manager := RiderRunManagerScene.new()
-	manager.setup(ShippedParkCourse)
+	var session := GameSession.new()
+	session.start_game(RiderKind.SKIER)
 	var start_event := InputEventAction.new()
 	start_event.action = &"controller_start"
 	start_event.pressed = true
 	_expect(
-		controller.screen_command(start_event, manager) == &"pause",
+		controller.screen_command(start_event, session) == &"pause",
 		"Start must pause an active run."
 	)
-	manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+	session.run_manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CLEAN
+	session.step_run(RiderInputFrame.new(), 0.0)
 	_expect(
-		controller.screen_command(start_event, manager) == &"restart",
-		"Start must restart a completed run."
+		controller.screen_command(start_event, session) == &"continue",
+		"Start must continue a completed jump tally."
 	)
+	session.free()
 
 
-func _test_r_key_restarts() -> void:
+func _test_r_key_requires_terrain_debug_mode() -> void:
 	var controller := GameplayInputControllerScene.new()
-	var manager := RiderRunManagerScene.new()
-	manager.setup(ShippedParkCourse)
+	var session := GameSession.new()
+	session.start_game(RiderKind.SKIER)
 	var restart_event := InputEventKey.new()
 	restart_event.keycode = KEY_R
 	restart_event.pressed = true
 	_expect(
-		controller.screen_command(restart_event, manager) == &"restart", "R must restart a run."
+		controller.screen_command(restart_event, session).is_empty(),
+		"R must not restart a normal gameplay run."
 	)
+	controller.configure(true)
+	_expect(
+		controller.screen_command(restart_event, session) == &"restart",
+		"R must restart an active run when terrain debug mode is enabled."
+	)
+	session.free()
 
 
 func _test_release_deadline_warning_visibility() -> void:
