@@ -13,7 +13,7 @@ const CARD_SIZE := Vector2(560, 385)
 const SNOWBOARDER_POSITION := Vector2(375, 545)
 const SKIER_POSITION := Vector2(985, 545)
 
-var selected_rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
+var selected_rider_kind: StringName = RiderKind.SNOWBOARDER
 var _cards: Array[Button] = []
 var _riders: Array[RiderPreview] = []
 var _switch_sound: AudioStreamPlayer
@@ -29,7 +29,7 @@ func _ready() -> void:
 	_switch_sound = AudioStreamPlayer.new()
 	_switch_sound.stream = SWITCH_SOUND
 	add_child(_switch_sound)
-	_select(GameSession.RIDER_SNOWBOARDER)
+	_select(RiderKind.SNOWBOARDER)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -45,7 +45,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func focus_default() -> void:
-	_select(GameSession.RIDER_SNOWBOARDER)
+	_select(RiderKind.SNOWBOARDER)
 
 
 func _build_shade() -> void:
@@ -65,9 +65,9 @@ func _build_title() -> void:
 
 
 func _build_cards() -> void:
-	var snowboarder := _build_card(GameSession.RIDER_SNOWBOARDER, SNOWBOARDER_POSITION)
+	var snowboarder := _build_card(RiderKind.SNOWBOARDER, SNOWBOARDER_POSITION)
 	add_child(snowboarder)
-	var skier := _build_card(GameSession.RIDER_SKIER, SKIER_POSITION)
+	var skier := _build_card(RiderKind.SKIER, SKIER_POSITION)
 	add_child(skier)
 	_cards.assign([snowboarder, skier])
 	snowboarder.focus_neighbor_left = skier.get_path_to(snowboarder)
@@ -113,7 +113,7 @@ func _build_card(rider_kind: StringName, card_position: Vector2) -> Button:
 	heading.size = Vector2(CARD_SIZE.x, 48)
 	card.add_child(heading)
 
-	var sheet := SNOWBOARDER_SHEET if rider_kind == GameSession.RIDER_SNOWBOARDER else SKIER_SHEET
+	var sheet := SNOWBOARDER_SHEET if rider_kind == RiderKind.SNOWBOARDER else SKIER_SHEET
 	_riders.append(RiderPreview.create(rider_kind.capitalize(), sheet, Vector2(280, 208)))
 	card.add_child(_riders.back())
 
@@ -152,11 +152,9 @@ func _on_card_pressed(rider_kind: StringName) -> void:
 
 func _other_rider_kind() -> StringName:
 	return (
-		GameSession.RIDER_SKIER
-		if selected_rider_kind == GameSession.RIDER_SNOWBOARDER
-		else GameSession.RIDER_SNOWBOARDER
+		RiderKind.SKIER if selected_rider_kind == RiderKind.SNOWBOARDER else RiderKind.SNOWBOARDER
 	)
 
 
 func _rider_index(rider_kind: StringName) -> int:
-	return 0 if rider_kind == GameSession.RIDER_SNOWBOARDER else 1
+	return 0 if rider_kind == RiderKind.SNOWBOARDER else 1

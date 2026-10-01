@@ -432,11 +432,11 @@ func _test_spin_performance_feedback() -> void:
 		"Positive snowboard rotation must be labeled frontside."
 	)
 	_expect(
-		ParkMarkerPresenterScene.spin_feedback_text(-1, 180, GameSession.RIDER_SKIER) == "LEFT 180",
+		ParkMarkerPresenterScene.spin_feedback_text(-1, 180, RiderKind.SKIER) == "LEFT 180",
 		"Negative skier rotation must be labeled left."
 	)
 	_expect(
-		ParkMarkerPresenterScene.spin_feedback_text(1, 360, GameSession.RIDER_SKIER) == "RIGHT 360",
+		ParkMarkerPresenterScene.spin_feedback_text(1, 360, RiderKind.SKIER) == "RIGHT 360",
 		"Positive skier rotation must be labeled right."
 	)
 	var marker := PerformanceMarkerScene.new()

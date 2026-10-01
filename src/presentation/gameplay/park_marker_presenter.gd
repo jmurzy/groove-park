@@ -99,10 +99,10 @@ static func spin_half_turns(spin_progress: float) -> int:
 
 
 static func spin_feedback_text(
-	spin_direction: int, degrees: int, rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
+	spin_direction: int, degrees: int, rider_kind: StringName = RiderKind.SNOWBOARDER
 ) -> String:
 	var direction := "BACKSIDE" if spin_direction < 0 else "FRONTSIDE"
-	if rider_kind == GameSession.RIDER_SKIER:
+	if rider_kind == RiderKind.SKIER:
 		direction = "LEFT" if spin_direction < 0 else "RIGHT"
 	return "%s %d" % [direction, degrees]
 

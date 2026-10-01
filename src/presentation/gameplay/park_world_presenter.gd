@@ -17,7 +17,7 @@ const ReleaseDeadlineWarningScene := preload(
 var course: ParkCourse
 var show_terrain := false
 var compression_window_distance := 0.0
-var rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
+var rider_kind: StringName = RiderKind.SNOWBOARDER
 var _tuning: RiderTuning
 var _rider: RiderView
 var _info_marker: InfoMarker
@@ -87,7 +87,7 @@ func _build_world() -> void:
 	add_child(_rider_effects)
 	var rider_definition := (
 		RiderVisualDefinition.skier()
-		if rider_kind == GameSession.RIDER_SKIER
+		if rider_kind == RiderKind.SKIER
 		else RiderVisualDefinition.snowboarder()
 	)
 	_rider = RiderView.new(rider_definition)

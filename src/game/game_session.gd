@@ -13,16 +13,16 @@ enum PresentationState {
 	PLAYING,
 }
 
-const RIDER_SNOWBOARDER := &"snowboarder"
-const RIDER_SKIER := &"skier"
-
 var presentation_state: PresentationState = PresentationState.ATTRACT
-var rider_kind: StringName = RIDER_SNOWBOARDER
+var rider_kind: StringName = RiderKind.SNOWBOARDER
 var run_manager: RiderRunManager
 var is_paused := false
 
 
 func start_game(selected_rider_kind: StringName) -> void:
+	if not RiderKind.is_valid(selected_rider_kind):
+		push_error("A game can only start with a valid rider kind.")
+		return
 	rider_kind = selected_rider_kind
 	run_manager = null
 	is_paused = false
