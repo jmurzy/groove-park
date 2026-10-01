@@ -18,6 +18,7 @@ const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 var _audio_manager: AudioManager
 var _cabinet_exit_handler := CabinetExitHandlerScript.new()
 var _game_session: GameSession
+var _mountain_state_source: MountainStateSource
 var _liftie_state_service: LiftieStateService
 var _window_coordinator: WindowCoordinator
 var _screen_flow: ScreenFlowController
@@ -85,8 +86,10 @@ func _setup_audio() -> void:
 
 
 func _setup_game_services() -> void:
+	# Mountain conditions outlive individual rounds and are shared by app-level views.
+	_mountain_state_source = MockMountainStateSourceScene.new()
+	add_child(_mountain_state_source)
 	_game_session = GameSessionScene.new()
-	_game_session.set_mountain_state_source(MockMountainStateSourceScene.new())
 	add_child(_game_session)
 	_liftie_state_service = LiftieStateServiceScene.new()
 	add_child(_liftie_state_service)
