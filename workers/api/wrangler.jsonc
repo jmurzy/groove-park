@@ -3,6 +3,12 @@
   "name": "heavenly-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-30",
+  "routes": [
+    {
+      "pattern": "api.groove-park.gunbarrelhaus.com",
+      "custom_domain": true
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {
