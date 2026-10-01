@@ -86,15 +86,15 @@ func _update_rotation(state: RiderState) -> void:
 
 func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState) -> void:
 	var action_message := ""
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY:
+	if state.run.jump_outcome == JumpOutcome.Value.SKETCHY:
 		action_message = "SKETCHY RECOVERY"
-	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+	elif state.run.jump_outcome == JumpOutcome.Value.CRASH:
 		action_message = "CRASH"
-	elif state.run.landing_outcome == RiderRunState.LandingOutcome.BAIL:
+	elif state.run.jump_outcome == JumpOutcome.Value.BAIL:
 		action_message = "BAIL"
-	elif state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM:
+	elif state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM:
 		action_message = "LOW MOMENTUM"
-	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN:
+	elif state.run.jump_outcome == JumpOutcome.Value.CLEAN:
 		action_message = "CLEAN LANDING"
 	elif state.run.run_phase == RiderRunState.RunPhase.APPROACH:
 		action_message = "RIGHT / D: BUILD SPEED"

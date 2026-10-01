@@ -390,7 +390,7 @@ func _test_ground_route_transitions_to_landing() -> void:
 	_expect(kinematics.ground_velocity.x > 0.0, "Grounded runout must preserve approach momentum.")
 	_expect(
 		(
-			run.landing_outcome == RiderRunState.LandingOutcome.BAIL
+			run.jump_outcome == JumpOutcome.Value.BAIL
 			and is_equal_approx(jump.landing_position.x, 3200.0)
 		),
 		"Grounded runout should bail at the approach endpoint."
@@ -519,7 +519,7 @@ func _test_swept_landing_contact_resolves_once() -> void:
 	_expect(
 		(
 			state.run.run_phase == RiderRunState.RunPhase.LANDING
-			and state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN
+			and state.run.jump_outcome == JumpOutcome.Value.CLEAN
 		),
 		"Swept flight contact should resolve a clean landing."
 	)
@@ -546,7 +546,7 @@ func _test_contact_outcome_priority() -> void:
 	still_grabbing.jump.grab_released_after_deadline = true
 	landing.resolve_contact(still_grabbing, contact)
 	_expect(
-		still_grabbing.run.landing_outcome == RiderRunState.LandingOutcome.CRASH,
+		still_grabbing.run.jump_outcome == JumpOutcome.Value.CRASH,
 		"An active grab at contact must take crash priority."
 	)
 	var incomplete_rotation := _landing_contact_state()
@@ -556,7 +556,7 @@ func _test_contact_outcome_priority() -> void:
 	incomplete_rotation.jump.grab_released_after_deadline = true
 	landing.resolve_contact(incomplete_rotation, contact)
 	_expect(
-		incomplete_rotation.run.landing_outcome == RiderRunState.LandingOutcome.CRASH,
+		incomplete_rotation.run.jump_outcome == JumpOutcome.Value.CRASH,
 		"An incomplete rotation at contact must crash."
 	)
 	var missing_rotation := _landing_contact_state()
@@ -565,7 +565,7 @@ func _test_contact_outcome_priority() -> void:
 	missing_rotation.jump.grab_released_after_deadline = true
 	landing.resolve_contact(missing_rotation, contact)
 	_expect(
-		missing_rotation.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY,
+		missing_rotation.run.jump_outcome == JumpOutcome.Value.SKETCHY,
 		"A missed rotation requirement must not crash."
 	)
 	var late_release := _landing_contact_state()
@@ -575,7 +575,7 @@ func _test_contact_outcome_priority() -> void:
 	late_release.jump.grab_released_after_deadline = true
 	landing.resolve_contact(late_release, contact)
 	_expect(
-		late_release.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY,
+		late_release.run.jump_outcome == JumpOutcome.Value.SKETCHY,
 		"A late release with enough rotations must be sketchy."
 	)
 	var clean := _landing_contact_state()
@@ -584,13 +584,13 @@ func _test_contact_outcome_priority() -> void:
 	clean.jump.completed_rotations = 1
 	landing.resolve_contact(clean, contact)
 	_expect(
-		clean.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN,
+		clean.run.jump_outcome == JumpOutcome.Value.CLEAN,
 		"An early release with enough rotations must land clean."
 	)
 	var no_landing_prep := _landing_contact_state()
 	landing.resolve_contact(no_landing_prep, contact)
 	_expect(
-		no_landing_prep.run.landing_outcome == RiderRunState.LandingOutcome.CRASH,
+		no_landing_prep.run.jump_outcome == JumpOutcome.Value.CRASH,
 		"Landing without X held must crash."
 	)
 
@@ -611,12 +611,10 @@ func _test_contact_outcome_resolves_once() -> void:
 		"position": Vector2(100.0, 100.0), "tangent": Vector2.RIGHT, "normal": Vector2.UP
 	}
 	landing.resolve_contact(state, contact)
-	var outcome := state.run.landing_outcome
+	var outcome := state.run.jump_outcome
 	state.jump.trick_tracker.grab_active = true
 	landing.resolve_contact(state, contact)
-	_expect(
-		state.run.landing_outcome == outcome, "Landing outcome must not change after first contact."
-	)
+	_expect(state.run.jump_outcome == outcome, "Jump outcome must not change after first contact.")
 
 
 func _test_flight_only_hits_selected_landing_path() -> void:
@@ -701,7 +699,7 @@ func _test_descending_below_bail_line_enters_runout() -> void:
 	_expect(
 		(
 			run.run_phase == RiderRunState.RunPhase.LANDING
-			and run.landing_outcome == RiderRunState.LandingOutcome.BAIL
+			and run.jump_outcome == JumpOutcome.Value.BAIL
 			and run.current_surface_id == &"bail"
 		),
 		"A descending rider below the bail line should enter automatic runout."
@@ -781,10 +779,7 @@ func _test_bail_floor_does_not_preempt_landing_contact() -> void:
 		"The nominal floor must not end flight."
 	)
 	_simulation.step(state, landing_prep, routed_course, tuning, 1.0)
-	_expect(
-		state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN,
-		"Later contact must land cleanly."
-	)
+	_expect(state.run.jump_outcome == JumpOutcome.Value.CLEAN, "Later contact must land cleanly.")
 
 
 func _test_missed_flight_is_terminal() -> void:
@@ -804,7 +799,7 @@ func _test_missed_flight_is_terminal() -> void:
 	_expect(
 		(
 			run.run_phase == RiderRunState.RunPhase.LANDING
-			and run.landing_outcome == RiderRunState.LandingOutcome.CRASH
+			and run.jump_outcome == JumpOutcome.Value.CRASH
 		),
 		"Flight past the landing path must become a terminal crash."
 	)
@@ -854,9 +849,9 @@ func _test_shipped_routes_complete_with_landing_prep() -> void:
 			run.run_phase == RiderRunState.RunPhase.COMPLETE,
 			"Route %d should complete." % route_index
 		)
-		var outcome_is_valid := run.landing_outcome == RiderRunState.LandingOutcome.BAIL
+		var outcome_is_valid := run.jump_outcome == JumpOutcome.Value.BAIL
 		if ShippedParkCourse.route_at(route_index).kind == ParkRoute.Kind.FLIGHT:
-			outcome_is_valid = run.landing_outcome == RiderRunState.LandingOutcome.CLEAN
+			outcome_is_valid = run.jump_outcome == JumpOutcome.Value.CLEAN
 		_expect(
 			outcome_is_valid,
 			(
@@ -864,7 +859,7 @@ func _test_shipped_routes_complete_with_landing_prep() -> void:
 					"Shipped route %d should resolve its expected outcome; outcome=%d, "
 					+ "takeoff=%s, terminal=%s."
 				)
-				% [route_index, run.landing_outcome, jump.takeoff_velocity, jump.landing_position]
+				% [route_index, run.jump_outcome, jump.takeoff_velocity, jump.landing_position]
 			)
 		)
 
@@ -982,7 +977,7 @@ func _runout_state() -> RiderState:
 	var kinematics := state.kinematics
 	var run := state.run
 	run.run_phase = RiderRunState.RunPhase.LANDING
-	run.landing_outcome = RiderRunState.LandingOutcome.CLEAN
+	run.jump_outcome = JumpOutcome.Value.CLEAN
 	state.jump.landing_resolved = true
 	kinematics.active_route_index = 1
 	kinematics.course_progress = 3200.0
@@ -1078,10 +1073,10 @@ func _test_low_momentum_rider_ends_run() -> void:
 	state.run.has_ground_intent = true
 	for _tick in 60:
 		_step_on(state, roller, Vector2.RIGHT)
-		if state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM:
+		if state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM:
 			break
 	_expect(
-		state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM,
+		state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM,
 		"A low-momentum rider should receive a warning before the run ends."
 	)
 	for _tick in 1500:
@@ -1097,7 +1092,7 @@ func _test_low_momentum_rider_ends_run() -> void:
 		"A low-momentum rider should visibly slide back before the run ends."
 	)
 	_expect(
-		state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM,
+		state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM,
 		"The low-momentum end should retain its distinct outcome."
 	)
 

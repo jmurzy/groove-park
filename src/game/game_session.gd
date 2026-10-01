@@ -1,19 +1,10 @@
-## Owns the active player session: presentation flow, rider selection, park run,
-## and pause state.
+## Owns the active player session: phase, rider selection, park run, and pause state.
 class_name GameSession
 extends Node
 
-signal presentation_state_changed(state: PresentationState)
-signal run_started(run_manager: RiderRunManager)
-signal run_restarted(run_manager: RiderRunManager)
-signal pause_changed(paused: bool)
+signal session_phase_changed(phase: int)
 
-enum PresentationState {
-	ATTRACT,
-	PLAYING,
-}
-
-var presentation_state: PresentationState = PresentationState.ATTRACT
+var session_phase := RoundState.SessionPhase.ATTRACT
 var rider_kind: StringName = RiderKind.SNOWBOARDER
 var run_manager: RiderRunManager
 var is_paused := false
@@ -26,22 +17,21 @@ func start_game(selected_rider_kind: StringName) -> void:
 	rider_kind = selected_rider_kind
 	run_manager = null
 	is_paused = false
-	_set_presentation_state(PresentationState.PLAYING)
+	_set_session_phase(RoundState.SessionPhase.JUMP_ACTIVE)
 
 
 func begin_run(course: ParkCourse) -> void:
-	if presentation_state != PresentationState.PLAYING:
+	if session_phase != RoundState.SessionPhase.JUMP_ACTIVE:
 		push_error("A run can only begin while playing.")
 		return
 	run_manager = RiderRunManager.new()
 	run_manager.setup(course)
-	run_started.emit(run_manager)
 
 
 func step_run(
 	input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	if not run_manager or is_paused or presentation_state != PresentationState.PLAYING:
+	if not run_manager or is_paused or session_phase != RoundState.SessionPhase.JUMP_ACTIVE:
 		return
 	run_manager.step(input, course, tuning, delta)
 
@@ -51,24 +41,22 @@ func restart_run(course: ParkCourse) -> void:
 		begin_run(course)
 		return
 	run_manager.reset_run(course)
-	run_restarted.emit(run_manager)
 
 
 func set_paused(next_paused: bool) -> void:
 	if is_paused == next_paused:
 		return
 	is_paused = next_paused
-	pause_changed.emit(is_paused)
 
 
 func return_to_attract() -> void:
 	is_paused = false
 	run_manager = null
-	_set_presentation_state(PresentationState.ATTRACT)
+	_set_session_phase(RoundState.SessionPhase.ATTRACT)
 
 
-func _set_presentation_state(next_state: PresentationState) -> void:
-	if presentation_state == next_state:
+func _set_session_phase(next_phase: int) -> void:
+	if session_phase == next_phase:
 		return
-	presentation_state = next_state
-	presentation_state_changed.emit(presentation_state)
+	session_phase = next_phase
+	session_phase_changed.emit(session_phase)

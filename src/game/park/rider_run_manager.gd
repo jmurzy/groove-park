@@ -29,15 +29,15 @@ func reset_run(course: ParkCourse) -> void:
 
 
 func is_crashed() -> bool:
-	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH
+	return rider_state.run.jump_outcome == JumpOutcome.Value.CRASH
 
 
 func is_bailed() -> bool:
-	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.BAIL
+	return rider_state.run.jump_outcome == JumpOutcome.Value.BAIL
 
 
 func is_low_momentum() -> bool:
-	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM
+	return rider_state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM
 
 
 func is_complete() -> bool:

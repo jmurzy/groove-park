@@ -34,15 +34,15 @@ static func animation_for_state(state: RiderState, definition: RiderVisualDefini
 
 
 static func landing_animation_for_state(state: RiderState) -> StringName:
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+	if state.run.jump_outcome == JumpOutcome.Value.CRASH:
 		return &"crash"
 	return &"deep_landing"
 
 
 static func landing_follow_up_animation_for_state(state: RiderState) -> StringName:
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.SKETCHY:
+	if state.run.jump_outcome == JumpOutcome.Value.SKETCHY:
 		return &"sketchy_recovery"
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN:
+	if state.run.jump_outcome == JumpOutcome.Value.CLEAN:
 		return &"celebration"
 	return &""
 

@@ -136,7 +136,7 @@ func _update_low_momentum_detection(
 
 
 func _begin_low_momentum(state: RiderState) -> void:
-	state.run.landing_outcome = RiderRunState.LandingOutcome.LOW_MOMENTUM
+	state.run.jump_outcome = JumpOutcome.Value.LOW_MOMENTUM
 	state.run.low_momentum_start_progress = state.kinematics.course_progress
 	state.run.low_momentum_stop_time = 0.0
 	state.jump.compression_active = false
@@ -198,7 +198,7 @@ func _best_recoverable_forward_acceleration(
 func _is_rolling_back_from_low_momentum(state: RiderState) -> bool:
 	return (
 		state.run.run_phase == RiderRunState.RunPhase.APPROACH
-		and state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM
+		and state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM
 	)
 
 

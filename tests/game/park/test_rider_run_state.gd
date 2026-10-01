@@ -1,4 +1,4 @@
-## Headless checks for run lifecycle phases, landing outcomes, and reset behavior.
+## Headless checks for run lifecycle phases, jump outcomes, and reset behavior.
 extends SceneTree
 
 const ShippedParkCourse := preload("res://src/game/park/park_course.tres")
@@ -11,8 +11,8 @@ var _failures := PackedStringArray()
 func _init() -> void:
 	_test_new_rider_starts_approaching()
 	_test_manager_setup_initializes_rider()
-	_test_crash_status_uses_landing_outcome()
-	_test_bail_status_uses_landing_outcome()
+	_test_crash_status_uses_jump_outcome()
+	_test_bail_status_uses_jump_outcome()
 	_test_reset_restores_run_lifecycle()
 	if _failures.is_empty():
 		print("Rider run-state checks passed.")
@@ -30,8 +30,8 @@ func _test_new_rider_starts_approaching() -> void:
 		"A new rider must start in the approach phase."
 	)
 	_expect(
-		state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
-		"A new rider must not have a landing outcome."
+		state.run.jump_outcome == JumpOutcome.Value.NONE,
+		"A new rider must not have a jump outcome."
 	)
 	_expect(
 		is_zero_approx(state.run.completion_time_remaining),
@@ -47,33 +47,33 @@ func _test_manager_setup_initializes_rider() -> void:
 		"The rider must start in the approach phase."
 	)
 	_expect(
-		manager.rider_state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
-		"Manager setup must clear the primary landing outcome."
+		manager.rider_state.run.jump_outcome == JumpOutcome.Value.NONE,
+		"Manager setup must clear the primary jump outcome."
 	)
 	_expect(not manager.is_crashed(), "A newly initialized run must not be crashed.")
 
 
-func _test_crash_status_uses_landing_outcome() -> void:
+func _test_crash_status_uses_jump_outcome() -> void:
 	var manager := RiderRunManagerScene.new()
 	manager.setup(ShippedParkCourse)
 	manager.rider_state.run.run_phase = RiderRunState.RunPhase.LANDING
-	manager.rider_state.run.landing_outcome = RiderRunState.LandingOutcome.CRASH
-	_expect(manager.is_crashed(), "A crash landing outcome must mark the run as crashed.")
+	manager.rider_state.run.jump_outcome = JumpOutcome.Value.CRASH
+	_expect(manager.is_crashed(), "A crash jump outcome must mark the run as crashed.")
 
 
-func _test_bail_status_uses_landing_outcome() -> void:
+func _test_bail_status_uses_jump_outcome() -> void:
 	var manager := RiderRunManagerScene.new()
 	manager.setup(ShippedParkCourse)
 	manager.rider_state.run.run_phase = RiderRunState.RunPhase.LANDING
-	manager.rider_state.run.landing_outcome = RiderRunState.LandingOutcome.BAIL
-	_expect(manager.is_bailed(), "An bailed landing outcome must mark the run as bailed.")
+	manager.rider_state.run.jump_outcome = JumpOutcome.Value.BAIL
+	_expect(manager.is_bailed(), "A bail jump outcome must mark the run as bailed.")
 
 
 func _test_reset_restores_run_lifecycle() -> void:
 	var manager := RiderRunManagerScene.new()
 	manager.setup(ShippedParkCourse)
 	manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
-	manager.rider_state.run.landing_outcome = RiderRunState.LandingOutcome.CRASH
+	manager.rider_state.run.jump_outcome = JumpOutcome.Value.CRASH
 	manager.rider_state.kinematics.active_route_index = 2
 	manager.rider_state.run.completion_time_remaining = 1.0
 	manager.rider_state.jump.compression_active = true
@@ -99,8 +99,8 @@ func _test_reset_restores_run_lifecycle() -> void:
 		"Reset must return the rider to approach."
 	)
 	_expect(
-		manager.rider_state.run.landing_outcome == RiderRunState.LandingOutcome.NONE,
-		"Reset must clear the primary landing outcome."
+		manager.rider_state.run.jump_outcome == JumpOutcome.Value.NONE,
+		"Reset must clear the primary jump outcome."
 	)
 	_expect(
 		manager.rider_state.kinematics.active_route_index == -1,

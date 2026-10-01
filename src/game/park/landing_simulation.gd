@@ -11,7 +11,7 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	var flight_velocity := Vector2(state.kinematics.course_speed, state.kinematics.vertical_speed)
 	var landing_speed := maxf(flight_velocity.dot(tangent), 0.0)
 	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = _outcome_at_contact(state)
+	state.run.jump_outcome = _outcome_at_contact(state)
 	state.run.current_surface_id = &"landing"
 	state.jump.landing_resolved = true
 	state.jump.landing_position = contact_position
@@ -20,7 +20,7 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 	state.kinematics.ground_position = Vector2(
 		state.kinematics.course_progress, state.kinematics.lane_position
 	)
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+	if state.run.jump_outcome == JumpOutcome.Value.CRASH:
 		state.kinematics.ground_velocity = Vector2.ZERO
 		state.kinematics.course_speed = 0.0
 	else:
@@ -34,14 +34,14 @@ func resolve_contact(state: RiderState, contact: Dictionary) -> void:
 
 func _outcome_at_contact(state: RiderState) -> int:
 	if not state.jump.landing_prep_active:
-		return RiderRunState.LandingOutcome.CRASH
+		return JumpOutcome.Value.CRASH
 	if state.jump.trick_tracker.grab_active:
-		return RiderRunState.LandingOutcome.CRASH
+		return JumpOutcome.Value.CRASH
 	if state.jump.rotation_incomplete:
-		return RiderRunState.LandingOutcome.CRASH
+		return JumpOutcome.Value.CRASH
 	if state.jump.grab_released_after_deadline:
-		return RiderRunState.LandingOutcome.SKETCHY
-	return RiderRunState.LandingOutcome.CLEAN
+		return JumpOutcome.Value.SKETCHY
+	return JumpOutcome.Value.CLEAN
 
 
 func begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
@@ -78,7 +78,7 @@ func begin_bailed_runout(state: RiderState, course: ParkCourse) -> void:
 
 func crash(state: RiderState, tuning: RiderTuning) -> void:
 	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = RiderRunState.LandingOutcome.CRASH
+	state.run.jump_outcome = JumpOutcome.Value.CRASH
 	state.run.current_surface_id = &"landing"
 	state.jump.landing_resolved = true
 	state.jump.landing_position = Vector2(
@@ -93,7 +93,7 @@ func crash(state: RiderState, tuning: RiderTuning) -> void:
 
 func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) -> void:
 	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = RiderRunState.LandingOutcome.BAIL
+	state.run.jump_outcome = JumpOutcome.Value.BAIL
 	state.run.current_surface_id = surface_id
 	state.jump.landing_resolved = true
 	state.jump.landing_position = Vector2(
@@ -105,7 +105,7 @@ func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) 
 
 
 func step(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float) -> void:
-	if state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
+	if state.run.jump_outcome == JumpOutcome.Value.CRASH:
 		if state.run.completion_time_remaining <= 0.0:
 			state.run.completion_time_remaining = tuning.crash_completion_delay
 		state.run.completion_time_remaining = maxf(state.run.completion_time_remaining - delta, 0.0)
