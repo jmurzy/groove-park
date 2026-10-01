@@ -70,19 +70,9 @@ lint-check:
 typecheck: import
     for f in $(git ls-files --cached --others --exclude-standard -- '*.gd'); do [ -f "$f" ] || continue; "{{ godot_bin }}" --headless --path . --check-only --script "res://$f" || exit $?; done
 
-[doc("Run headless gameplay checks.")]
+[doc("Discover and run all headless test scripts in isolated Godot processes.")]
 test: import
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_park_course.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_park_path_geometry.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_run_state.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_approach_simulation.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_takeoff_simulation.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_flight_simulation.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_runout_simulation.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_grabs.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_rider_rotation.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/game/park/test_spin_gesture_controller.gd
-    "{{ godot_bin }}" --headless --path . --script res://tests/presentation/test_gameplay_presentation.gd
+    files=$(git ls-files --cached --others --exclude-standard -- 'tests/**/test_*.gd'); [ -n "$files" ] || { printf 'No tests found.\n' >&2; exit 1; }; for f in $files; do "{{ godot_bin }}" --headless --path . --script "res://$f" || exit $?; done
 
 [doc("Check GitHub Actions workflows")]
 actionlint-check:
