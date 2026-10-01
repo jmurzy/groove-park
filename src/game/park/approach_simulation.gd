@@ -111,8 +111,7 @@ func _update_low_momentum_detection(
 		<= maxf(tuning.low_momentum_detection_distance, 0.0)
 	)
 	var route_change_complete := is_equal_approx(
-		state.kinematics.approach_path_position,
-		float(state.kinematics.approach_path_target)
+		state.kinematics.approach_path_position, float(state.kinematics.approach_path_target)
 	)
 	var low_speed := state.kinematics.ground_velocity.x <= tuning.low_momentum_speed_threshold
 	if (
@@ -189,11 +188,9 @@ func _best_recoverable_forward_acceleration(
 		state.kinematics.course_progress, state.kinematics.approach_path_position
 	)
 	var slope_acceleration := tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient)
-	var pump_scale := clampf(
-		1.0 + gradient / maxf(tuning.uphill_pump_cut_gradient, 0.01), 0.0, 1.0
-	)
+	var pump_scale := clampf(1.0 + gradient / maxf(tuning.uphill_pump_cut_gradient, 0.01), 0.0, 1.0)
 	var speed := maxf(state.kinematics.ground_velocity.x, 0.0)
-	var drag := (tuning.snow_resistance + tuning.aerodynamic_drag * speed * speed)
+	var drag := tuning.snow_resistance + tuning.aerodynamic_drag * speed * speed
 	drag *= tuning.tuck_drag_multiplier
 	return slope_acceleration + tuning.fall_line_acceleration * pump_scale - drag
 

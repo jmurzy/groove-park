@@ -687,9 +687,7 @@ func _test_descending_below_bail_line_enters_runout() -> void:
 	var run := state.run
 	kinematics.course_progress = 3050.0
 	kinematics.vertical_position = (
-		_course.flight_bail_trigger_y_at(
-			kinematics.course_progress, kinematics.active_route_index
-		)
+		_course.flight_bail_trigger_y_at(kinematics.course_progress, kinematics.active_route_index)
 		+ 10.0
 	)
 	kinematics.ground_position = Vector2(kinematics.course_progress, 0.0)
@@ -743,9 +741,7 @@ func _test_ascending_below_bail_line_can_recover() -> void:
 	var kinematics := state.kinematics
 	kinematics.course_progress = 3050.0
 	kinematics.vertical_position = (
-		_course.flight_bail_trigger_y_at(
-			kinematics.course_progress, kinematics.active_route_index
-		)
+		_course.flight_bail_trigger_y_at(kinematics.course_progress, kinematics.active_route_index)
 		+ 50.0
 	)
 	kinematics.ground_position = Vector2(kinematics.course_progress, 0.0)
@@ -756,9 +752,7 @@ func _test_ascending_below_bail_line_can_recover() -> void:
 	tuning.air_drag = 0.0
 	tuning.air_time_scale = 1.0
 	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
-	_expect(
-		state.run.run_phase == RiderRunState.RunPhase.FLIGHT, "Ascending riders must not bail."
-	)
+	_expect(state.run.run_phase == RiderRunState.RunPhase.FLIGHT, "Ascending riders must not bail.")
 
 
 func _test_bail_floor_does_not_preempt_landing_contact() -> void:
@@ -1067,9 +1061,7 @@ func _test_gradient_sign_matches_terrain_pitch() -> void:
 
 func _test_low_momentum_rider_ends_run() -> void:
 	var roller := _roller_course()
-	var flight_path := PackedVector2Array(
-		[Vector2(0, 400), Vector2(800, 600), Vector2(1050, 350)]
-	)
+	var flight_path := PackedVector2Array([Vector2(0, 400), Vector2(800, 600), Vector2(1050, 350)])
 	roller.routes[0].approach_path = flight_path
 	roller.routes[1].approach_path = flight_path
 	var state := RiderStateScene.new()
@@ -1134,8 +1126,10 @@ func _test_low_momentum_stop_fallback() -> void:
 		"A low-momentum rider that cannot slide back should still end the run."
 	)
 	_expect(
-		state.kinematics.course_progress
-		> state.run.low_momentum_start_progress - _tuning.low_momentum_slide_distance,
+		(
+			state.kinematics.course_progress
+			> state.run.low_momentum_start_progress - _tuning.low_momentum_slide_distance
+		),
 		"The stopped-rider fallback should not require an impossible slide distance."
 	)
 	_tuning = original_tuning

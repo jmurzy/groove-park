@@ -163,9 +163,7 @@ static func _draw_bail_zone(
 	var bail_floor := course.flight_bail_floor_points(route_index)
 	var bail_trigger := PackedVector2Array()
 	for point in bail_floor:
-		bail_trigger.append(
-			Vector2(point.x, course.flight_bail_trigger_y_at(point.x, route_index))
-		)
+		bail_trigger.append(Vector2(point.x, course.flight_bail_trigger_y_at(point.x, route_index)))
 	var bail_zone := boundary.duplicate()
 	for point_index in range(bail_floor.size() - 1, -1, -1):
 		bail_zone.append(bail_floor[point_index])
@@ -176,18 +174,10 @@ static func _draw_bail_zone(
 		)
 	for point_index in range(bail_floor.size() - 1):
 		canvas.draw_dashed_line(
-			bail_floor[point_index],
-			bail_floor[point_index + 1],
-			BAIL_FLOOR_LINE,
-			3.0,
-			12.0
+			bail_floor[point_index], bail_floor[point_index + 1], BAIL_FLOOR_LINE, 3.0, 12.0
 		)
 		canvas.draw_dashed_line(
-			bail_trigger[point_index],
-			bail_trigger[point_index + 1],
-			BAIL_TRIGGER_LINE,
-			2.0,
-			8.0
+			bail_trigger[point_index], bail_trigger[point_index + 1], BAIL_TRIGGER_LINE, 2.0, 8.0
 		)
 	var zone_label_position := (boundary[0] + boundary[1]) * 0.5
 	canvas.draw_string(

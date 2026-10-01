@@ -42,11 +42,7 @@ func update(
 	)
 	_ready_label.text = (
 		"PRESS START OR R TO RESTART"
-		if (
-			run_manager.is_crashed()
-			or run_manager.is_bailed()
-			or run_manager.is_low_momentum()
-		)
+		if (run_manager.is_crashed() or run_manager.is_bailed() or run_manager.is_low_momentum())
 		else "CHALLENGE COMPLETE!" if run_manager.is_complete() else _ready_text(rider_kind)
 	)
 	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
