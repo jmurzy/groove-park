@@ -833,21 +833,27 @@ func _test_shipped_routes_complete_with_landing_prep() -> void:
 		var kinematics := state.kinematics
 		var run := state.run
 		var jump := state.jump
-		kinematics.approach_path_target = route_index
-		kinematics.approach_path_position = float(route_index)
-		kinematics.course_progress = (
-			ShippedParkCourse.route_at(route_index).approach_path[-1].x - 5.0
-		)
+		kinematics.course_progress = 80.0
 		kinematics.vertical_position = ShippedParkCourse.route_surface_y_at(
 			kinematics.course_progress, kinematics.approach_path_position
 		)
 		kinematics.ground_velocity = Vector2(500.0, 0.0)
 		run.has_ground_intent = true
+		var select_input := RiderInputFrameScene.new()
+		select_input.heading = Vector2.RIGHT
+		select_input.approach_path_change = route_index - 1
+		_simulation.step(state, select_input, ShippedParkCourse, _tuning, DELTA)
+		_expect(
+			kinematics.approach_path_target == route_index,
+			"Shipped route %d should be selectable from the center approach." % route_index
+		)
 		var input := RiderInputFrameScene.new()
 		input.heading = Vector2.RIGHT
-		input.landing_prep_pressed = true
 		for _tick in 3000:
 			_simulation.step(state, input, ShippedParkCourse, _tuning, DELTA)
+			if run.run_phase == RiderRunState.RunPhase.FLIGHT:
+				input = RiderInputFrameScene.new()
+				input.landing_prep_pressed = true
 			if run.run_phase == RiderRunState.RunPhase.COMPLETE:
 				break
 		_expect(

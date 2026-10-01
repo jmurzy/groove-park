@@ -527,8 +527,14 @@ Tests:
 
 ```text
 tests/game/park/test_park_course.gd
-tests/game/park/test_rider_simulation.gd
+tests/game/park/test_rider_approach_simulation.gd
+tests/game/park/test_rider_takeoff_simulation.gd
+tests/game/park/test_rider_flight_simulation.gd
+tests/game/park/test_rider_runout_simulation.gd
 tests/game/park/test_rider_grabs.gd
+tests/game/park/test_rider_rotation.gd
+tests/game/park/test_spin_gesture_controller.gd
+tests/presentation/test_gameplay_presentation.gd
 ```
 
 ## Milestones
