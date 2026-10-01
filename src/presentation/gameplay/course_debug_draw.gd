@@ -16,6 +16,7 @@ const COMPRESSION_FILL_ALPHA := 0.28
 const COMPRESSION_ACTIVE_ALPHA := 0.72
 const FLIGHT_DEBUG_COLOR := Color("68efff")
 const CONTACT_DEBUG_COLOR := Color("ff75e1")
+const FLIGHT_PREDICTION_DURATION := 1.2
 
 
 static func draw_course_debug(
@@ -265,10 +266,11 @@ static func draw_flight_debug(canvas: CanvasItem, state: RiderState, tuning: Rid
 	var velocity := Vector2(state.kinematics.course_speed, state.kinematics.vertical_speed)
 	canvas.draw_line(position, position + velocity * 0.25, FLIGHT_DEBUG_COLOR, 3.0)
 	var previous_position := position
-	for _step in 24:
-		velocity.y += tuning.gravity * 0.05
-		velocity = velocity.move_toward(Vector2.ZERO, tuning.air_drag * 0.05)
-		position += velocity * 0.05
+	var physics_delta := 1.0 / float(maxi(1, Engine.physics_ticks_per_second))
+	var prediction_steps := ceili(FLIGHT_PREDICTION_DURATION / physics_delta)
+	for _step in prediction_steps:
+		velocity = FlightIntegrator.integrated_velocity(velocity, tuning, physics_delta)
+		position += velocity * FlightIntegrator.scaled_delta(tuning, physics_delta)
 		canvas.draw_dashed_line(previous_position, position, FLIGHT_DEBUG_COLOR, 2.0, 6.0)
 		previous_position = position
 	canvas.draw_dashed_line(

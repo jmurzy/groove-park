@@ -6,7 +6,7 @@ extends RefCounted
 func advance(
 	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> Dictionary:
-	var flight_delta := delta * tuning.air_time_scale
+	var flight_delta := scaled_delta(tuning, delta)
 	var previous_position := Vector2(
 		state.kinematics.course_progress, state.kinematics.vertical_position
 	)
@@ -14,14 +14,12 @@ func advance(
 	var previous_course_speed := state.kinematics.course_speed
 	var previous_lane_speed := state.kinematics.lane_speed
 	var previous_vertical_speed := state.kinematics.vertical_speed
-	var next_vertical_speed := (
-		previous_vertical_speed
-		+ tuning.gravity * tuning.flight_arc_height_multiplier * flight_delta
+	var next_air_velocity := integrated_velocity(
+		Vector2(previous_course_speed, previous_vertical_speed), tuning, delta
 	)
-	var drag_factor := maxf(0.0, 1.0 - tuning.air_drag * flight_delta)
-	var next_course_speed := previous_course_speed * drag_factor
-	var next_lane_speed := previous_lane_speed * drag_factor
-	next_vertical_speed *= drag_factor
+	var next_course_speed := next_air_velocity.x
+	var next_vertical_speed := next_air_velocity.y
+	var next_lane_speed := previous_lane_speed * drag_factor(tuning, delta)
 	var next_position := (
 		previous_position + Vector2(next_course_speed, next_vertical_speed) * flight_delta
 	)
@@ -59,6 +57,20 @@ func advance(
 		state.kinematics.course_speed, state.kinematics.lane_speed
 	)
 	return {"airtime_delta": flight_delta, "remaining_delta": -1.0}
+
+
+static func scaled_delta(tuning: RiderTuning, delta: float) -> float:
+	return delta * tuning.air_time_scale
+
+
+static func drag_factor(tuning: RiderTuning, delta: float) -> float:
+	return maxf(0.0, 1.0 - tuning.air_drag * scaled_delta(tuning, delta))
+
+
+static func integrated_velocity(velocity: Vector2, tuning: RiderTuning, delta: float) -> Vector2:
+	var flight_delta := scaled_delta(tuning, delta)
+	velocity.y += tuning.gravity * tuning.flight_arc_height_multiplier * flight_delta
+	return velocity * drag_factor(tuning, delta)
 
 
 func has_overshot_landing(state: RiderState, course: ParkCourse) -> bool:
