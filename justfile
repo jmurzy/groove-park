@@ -7,8 +7,9 @@ gdlint_bin := env_var_or_default("GDLINT_BIN", "gdlint")
 # GitHub Actions workflow linter (brew install actionlint).
 actionlint_bin := env_var_or_default("ACTIONLINT_BIN", "actionlint")
 
+[default]
 [doc("List available development commands.")]
-default:
+help:
     @just --list
 
 [doc("Confirm the selected Godot executable matches the project's pinned version.")]
@@ -97,3 +98,7 @@ package: export
     for f in header.png hero.png marquee.png; do cp "artwork/ags/export/$f" "dist/artwork/$f"; done
     (cd dist && zip -r ../HEAVENLY-windows-x86_64.zip Install.ps1 game artwork)
     if command -v sha256sum >/dev/null 2>&1; then sha256sum HEAVENLY-windows-x86_64.zip; else shasum -a 256 HEAVENLY-windows-x86_64.zip; fi > HEAVENLY-windows-x86_64.zip.sha256
+
+[doc("Run an API Worker command. For example: just api check.")]
+api *args:
+    just --justfile workers/api/justfile {{ args }}

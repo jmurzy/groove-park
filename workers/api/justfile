@@ -1,0 +1,33 @@
+# Commands for the Heavenly API Worker. Run from this directory.
+
+[default]
+[doc("List available API Worker commands.")]
+help:
+    @just --list
+
+[doc("Install locked Node.js dependencies.")]
+install:
+    npm ci
+
+[doc("Generate Cloudflare Worker TypeScript bindings.")]
+types:
+    npm run cf-typegen
+
+[doc("Run the local Cloudflare Worker development server. Extra arguments are forwarded to Wrangler.")]
+dev *args:
+    npm run dev -- {{ quote(args) }}
+
+[doc("Run Worker type checks.")]
+typecheck:
+    npm run typecheck
+
+[doc("Run the Worker test suite.")]
+test:
+    npm test
+
+[doc("Run type checks and tests.")]
+check: typecheck test
+
+[doc("Deploy the Worker using the configured Wrangler credentials.")]
+deploy:
+    npm run deploy

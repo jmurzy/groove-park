@@ -5,4 +5,4 @@
 ; Install.ps1 seeds it only when missing and never overwrites live values.
 
 [liftie_api]
-user_agent="HEAVENLY/1.0 (+https://example.com; contact: you@example.com)"
+user_agent="Example/1.0 (+https://example.com; contact: you@example.com)"

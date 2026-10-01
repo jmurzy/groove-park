@@ -3,14 +3,16 @@
     "**/build": true,
     "**/.godot": true,
     "**/*.gd.uid": true,
-    "**/*.import": true
+    "**/*.import": true,
+    "**/node_modules": true
   },
 
   // @see https://github.com/Microsoft/vscode/issues/6502
   "search.exclude": {
     "**/.git": true,
     "**/build": true,
-    "**/.godot": true
+    "**/.godot": true,
+    "**/node_modules": true
   },
 
   "workbench.colorCustomizations": {

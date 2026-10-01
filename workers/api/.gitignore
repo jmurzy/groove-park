@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+workerConfiguration.d.ts
+.env*
+!.env.example

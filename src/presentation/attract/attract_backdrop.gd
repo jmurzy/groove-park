@@ -125,7 +125,7 @@ func _build_footer() -> Label:
 	var build_suffix := FOOTER_DEV_SUFFIX
 	if OS.has_feature("ags"):
 		build_suffix = FOOTER_AGS_SUFFIX
-	elif OS.has_feature("wasm"):
+	elif OS.has_feature("web"):
 		build_suffix = FOOTER_WEB_SUFFIX
 	footer.text = "%s   ◆   %s" % [FOOTER_COPYRIGHT_FORMAT % year, build_suffix]
 	footer.position = Vector2(0, 1000)

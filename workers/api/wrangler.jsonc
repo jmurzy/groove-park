@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "heavenly-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LEADERBOARD",
+        "class_name": "GlobalLeaderboard"
+      }
+    ]
+  },
+  "exports": {
+    "GlobalLeaderboard": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "secrets": {
+    "required": ["LIFTIE_USER_AGENT", "TZ"]
+  }
+}
