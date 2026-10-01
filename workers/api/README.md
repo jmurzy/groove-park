@@ -44,12 +44,12 @@ schema change; never edit an applied one.
 The Worker validates payload shape, a normalized player name of up to 12 characters, total score,
 rider kind, and the `ags` or `web` platform.
 
-Configure the required Worker secrets before deployment:
+For the initial deployment, copy `.env.example` to `.env`, replace its placeholder values, then
+upload the Worker and its required secrets together:
 
 ```sh
-npx wrangler secret put LIFTIE_USER_AGENT
-npx wrangler secret put TZ
+npx wrangler deploy --secrets-file .env
 ```
 
-For local `wrangler dev`, copy `.env.example` to `.env` and replace the placeholder value. The
-actual `.env` file is ignored and must not be committed.
+After the Worker exists, update an individual deployed secret with `npx wrangler secret put <KEY>`.
+The `.env` file is also used by local `wrangler dev`; it is ignored and must not be committed.
