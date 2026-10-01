@@ -1065,15 +1065,80 @@ func _test_gradient_sign_matches_terrain_pitch() -> void:
 	_expect(roller.route_gradient_at(500.0, 1.0) < 0.0, "Uphill should have negative gradient.")
 
 
-func _test_uphill_stalls_without_momentum() -> void:
+func _test_low_momentum_rider_ends_run() -> void:
 	var roller := _roller_course()
+	var flight_path := PackedVector2Array(
+		[Vector2(0, 400), Vector2(800, 600), Vector2(1050, 350)]
+	)
+	roller.routes[0].approach_path = flight_path
+	roller.routes[1].approach_path = flight_path
 	var state := RiderStateScene.new()
-	state.kinematics.course_progress = 380.0
-	state.kinematics.ground_velocity = Vector2(120.0, 0.0)
+	state.kinematics.course_progress = 700.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
 	state.run.has_ground_intent = true
-	for _tick in 300:
+	_step_on(state, roller, Vector2.RIGHT)
+	_expect(
+		state.run.run_phase == RiderRunState.RunPhase.APPROACH,
+		"Low-momentum prediction should wait until the rider is near the lip."
+	)
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	for _tick in 60:
 		_step_on(state, roller, Vector2.RIGHT)
-	_expect(state.kinematics.course_progress < 590.0, "Slow entries must stall before the crest.")
+		if state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM:
+			break
+	_expect(
+		state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM,
+		"A low-momentum rider should receive a warning before the run ends."
+	)
+	for _tick in 1500:
+		_step_on(state, roller, Vector2.RIGHT)
+		if state.run.run_phase == RiderRunState.RunPhase.COMPLETE:
+			break
+	_expect(
+		state.run.run_phase == RiderRunState.RunPhase.COMPLETE,
+		"A low-momentum rider should end the run after slipping back."
+	)
+	_expect(
+		state.kinematics.course_progress < state.run.low_momentum_start_progress,
+		"A low-momentum rider should visibly slide back before the run ends."
+	)
+	_expect(
+		state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM,
+		"The low-momentum end should retain its distinct outcome."
+	)
+
+
+func _test_low_momentum_stop_fallback() -> void:
+	var original_tuning := _tuning
+	_tuning = RiderTuningScene.new()
+	_tuning.fall_line_acceleration = 0.0
+	_tuning.slope_gravity = 0.0
+	_tuning.low_momentum_detection_duration = 0.1
+	_tuning.low_momentum_stop_duration = 0.1
+	var flat_course := _approach_course()
+	var flight_path := PackedVector2Array([Vector2(0, 400), Vector2(1050, 400)])
+	flat_course.routes[0].approach_path = flight_path
+	flat_course.routes[1].approach_path = flight_path
+	var state := RiderStateScene.new()
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	for _tick in 120:
+		_step_on(state, flat_course, Vector2.RIGHT)
+		if state.run.run_phase == RiderRunState.RunPhase.COMPLETE:
+			break
+	_expect(
+		state.run.run_phase == RiderRunState.RunPhase.COMPLETE,
+		"A low-momentum rider that cannot slide back should still end the run."
+	)
+	_expect(
+		state.kinematics.course_progress
+		> state.run.low_momentum_start_progress - _tuning.low_momentum_slide_distance,
+		"The stopped-rider fallback should not require an impossible slide distance."
+	)
+	_tuning = original_tuning
 
 
 func _test_uphill_clears_with_momentum() -> void:

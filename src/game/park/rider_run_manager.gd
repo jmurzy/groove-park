@@ -36,6 +36,10 @@ func is_abandoned() -> bool:
 	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
 
 
+func is_low_momentum() -> bool:
+	return rider_state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM
+
+
 func is_complete() -> bool:
 	return rider_state.run.run_phase == RiderRunState.RunPhase.COMPLETE
 

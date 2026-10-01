@@ -19,6 +19,12 @@ extends Resource
 @export var compression_rate := 1.8
 @export var maximum_compression := 1.0
 @export var compression_window_distance := 220.0
+@export var low_momentum_detection_distance := 64.0
+@export var low_momentum_speed_threshold := 45.0
+@export var low_momentum_progress_epsilon := 2.0
+@export var low_momentum_detection_duration := 0.1
+@export var low_momentum_slide_distance := 48.0
+@export var low_momentum_stop_duration := 0.5
 @export var maximum_pop_impulse := 260.0
 @export_range(0.0, 1.0) var compression_auto_release_quality := 0.7
 @export var flight_arc_height_multiplier := 1.25

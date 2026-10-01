@@ -24,6 +24,9 @@ func step(
 
 	state.run.run_phase = RiderRunState.RunPhase.APPROACH
 	state.run.current_surface_id = StringName()
+	_update_path(state, input, course, tuning, delta)
+	_compression.update(state, input, _end(state, course), tuning, delta)
+
 	var steering_heading := Vector2(input.heading.x, 0.0)
 	# The approach only permits downhill and across-slope steering, never uphill travel.
 	steering_heading.x = maxf(steering_heading.x, 0.0)
@@ -36,8 +39,6 @@ func step(
 	state.run.edge_active = (
 		not downhill_held and not state.kinematics.ground_velocity.is_zero_approx()
 	)
-	_update_path(state, input, course, tuning, delta)
-	_compression.update(state, input, _end(state, course), tuning, delta)
 
 	if not steering_heading.is_zero_approx():
 		state.kinematics.desired_heading = steering_heading
@@ -46,14 +47,20 @@ func step(
 	if not state.run.has_ground_intent:
 		_sync_ground_state(state, course)
 		return -1.0
+	_update_low_momentum_detection(state, course, tuning, delta)
 
 	_motion.turn_toward_input(state, steering_heading, input, tuning, delta)
-	if _motion.apply_forces(state, input, course, tuning, delta, downhill_held, left_braking):
+	if (
+		_motion.apply_forces(state, input, course, tuning, delta, downhill_held, left_braking)
+		and not _is_rolling_back_from_low_momentum(state)
+	):
 		_stop_at_edge(state)
 	var remaining_delta := _motion.move_within_bounds(
 		state, course, delta, _stop_at_edge.bind(state)
 	)
 	_sync_ground_state(state, course)
+	if _should_end_for_low_momentum(state, tuning, delta):
+		_complete_for_low_momentum(state)
 	return remaining_delta
 
 
@@ -89,6 +96,113 @@ func _clear_controls(state: RiderState) -> void:
 	state.run.tuck_active = false
 	state.run.brake_active = false
 	state.run.edge_active = false
+
+
+func _update_low_momentum_detection(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: float
+) -> void:
+	if _is_rolling_back_from_low_momentum(state):
+		return
+	var route_index := clampi(
+		roundi(state.kinematics.approach_path_position), 0, course.routes.size() - 1
+	)
+	var near_lip := (
+		_end(state, course) - state.kinematics.course_progress
+		<= maxf(tuning.low_momentum_detection_distance, 0.0)
+	)
+	var route_change_complete := is_equal_approx(
+		state.kinematics.approach_path_position,
+		float(state.kinematics.approach_path_target)
+	)
+	var low_speed := state.kinematics.ground_velocity.x <= tuning.low_momentum_speed_threshold
+	if (
+		course.route_at(route_index).kind != ParkRoute.Kind.FLIGHT
+		or not route_change_complete
+		or not near_lip
+		or not low_speed
+		or _best_recoverable_forward_acceleration(state, course, tuning) > 0.0
+	):
+		_reset_low_momentum_detection(state)
+		return
+	if (
+		state.kinematics.course_progress
+		> state.run.low_momentum_last_progress + tuning.low_momentum_progress_epsilon
+	):
+		state.run.low_momentum_last_progress = state.kinematics.course_progress
+		state.run.low_momentum_no_progress_time = 0.0
+		return
+	state.run.low_momentum_no_progress_time += delta
+	if state.run.low_momentum_no_progress_time >= tuning.low_momentum_detection_duration:
+		_begin_low_momentum(state)
+
+
+func _begin_low_momentum(state: RiderState) -> void:
+	state.run.landing_outcome = RiderRunState.LandingOutcome.LOW_MOMENTUM
+	state.run.low_momentum_start_progress = state.kinematics.course_progress
+	state.run.low_momentum_stop_time = 0.0
+	state.jump.compression_active = false
+	state.jump.compression_amount = 0.0
+
+
+func _should_end_for_low_momentum(state: RiderState, tuning: RiderTuning, delta: float) -> bool:
+	if not _is_rolling_back_from_low_momentum(state):
+		return false
+	if (
+		state.kinematics.course_progress
+		<= state.run.low_momentum_start_progress - maxf(tuning.low_momentum_slide_distance, 0.0)
+	):
+		return true
+	if absf(state.kinematics.ground_velocity.x) > tuning.low_momentum_speed_threshold:
+		state.run.low_momentum_stop_time = 0.0
+		return false
+	state.run.low_momentum_stop_time += delta
+	return state.run.low_momentum_stop_time >= tuning.low_momentum_stop_duration
+
+
+func _complete_for_low_momentum(state: RiderState) -> void:
+	state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+	state.run.current_surface_id = &"low_momentum"
+	state.run.completion_time_remaining = 0.0
+	state.run.low_momentum_no_progress_time = 0.0
+	state.run.low_momentum_stop_time = 0.0
+	state.jump.compression_active = false
+	state.jump.compression_amount = 0.0
+	state.jump.compression_release_progress = -1.0
+	state.jump.compression_release_quality = 0.0
+	state.jump.compression_auto_released = false
+	state.kinematics.ground_velocity = Vector2.ZERO
+	state.kinematics.course_speed = 0.0
+	state.kinematics.lane_speed = 0.0
+	state.kinematics.vertical_speed = 0.0
+	_clear_controls(state)
+
+
+func _reset_low_momentum_detection(state: RiderState) -> void:
+	state.run.low_momentum_last_progress = state.kinematics.course_progress
+	state.run.low_momentum_no_progress_time = 0.0
+
+
+func _best_recoverable_forward_acceleration(
+	state: RiderState, course: ParkCourse, tuning: RiderTuning
+) -> float:
+	var gradient := course.route_gradient_at(
+		state.kinematics.course_progress, state.kinematics.approach_path_position
+	)
+	var slope_acceleration := tuning.slope_gravity * gradient / sqrt(1.0 + gradient * gradient)
+	var pump_scale := clampf(
+		1.0 + gradient / maxf(tuning.uphill_pump_cut_gradient, 0.01), 0.0, 1.0
+	)
+	var speed := maxf(state.kinematics.ground_velocity.x, 0.0)
+	var drag := (tuning.snow_resistance + tuning.aerodynamic_drag * speed * speed)
+	drag *= tuning.tuck_drag_multiplier
+	return slope_acceleration + tuning.fall_line_acceleration * pump_scale - drag
+
+
+func _is_rolling_back_from_low_momentum(state: RiderState) -> bool:
+	return (
+		state.run.run_phase == RiderRunState.RunPhase.APPROACH
+		and state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM
+	)
 
 
 func _end(state: RiderState, course: ParkCourse) -> float:

@@ -16,5 +16,6 @@ func run_checks() -> void:
 	_test_path_change_is_rejected_too_close_to_lip()
 	_test_route_tangent_follows_selected_path()
 	_test_gradient_sign_matches_terrain_pitch()
-	_test_uphill_stalls_without_momentum()
+	_test_low_momentum_rider_ends_run()
+	_test_low_momentum_stop_fallback()
 	_test_uphill_clears_with_momentum()
