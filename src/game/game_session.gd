@@ -1,13 +1,17 @@
-## Owns the active player session: phase, rider selection, park run, and pause state.
+## Owns authoritative round lifecycle, rider selection, park run, and pause state.
 class_name GameSession
 extends Node
 
-signal session_phase_changed(phase: int)
+signal phase_changed(phase: int)
+signal jump_started(round_state: RoundState)
+signal jump_result_recorded(round_state: RoundState, jump_result: JumpResult)
+signal round_completed(round_state: RoundState)
 
 var session_phase := RoundState.SessionPhase.ATTRACT
 var rider_kind: StringName = RiderKind.SNOWBOARDER
 var run_manager: RiderRunManager
 var is_paused := false
+var _round_state: RoundState
 
 
 func start_game(selected_rider_kind: StringName) -> void:
@@ -17,11 +21,16 @@ func start_game(selected_rider_kind: StringName) -> void:
 	rider_kind = selected_rider_kind
 	run_manager = null
 	is_paused = false
-	_set_session_phase(RoundState.SessionPhase.JUMP_ACTIVE)
+	var created := RoundState.create(rider_kind, 1, [], RoundState.SessionPhase.JUMP_ACTIVE)
+	if not created.is_valid:
+		push_error("Unable to start a round: %s" % "; ".join(created.errors))
+		return
+	_replace_round_state(created.value)
+	jump_started.emit(_round_state)
 
 
 func begin_run(course: ParkCourse) -> void:
-	if session_phase != RoundState.SessionPhase.JUMP_ACTIVE:
+	if not _is_jump_active():
 		push_error("A run can only begin while playing.")
 		return
 	run_manager = RiderRunManager.new()
@@ -31,12 +40,14 @@ func begin_run(course: ParkCourse) -> void:
 func step_run(
 	input: RiderInputFrame, course: ParkCourse, tuning: RiderTuning, delta: float
 ) -> void:
-	if not run_manager or is_paused or session_phase != RoundState.SessionPhase.JUMP_ACTIVE:
+	if not run_manager or is_paused or not _is_jump_active():
 		return
 	run_manager.step(input, course, tuning, delta)
 
 
 func restart_run(course: ParkCourse) -> void:
+	if not _is_jump_active():
+		return
 	if not run_manager:
 		begin_run(course)
 		return
@@ -52,11 +63,88 @@ func set_paused(next_paused: bool) -> void:
 func return_to_attract() -> void:
 	is_paused = false
 	run_manager = null
+	_round_state = null
 	_set_session_phase(RoundState.SessionPhase.ATTRACT)
+
+
+func round_state() -> RoundState:
+	return _round_state
+
+
+func record_active_jump_result(jump_result: JumpResult) -> bool:
+	if (
+		jump_result == null
+		or not _is_jump_active()
+		or run_manager == null
+		or not run_manager.is_complete()
+	):
+		return false
+	var results := _round_state.jump_results()
+	results.append(jump_result)
+	var next_phase := (
+		RoundState.SessionPhase.GAME_OVER
+		if jump_result.outcome() == JumpOutcome.Value.CRASH
+		else RoundState.SessionPhase.JUMP_TALLY
+	)
+	var created := RoundState.create(
+		rider_kind, _round_state.current_jump_number(), results, next_phase
+	)
+	if not created.is_valid:
+		push_error("Unable to record a jump result: %s" % "; ".join(created.errors))
+		return false
+	_replace_round_state(created.value)
+	jump_result_recorded.emit(_round_state, jump_result)
+	if session_phase == RoundState.SessionPhase.GAME_OVER:
+		round_completed.emit(_round_state)
+	return true
+
+
+func complete_tally() -> bool:
+	if _round_state == null or session_phase != RoundState.SessionPhase.JUMP_TALLY:
+		return false
+	if _round_state.current_jump_number() >= RoundState.MAX_JUMPS:
+		return _complete_round()
+	var created := RoundState.create(
+		rider_kind,
+		_round_state.current_jump_number() + 1,
+		_round_state.jump_results(),
+		RoundState.SessionPhase.JUMP_ACTIVE
+	)
+	if not created.is_valid:
+		push_error("Unable to begin the next jump: %s" % "; ".join(created.errors))
+		return false
+	run_manager = null
+	_replace_round_state(created.value)
+	jump_started.emit(_round_state)
+	return true
 
 
 func _set_session_phase(next_phase: int) -> void:
 	if session_phase == next_phase:
 		return
 	session_phase = next_phase
-	session_phase_changed.emit(session_phase)
+	phase_changed.emit(session_phase)
+
+
+func _replace_round_state(next_round_state: RoundState) -> void:
+	_round_state = next_round_state
+	_set_session_phase(_round_state.session_phase())
+
+
+func _complete_round() -> bool:
+	var created := RoundState.create(
+		rider_kind,
+		_round_state.current_jump_number(),
+		_round_state.jump_results(),
+		RoundState.SessionPhase.GAME_OVER
+	)
+	if not created.is_valid:
+		push_error("Unable to complete a round: %s" % "; ".join(created.errors))
+		return false
+	_replace_round_state(created.value)
+	round_completed.emit(_round_state)
+	return true
+
+
+func _is_jump_active() -> bool:
+	return _round_state != null and session_phase == RoundState.SessionPhase.JUMP_ACTIVE
