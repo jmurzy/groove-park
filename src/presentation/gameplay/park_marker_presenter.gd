@@ -9,13 +9,17 @@ const FULL_SPIN_LABEL_COLOR := Color("0047b8")
 
 var _info_marker: InfoMarker
 var _performance_marker: PerformanceMarker
+var _rider_kind: StringName
 var _observed_compression_release_progress := -1.0
 var _observed_spin_half_turns := 0
 
 
-func _init(info_marker: InfoMarker, performance_marker: PerformanceMarker) -> void:
+func _init(
+	info_marker: InfoMarker, performance_marker: PerformanceMarker, rider_kind: StringName
+) -> void:
 	_info_marker = info_marker
 	_performance_marker = performance_marker
+	_rider_kind = rider_kind
 
 
 func reset() -> void:
@@ -80,20 +84,26 @@ func _show_new_spin_feedback(state: RiderState) -> void:
 	var degrees := spin_half_turns * 180
 	if degrees % 360 == 0:
 		_performance_marker.show_feedback(
-			spin_feedback_text(state.jump.spin_direction, degrees),
+			spin_feedback_text(state.jump.spin_direction, degrees, _rider_kind),
 			FULL_SPIN_PANEL_COLOR,
 			FULL_SPIN_LABEL_COLOR
 		)
 		return
-	_performance_marker.show_feedback(spin_feedback_text(state.jump.spin_direction, degrees))
+	_performance_marker.show_feedback(
+		spin_feedback_text(state.jump.spin_direction, degrees, _rider_kind)
+	)
 
 
 static func spin_half_turns(spin_progress: float) -> int:
 	return floori(spin_progress / PI)
 
 
-static func spin_feedback_text(spin_direction: int, degrees: int) -> String:
+static func spin_feedback_text(
+	spin_direction: int, degrees: int, rider_kind: StringName = GameSession.RIDER_SNOWBOARDER
+) -> String:
 	var direction := "BACKSIDE" if spin_direction < 0 else "FRONTSIDE"
+	if rider_kind == GameSession.RIDER_SKIER:
+		direction = "LEFT" if spin_direction < 0 else "RIGHT"
 	return "%s %d" % [direction, degrees]
 
 

@@ -102,7 +102,7 @@ func _build_world() -> void:
 	add_child(_info_marker)
 	_performance_marker = PerformanceMarkerScene.new()
 	add_child(_performance_marker)
-	_marker_presenter = ParkMarkerPresenter.new(_info_marker, _performance_marker)
+	_marker_presenter = ParkMarkerPresenter.new(_info_marker, _performance_marker, rider_kind)
 	_camera = Camera2D.new()
 	_camera.name = "ParkCamera"
 	_camera.zoom = ParkCameraController.CAMERA_ZOOM
