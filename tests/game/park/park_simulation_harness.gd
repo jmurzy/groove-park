@@ -390,10 +390,10 @@ func _test_ground_route_transitions_to_landing() -> void:
 	_expect(kinematics.ground_velocity.x > 0.0, "Grounded runout must preserve approach momentum.")
 	_expect(
 		(
-			run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
+			run.landing_outcome == RiderRunState.LandingOutcome.BAIL
 			and is_equal_approx(jump.landing_position.x, 3200.0)
 		),
-		"Grounded runout should abandon at the approach endpoint."
+		"Grounded runout should bail at the approach endpoint."
 	)
 
 
@@ -681,13 +681,13 @@ func _test_runout_ignores_input_and_completes() -> void:
 	)
 
 
-func _test_descending_below_abandon_line_enters_runout() -> void:
+func _test_descending_below_bail_line_enters_runout() -> void:
 	var state := flight_state()
 	var kinematics := state.kinematics
 	var run := state.run
 	kinematics.course_progress = 3050.0
 	kinematics.vertical_position = (
-		_course.flight_abandon_trigger_y_at(
+		_course.flight_bail_trigger_y_at(
 			kinematics.course_progress, kinematics.active_route_index
 		)
 		+ 10.0
@@ -703,47 +703,47 @@ func _test_descending_below_abandon_line_enters_runout() -> void:
 	_expect(
 		(
 			run.run_phase == RiderRunState.RunPhase.LANDING
-			and run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
-			and run.current_surface_id == &"abandon"
+			and run.landing_outcome == RiderRunState.LandingOutcome.BAIL
+			and run.current_surface_id == &"bail"
 		),
-		"A descending rider below the abandon line should enter automatic runout."
+		"A descending rider below the bail line should enter automatic runout."
 	)
 	_expect(
 		is_equal_approx(
 			kinematics.vertical_position,
-			_course.flight_abandon_trigger_y_at(
+			_course.flight_bail_trigger_y_at(
 				kinematics.course_progress, kinematics.active_route_index
 			)
 		),
-		"An airborne abandon should snap onto the active abandon line."
+		"An airborne bail should snap onto the active bail line."
 	)
 	var previous_progress := kinematics.course_progress
 	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.5)
-	_expect(kinematics.course_progress > previous_progress, "An abandon should auto-advance.")
+	_expect(kinematics.course_progress > previous_progress, "An bail should auto-advance.")
 	_expect(
 		is_equal_approx(
 			kinematics.vertical_position,
-			_course.flight_abandon_trigger_y_at(
+			_course.flight_bail_trigger_y_at(
 				kinematics.course_progress, kinematics.active_route_index
 			)
 		),
-		"Airborne abandon runout should continue along the abandon line."
+		"Airborne bail runout should continue along the bail line."
 	)
 	var projection := ParkProjectionScene.new(_course)
 	_expect(
 		projection.project_rider_ground(state).is_equal_approx(
 			Vector2(kinematics.course_progress, kinematics.vertical_position)
 		),
-		"Abandon projection should follow the abandon line."
+		"Bail projection should follow the bail line."
 	)
 
 
-func _test_ascending_below_abandon_line_can_recover() -> void:
+func _test_ascending_below_bail_line_can_recover() -> void:
 	var state := flight_state()
 	var kinematics := state.kinematics
 	kinematics.course_progress = 3050.0
 	kinematics.vertical_position = (
-		_course.flight_abandon_trigger_y_at(
+		_course.flight_bail_trigger_y_at(
 			kinematics.course_progress, kinematics.active_route_index
 		)
 		+ 50.0
@@ -757,13 +757,13 @@ func _test_ascending_below_abandon_line_can_recover() -> void:
 	tuning.air_time_scale = 1.0
 	_simulation.step(state, RiderInputFrameScene.new(), _course, tuning, 0.1)
 	_expect(
-		state.run.run_phase == RiderRunState.RunPhase.FLIGHT, "Ascending riders must not abandon."
+		state.run.run_phase == RiderRunState.RunPhase.FLIGHT, "Ascending riders must not bail."
 	)
 
 
-func _test_abandon_floor_does_not_preempt_landing_contact() -> void:
+func _test_bail_floor_does_not_preempt_landing_contact() -> void:
 	var routed_course := _approach_course()
-	routed_course.flight_abandon_y = 100.0
+	routed_course.flight_bail_y = 100.0
 	routed_course.route_at(1).landing_path = PackedVector2Array(
 		[Vector2(100, 0), Vector2(200, 200)]
 	)
@@ -860,7 +860,7 @@ func _test_shipped_routes_complete_with_landing_prep() -> void:
 			run.run_phase == RiderRunState.RunPhase.COMPLETE,
 			"Route %d should complete." % route_index
 		)
-		var outcome_is_valid := run.landing_outcome == RiderRunState.LandingOutcome.ABANDON
+		var outcome_is_valid := run.landing_outcome == RiderRunState.LandingOutcome.BAIL
 		if ShippedParkCourse.route_at(route_index).kind == ParkRoute.Kind.FLIGHT:
 			outcome_is_valid = run.landing_outcome == RiderRunState.LandingOutcome.CLEAN
 		_expect(
@@ -1011,7 +1011,7 @@ func _approach_course() -> ParkCourse:
 		_route(&"center", ParkRoute.Kind.FLIGHT, path, flight_landing),
 		_route(&"lower", ParkRoute.Kind.GROUND_RUNOUT, path, ground_runout),
 	]
-	course.flight_abandon_y = 1800.0
+	course.flight_bail_y = 1800.0
 	course.lane_min = -100.0
 	course.lane_max = 100.0
 	return course

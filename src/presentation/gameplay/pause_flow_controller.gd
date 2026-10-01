@@ -2,7 +2,7 @@
 class_name PauseFlowController
 extends RefCounted
 
-signal abandon_requested
+signal bail_requested
 
 const PauseMenuScene := preload("res://src/presentation/gameplay/pause_menu.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
@@ -38,7 +38,7 @@ func request_open(tree: SceneTree) -> void:
 	_pause_menu = PauseMenuScene.new()
 	_pause_menu.resume_requested.connect(close)
 	_pause_menu.controls_requested.connect(_open_controls)
-	_pause_menu.abandon_requested.connect(abandon_requested.emit)
+	_pause_menu.bail_requested.connect(bail_requested.emit)
 	_ui_layer.add_child(_pause_menu)
 
 

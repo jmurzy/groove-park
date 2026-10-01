@@ -20,10 +20,10 @@ func project_rider(state: RiderState) -> Vector2:
 
 
 func project_rider_ground(state: RiderState) -> Vector2:
-	if state.run.current_surface_id == &"abandon":
+	if state.run.current_surface_id == &"bail":
 		return Vector2(
 			state.kinematics.ground_position.x,
-			course.flight_abandon_trigger_y_at(
+			course.flight_bail_trigger_y_at(
 				state.kinematics.ground_position.x, state.kinematics.active_route_index
 			)
 		)

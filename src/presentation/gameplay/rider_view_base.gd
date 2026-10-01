@@ -54,7 +54,7 @@ func update_from_state(state: RiderState, world_position: Vector2, ground_rotati
 		state.jump.orientation
 		if (
 			state.run.run_phase == RiderRunState.RunPhase.FLIGHT
-			or state.run.current_surface_id == &"abandon"
+			or state.run.current_surface_id == &"bail"
 		)
 		else ground_rotation
 	)

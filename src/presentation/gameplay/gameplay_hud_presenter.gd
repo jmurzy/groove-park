@@ -34,7 +34,7 @@ func update(
 		(
 			not run_manager.has_started_moving
 			or run_manager.is_crashed()
-			or run_manager.is_abandoned()
+			or run_manager.is_bailed()
 			or run_manager.is_low_momentum()
 			or run_manager.is_complete()
 		)
@@ -44,7 +44,7 @@ func update(
 		"PRESS START OR R TO RESTART"
 		if (
 			run_manager.is_crashed()
-			or run_manager.is_abandoned()
+			or run_manager.is_bailed()
 			or run_manager.is_low_momentum()
 		)
 		else "CHALLENGE COMPLETE!" if run_manager.is_complete() else _ready_text(rider_kind)
@@ -94,8 +94,8 @@ func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState
 		action_message = "SKETCHY RECOVERY"
 	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CRASH:
 		action_message = "CRASH"
-	elif state.run.landing_outcome == RiderRunState.LandingOutcome.ABANDON:
-		action_message = "ABANDON"
+	elif state.run.landing_outcome == RiderRunState.LandingOutcome.BAIL:
+		action_message = "BAIL"
 	elif state.run.landing_outcome == RiderRunState.LandingOutcome.LOW_MOMENTUM:
 		action_message = "LOW MOMENTUM"
 	elif state.run.landing_outcome == RiderRunState.LandingOutcome.CLEAN:

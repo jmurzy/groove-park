@@ -80,12 +80,12 @@ func has_overshot_landing(state: RiderState, course: ParkCourse) -> bool:
 	)
 
 
-func should_abandon(state: RiderState, course: ParkCourse) -> bool:
+func should_bail(state: RiderState, course: ParkCourse) -> bool:
 	return (
 		state.kinematics.vertical_speed > 0.0
 		and (
 			state.kinematics.vertical_position
-			> course.flight_abandon_trigger_y_at(
+			> course.flight_bail_trigger_y_at(
 				state.kinematics.course_progress, state.kinematics.active_route_index
 			)
 		)

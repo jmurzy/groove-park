@@ -164,15 +164,15 @@ Otherwise                   -> CLEAN
 ```
 
 - A clean landing enters automatic runout with celebration presentation.
-- An abandon enters automatic runout with deep-landing presentation and no celebration.
-- An airborne abandon follows the active route's curved abandon line; the lower grounded route follows its authored runout path.
+- An bail enters automatic runout with deep-landing presentation and no celebration.
+- An airborne bail follows the active route's curved bail line; the lower grounded route follows its authored runout path.
 - A sketchy landing enters automatic runout with recovery presentation.
 - A crash stops or settles the rider and completes after a deterministic delay.
 - Missing the displayed rotation quota does not affect landing outcome; it remains a speed-management target and HUD metric.
 - Landing controls are always disabled.
 - Clean and sketchy runouts preserve contact momentum but are advanced automatically.
 - The run completes at the selected landing path endpoint.
-- The lower grounded route resolves as `ABANDON` and enters the same automatic runout without a flight or trick requirement.
+- The lower grounded route resolves as `BAIL` and enters the same automatic runout without a flight or trick requirement.
 
 ## Authoritative State Model
 
@@ -188,7 +188,7 @@ enum RunPhase {
 
 enum LandingOutcome {
     NONE,
-    ABANDON,
+    BAIL,
     CLEAN,
     SKETCHY,
     CRASH,
@@ -417,7 +417,7 @@ true while LT is held and `spin_rt_pressed` is true while RT is held, with match
 ### Debug Overlay
 
 - Approach and landing paths remain visible under `--show-terrain`.
-- Flight routes shade an abandon zone between their virtual miss boundaries and curved zone floors; the authoritative `ABANDON LINE` runs through the center.
+- Flight routes shade an bail zone between their virtual miss boundaries and curved zone floors; the authoritative `BAIL LINE` runs through the center.
 - The lower route labels its `GROUND JOIN`.
 - Future flight debugging should add velocity vectors, predicted trajectory, release deadline, and first contact.
 
@@ -644,7 +644,7 @@ Implementation:
 - Disabled input and auto-advanced clean landings and the grounded lower route.
 - Marked the run `COMPLETE` at the selected landing endpoint.
 - Completed missed-flight crashes after a deterministic simulation-owned delay.
-- Added an automatic runout handoff when a descending rider falls below the visible center abandon line.
+- Added an automatic runout handoff when a descending rider falls below the visible center bail line.
 - Added matching shaded warning zones, miss boundaries, and crash-floor lines to `--show-terrain`.
 - Added end-to-end clean completion coverage for all three shipped routes at baseline speed.
 

@@ -52,7 +52,7 @@ func begin_ground_runout(state: RiderState, course: ParkCourse) -> void:
 	_begin_runout(state, &"landing", tangent)
 
 
-func begin_abandoned_runout(state: RiderState, course: ParkCourse) -> void:
+func begin_bailed_runout(state: RiderState, course: ParkCourse) -> void:
 	var route_index := state.kinematics.active_route_index
 	var route := course.route_at(route_index)
 	var landing_path := route.landing_path
@@ -60,14 +60,14 @@ func begin_abandoned_runout(state: RiderState, course: ParkCourse) -> void:
 	state.kinematics.course_progress = clampf(
 		state.kinematics.course_progress, lip_progress, landing_path[-1].x
 	)
-	state.kinematics.vertical_position = course.flight_abandon_trigger_y_at(
+	state.kinematics.vertical_position = course.flight_bail_trigger_y_at(
 		state.kinematics.course_progress, route_index
 	)
-	var tangent := _abandon_tangent_at(state, course)
+	var tangent := _bail_tangent_at(state, course)
 	var forward_speed := maxf(
 		Vector2(state.kinematics.course_speed, state.kinematics.vertical_speed).dot(tangent), 0.0
 	)
-	_begin_runout(state, &"abandon", tangent)
+	_begin_runout(state, &"bail", tangent)
 	state.kinematics.ground_position = Vector2(
 		state.kinematics.course_progress, state.kinematics.lane_position
 	)
@@ -93,7 +93,7 @@ func crash(state: RiderState, tuning: RiderTuning) -> void:
 
 func _begin_runout(state: RiderState, surface_id: StringName, tangent: Vector2) -> void:
 	state.run.run_phase = RiderRunState.RunPhase.LANDING
-	state.run.landing_outcome = RiderRunState.LandingOutcome.ABANDON
+	state.run.landing_outcome = RiderRunState.LandingOutcome.BAIL
 	state.run.current_surface_id = surface_id
 	state.jump.landing_resolved = true
 	state.jump.landing_position = Vector2(
@@ -139,8 +139,8 @@ func step(state: RiderState, course: ParkCourse, tuning: RiderTuning, delta: flo
 
 
 func _runout_surface_y_at(state: RiderState, course: ParkCourse) -> float:
-	if state.run.current_surface_id == &"abandon":
-		return course.flight_abandon_trigger_y_at(
+	if state.run.current_surface_id == &"bail":
+		return course.flight_bail_trigger_y_at(
 			state.kinematics.course_progress, state.kinematics.active_route_index
 		)
 	return course.landing_surface_y_at(
@@ -149,14 +149,14 @@ func _runout_surface_y_at(state: RiderState, course: ParkCourse) -> float:
 
 
 func _runout_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
-	if state.run.current_surface_id == &"abandon":
-		return _abandon_tangent_at(state, course)
+	if state.run.current_surface_id == &"bail":
+		return _bail_tangent_at(state, course)
 	return course.landing_tangent_at(
 		state.kinematics.course_progress, state.kinematics.active_route_index
 	)
 
 
-func _abandon_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
+func _bail_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
 	var route_index := state.kinematics.active_route_index
 	var route := course.route_at(route_index)
 	var start_x := route.approach_path[-1].x
@@ -165,8 +165,8 @@ func _abandon_tangent_at(state: RiderState, course: ParkCourse) -> Vector2:
 	var after_x := minf(state.kinematics.course_progress + 1.0, end_x)
 	if is_equal_approx(before_x, after_x):
 		return Vector2.RIGHT
-	var before_y := course.flight_abandon_trigger_y_at(before_x, route_index)
-	var after_y := course.flight_abandon_trigger_y_at(after_x, route_index)
+	var before_y := course.flight_bail_trigger_y_at(before_x, route_index)
+	var after_y := course.flight_bail_trigger_y_at(after_x, route_index)
 	return Vector2(after_x - before_x, after_y - before_y).normalized()
 
 

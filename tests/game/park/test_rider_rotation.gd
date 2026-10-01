@@ -565,7 +565,7 @@ func _test_course() -> ParkCourse:
 		route.approach_path = approach
 		route.landing_path = landing
 		course.routes.append(route)
-	course.flight_abandon_y = 2000.0
+	course.flight_bail_y = 2000.0
 	return course
 
 

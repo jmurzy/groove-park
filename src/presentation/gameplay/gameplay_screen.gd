@@ -42,7 +42,7 @@ func _ready() -> void:
 	_run_presenter.setup(self, _ui_layer, game_session, _course, _rider_tuning, show_terrain)
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)
-	_pause_flow.abandon_requested.connect(_confirm_return_to_title)
+	_pause_flow.bail_requested.connect(_confirm_return_to_title)
 	_build_music()
 
 

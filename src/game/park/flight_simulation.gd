@@ -75,8 +75,8 @@ func step(
 	_cross_release_deadline(state, previous_y, state.kinematics.vertical_position)
 	if _integrator.has_overshot_landing(state, course):
 		landing.crash(state, tuning)
-	elif _integrator.should_abandon(state, course):
-		landing.begin_abandoned_runout(state, course)
+	elif _integrator.should_bail(state, course):
+		landing.begin_bailed_runout(state, course)
 	return -1.0
 
 

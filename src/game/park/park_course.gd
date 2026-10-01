@@ -4,13 +4,13 @@ class_name ParkCourse
 extends Resource
 
 const ROUTE_COUNT := 3
-const FLIGHT_ABANDON_CLEARANCE := 0.0
-const FLIGHT_ABANDON_CURVE_SEGMENTS := 24
-const FLIGHT_ABANDON_TRIGGER_RATIO := 0.5
+const FLIGHT_BAIL_CLEARANCE := 0.0
+const FLIGHT_BAIL_CURVE_SEGMENTS := 24
+const FLIGHT_BAIL_TRIGGER_RATIO := 0.5
 
 @export var routes: Array[ParkRoute] = []
 @export var default_route_id: StringName = &"center"
-@export var flight_abandon_y := 624.0
+@export var flight_bail_y := 624.0
 @export var lane_min := -360.0
 @export var lane_max := 360.0
 
@@ -141,29 +141,29 @@ func flight_miss_boundary_points(route_index: int) -> PackedVector2Array:
 	return route_at(route_index).flight_miss_boundary_points()
 
 
-func flight_abandon_floor_points(route_index: int) -> PackedVector2Array:
+func flight_bail_floor_points(route_index: int) -> PackedVector2Array:
 	var miss_boundary := flight_miss_boundary_points(route_index)
-	var abandon_floor := PackedVector2Array()
+	var bail_floor := PackedVector2Array()
 	var start := miss_boundary[0]
-	var end := Vector2(miss_boundary[-1].x, _flight_abandon_y_at(route_index))
+	var end := Vector2(miss_boundary[-1].x, _flight_bail_y_at(route_index))
 	var span := end - start
-	for sample_index in range(FLIGHT_ABANDON_CURVE_SEGMENTS + 1):
-		var angle := float(sample_index) / FLIGHT_ABANDON_CURVE_SEGMENTS * PI * 0.5
-		abandon_floor.append(
+	for sample_index in range(FLIGHT_BAIL_CURVE_SEGMENTS + 1):
+		var angle := float(sample_index) / FLIGHT_BAIL_CURVE_SEGMENTS * PI * 0.5
+		bail_floor.append(
 			Vector2(start.x + span.x * (1.0 - cos(angle)), start.y + span.y * sin(angle))
 		)
-	return abandon_floor
+	return bail_floor
 
 
-func flight_abandon_floor_y_at(course_progress: float, route_index: int) -> float:
-	return ParkPathGeometry.surface_y_at(flight_abandon_floor_points(route_index), course_progress)
+func flight_bail_floor_y_at(course_progress: float, route_index: int) -> float:
+	return ParkPathGeometry.surface_y_at(flight_bail_floor_points(route_index), course_progress)
 
 
-func flight_abandon_trigger_y_at(course_progress: float, route_index: int) -> float:
+func flight_bail_trigger_y_at(course_progress: float, route_index: int) -> float:
 	return lerpf(
 		flight_miss_boundary_y_at(course_progress, route_index),
-		flight_abandon_floor_y_at(course_progress, route_index),
-		FLIGHT_ABANDON_TRIGGER_RATIO
+		flight_bail_floor_y_at(course_progress, route_index),
+		FLIGHT_BAIL_TRIGGER_RATIO
 	)
 
 
@@ -183,12 +183,12 @@ func landing_swept_terrain_intersection(
 	return routes[route_index].landing_swept_terrain_intersection(previous_position, next_position)
 
 
-func _flight_abandon_y_at(route_index: int) -> float:
+func _flight_bail_y_at(route_index: int) -> float:
 	var landing_path := route_at(route_index).landing_path
 	var lowest_landing_y := landing_path[0].y
 	for point in landing_path:
 		lowest_landing_y = maxf(lowest_landing_y, point.y)
-	return maxf(flight_abandon_y, lowest_landing_y + FLIGHT_ABANDON_CLEARANCE)
+	return maxf(flight_bail_y, lowest_landing_y + FLIGHT_BAIL_CLEARANCE)
 
 
 func _blend_approach_x(route_position: float, use_end: bool) -> float:

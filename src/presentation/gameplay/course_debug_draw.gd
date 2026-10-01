@@ -1,4 +1,4 @@
-## Debug-only course overlay: approach/landing routes, abandon zones, and drag handles.
+## Debug-only course overlay: approach/landing routes, bail zones, and drag handles.
 ## Called from ParkWorldPresenter when the terrain editor is on.
 class_name CourseDebugDraw
 extends RefCounted
@@ -10,8 +10,8 @@ const APPROACH_PATH_NAMES := ["UPPER APPROACH", "CENTER APPROACH", "LOWER APPROA
 const LANDING_PATH_NAMES := ["UPPER LANDING", "CENTER LANDING", "LOWER RUNOUT"]
 const MISS_ZONE_FILL := Color("ff304580")
 const MISS_ZONE_LINE := Color("ff5d52dd")
-const ABANDON_FLOOR_LINE := Color("fff16add")
-const ABANDON_TRIGGER_LINE := Color("ffffffff")
+const BAIL_FLOOR_LINE := Color("fff16add")
+const BAIL_TRIGGER_LINE := Color("ffffffff")
 const COMPRESSION_FILL_ALPHA := 0.28
 const COMPRESSION_ACTIVE_ALPHA := 0.72
 const FLIGHT_DEBUG_COLOR := Color("68efff")
@@ -31,7 +31,7 @@ static func draw_course_debug(
 	canvas.draw_rect(world_bounds, Color("010713dd"), false, 7.0)
 	canvas.draw_rect(world_bounds, Color("ff5d52"), false, 3.0)
 	_draw_grid(canvas, world_bounds)
-	_draw_abandon_zone(canvas, course, world_bounds, active_route_index)
+	_draw_bail_zone(canvas, course, world_bounds, active_route_index)
 	_draw_paths(canvas, course, true, APPROACH_PATH_NAMES, 6.0)
 	_draw_compression_windows(canvas, course, active_route_index, compression_window_distance)
 	_draw_paths(canvas, course, false, LANDING_PATH_NAMES, 5.0)
@@ -148,7 +148,7 @@ static func _draw_compression_windows(
 		)
 
 
-static func _draw_abandon_zone(
+static func _draw_bail_zone(
 	canvas: CanvasItem, course: ParkCourse, _world_bounds: Rect2, route_index: int
 ) -> void:
 	if (
@@ -160,32 +160,32 @@ static func _draw_abandon_zone(
 	var boundary := course.flight_miss_boundary_points(route_index)
 	if boundary.size() < 2:
 		return
-	var abandon_floor := course.flight_abandon_floor_points(route_index)
-	var abandon_trigger := PackedVector2Array()
-	for point in abandon_floor:
-		abandon_trigger.append(
-			Vector2(point.x, course.flight_abandon_trigger_y_at(point.x, route_index))
+	var bail_floor := course.flight_bail_floor_points(route_index)
+	var bail_trigger := PackedVector2Array()
+	for point in bail_floor:
+		bail_trigger.append(
+			Vector2(point.x, course.flight_bail_trigger_y_at(point.x, route_index))
 		)
-	var abandon_zone := boundary.duplicate()
-	for point_index in range(abandon_floor.size() - 1, -1, -1):
-		abandon_zone.append(abandon_floor[point_index])
-	canvas.draw_colored_polygon(abandon_zone, MISS_ZONE_FILL)
+	var bail_zone := boundary.duplicate()
+	for point_index in range(bail_floor.size() - 1, -1, -1):
+		bail_zone.append(bail_floor[point_index])
+	canvas.draw_colored_polygon(bail_zone, MISS_ZONE_FILL)
 	for point_index in range(boundary.size() - 1):
 		canvas.draw_dashed_line(
 			boundary[point_index], boundary[point_index + 1], MISS_ZONE_LINE, 3.0, 12.0
 		)
-	for point_index in range(abandon_floor.size() - 1):
+	for point_index in range(bail_floor.size() - 1):
 		canvas.draw_dashed_line(
-			abandon_floor[point_index],
-			abandon_floor[point_index + 1],
-			ABANDON_FLOOR_LINE,
+			bail_floor[point_index],
+			bail_floor[point_index + 1],
+			BAIL_FLOOR_LINE,
 			3.0,
 			12.0
 		)
 		canvas.draw_dashed_line(
-			abandon_trigger[point_index],
-			abandon_trigger[point_index + 1],
-			ABANDON_TRIGGER_LINE,
+			bail_trigger[point_index],
+			bail_trigger[point_index + 1],
+			BAIL_TRIGGER_LINE,
 			2.0,
 			8.0
 		)
@@ -193,7 +193,7 @@ static func _draw_abandon_zone(
 	canvas.draw_string(
 		ThemeDB.fallback_font,
 		zone_label_position + Vector2(0, 28),
-		"ABANDON ZONE",
+		"BAIL ZONE",
 		HORIZONTAL_ALIGNMENT_CENTER,
 		-1,
 		14.0,
@@ -201,21 +201,21 @@ static func _draw_abandon_zone(
 	)
 	canvas.draw_string(
 		ThemeDB.fallback_font,
-		abandon_floor[floori(abandon_floor.size() * 0.5)] + Vector2(0, -10.0),
-		"ABANDON FLOOR",
+		bail_floor[floori(bail_floor.size() * 0.5)] + Vector2(0, -10.0),
+		"BAIL FLOOR",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		14.0,
-		ABANDON_FLOOR_LINE
+		BAIL_FLOOR_LINE
 	)
 	canvas.draw_string(
 		ThemeDB.fallback_font,
-		abandon_trigger[floori(abandon_trigger.size() * 0.5)] + Vector2(0, -10.0),
-		"ABANDON LINE",
+		bail_trigger[floori(bail_trigger.size() * 0.5)] + Vector2(0, -10.0),
+		"BAIL LINE",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		14.0,
-		ABANDON_TRIGGER_LINE
+		BAIL_TRIGGER_LINE
 	)
 
 

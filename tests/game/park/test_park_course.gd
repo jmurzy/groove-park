@@ -1,4 +1,4 @@
-## Headless checks for authored approach, landing, abandon, and runout geometry.
+## Headless checks for authored approach, landing, bail, and runout geometry.
 extends SceneTree
 
 const ParkCourseScene := preload("res://src/game/park/park_course.gd")
@@ -16,7 +16,7 @@ func _init() -> void:
 	_test_landing_collision_uses_authored_segments_only()
 	_test_landing_collision_handles_segment_seams()
 	_test_flight_miss_boundary_connects_lip_and_landing()
-	_test_flight_abandon_floor_stays_below_landing_geometry()
+	_test_flight_bail_floor_stays_below_landing_geometry()
 	if _failures.is_empty():
 		print("Park course checks passed.")
 		quit(0)
@@ -146,45 +146,45 @@ func _test_flight_miss_boundary_connects_lip_and_landing() -> void:
 	)
 
 
-func _test_flight_abandon_floor_stays_below_landing_geometry() -> void:
+func _test_flight_bail_floor_stays_below_landing_geometry() -> void:
 	var course := _valid_course()
-	course.flight_abandon_y = 50.0
+	course.flight_bail_y = 50.0
 	var miss_boundary := course.flight_miss_boundary_points(0)
-	var abandon_floor := course.flight_abandon_floor_points(0)
+	var bail_floor := course.flight_bail_floor_points(0)
 	_expect(
-		abandon_floor[-1].y >= course.route_at(0).landing_path[-1].y,
-		"The abandon floor must not preempt a later landing-path intersection."
+		bail_floor[-1].y >= course.route_at(0).landing_path[-1].y,
+		"The bail floor must not preempt a later landing-path intersection."
 	)
 	_expect(
-		abandon_floor[0].is_equal_approx(miss_boundary[0]),
-		"The curved abandon floor should begin at the active lip."
+		bail_floor[0].is_equal_approx(miss_boundary[0]),
+		"The curved bail floor should begin at the active lip."
 	)
 	_expect(
-		is_equal_approx(abandon_floor[-1].y, 200.0),
-		"The curved abandon boundary should end at the route floor."
+		is_equal_approx(bail_floor[-1].y, 200.0),
+		"The curved bail boundary should end at the route floor."
 	)
 	_expect(
-		abandon_floor.size() > miss_boundary.size(),
-		"The abandon floor should contain enough samples to render a smooth arc."
+		bail_floor.size() > miss_boundary.size(),
+		"The bail floor should contain enough samples to render a smooth arc."
 	)
 	var sample_x := 150.0
 	_expect(
 		is_equal_approx(
-			course.flight_abandon_trigger_y_at(sample_x, 0),
+			course.flight_bail_trigger_y_at(sample_x, 0),
 			(
 				(
 					course.flight_miss_boundary_y_at(sample_x, 0)
-					+ course.flight_abandon_floor_y_at(sample_x, 0)
+					+ course.flight_bail_floor_y_at(sample_x, 0)
 				)
 				* 0.5
 			)
 		),
-		"The abandon trigger should stay centered inside the zone."
+		"The bail trigger should stay centered inside the zone."
 	)
-	for point in abandon_floor:
+	for point in bail_floor:
 		_expect(
 			point.y >= course.flight_miss_boundary_y_at(point.x, 0),
-			"The abandon floor must remain below its miss boundary."
+			"The bail floor must remain below its miss boundary."
 		)
 
 

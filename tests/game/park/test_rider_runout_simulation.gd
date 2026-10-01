@@ -1,4 +1,4 @@
-## Headless checks for clean runout, abandoned runs, crashes, and course completion.
+## Headless checks for clean runout, bailed runs, crashes, and course completion.
 extends SceneTree
 
 const SuiteScene := preload("res://tests/game/park/park_runout_simulation_suite.gd")
