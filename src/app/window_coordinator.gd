@@ -14,31 +14,28 @@ var _primary_screen_index := 0
 
 
 func setup(
-	primary_window: Window,
-	overrides: Dictionary,
-	liftie_state_service: LiftieStateService,
-	show_diagnostics: bool
+	primary_window: Window, options: DevOptions, liftie_state_service: LiftieStateService
 ) -> void:
 	primary_window.close_requested.connect(close_requested.emit)
 	var screen_count := DisplayServer.get_screen_count()
 	_primary_screen_index = PRIMARY_SCREEN_WITH_MARQUEE if screen_count >= 2 else 0
-	_configure_primary_window(primary_window, overrides)
-	if screen_count >= 2 or overrides.force_marquee:
-		_create_marquee(overrides, liftie_state_service, show_diagnostics, screen_count)
+	_configure_primary_window(primary_window, options)
+	if screen_count >= 2 or options.force_marquee:
+		_create_marquee(options, liftie_state_service, screen_count)
 
 
 func primary_screen_index() -> int:
 	return _primary_screen_index
 
 
-func _configure_primary_window(primary_window: Window, overrides: Dictionary) -> void:
-	if overrides.primary_size.x > 0:
+func _configure_primary_window(primary_window: Window, options: DevOptions) -> void:
+	if options.primary_size.x > 0:
 		WindowManager.configure_dev_window(
 			primary_window,
 			_primary_screen_index,
 			PRIMARY_DESIGN_SIZE,
 			"HEAVENLY - PRIMARY",
-			overrides.primary_size,
+			options.primary_size,
 			Vector2i.ZERO
 		)
 		return
@@ -48,10 +45,7 @@ func _configure_primary_window(primary_window: Window, overrides: Dictionary) ->
 
 
 func _create_marquee(
-	overrides: Dictionary,
-	liftie_state_service: LiftieStateService,
-	show_diagnostics: bool,
-	screen_count: int
+	options: DevOptions, liftie_state_service: LiftieStateService, screen_count: int
 ) -> void:
 	var marquee := Window.new()
 	marquee.name = "MarqueeWindow"
@@ -60,12 +54,12 @@ func _create_marquee(
 	add_child(marquee)
 	var marquee_screen := MARQUEE_SCREEN if screen_count >= 2 else _primary_screen_index
 	var marquee_size: Vector2i = (
-		overrides.marquee_size if overrides.marquee_size.x > 0 else MARQUEE_DESIGN_SIZE
+		options.marquee_size if options.marquee_size.x > 0 else MARQUEE_DESIGN_SIZE
 	)
 	var marquee_offset := Vector2i.ZERO
-	if overrides.primary_size.x > 0 or overrides.marquee_size.x > 0:
+	if options.primary_size.x > 0 or options.marquee_size.x > 0:
 		# Stack the dev marquee below the dev primary so both are visible on one screen.
-		var primary_height: int = overrides.primary_size.y if overrides.primary_size.x > 0 else 0
+		var primary_height: int = options.primary_size.y if options.primary_size.x > 0 else 0
 		marquee_offset = Vector2i(0, primary_height + 28)
 	if marquee_size.x > 0:
 		WindowManager.configure_dev_window(
@@ -83,6 +77,6 @@ func _create_marquee(
 	var marquee_view := MarqueeScreenScene.new()
 	marquee_view.screen_index = marquee_screen
 	marquee_view.liftie_state_service = liftie_state_service
-	marquee_view.show_diagnostics = show_diagnostics
+	marquee_view.show_diagnostics = options.show_diagnostics
 	marquee.add_child(marquee_view)
 	marquee.show()

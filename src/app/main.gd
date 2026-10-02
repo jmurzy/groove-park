@@ -40,14 +40,12 @@ func _ready() -> void:
 	_log_displays(DisplayServer.get_screen_count())
 	_log_connected_controllers()
 
-	var overrides := DevSente.parse_overrides(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
+	var options := DevSente.parse_options(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
 	_setup_game_services()
 	_window_coordinator = WindowCoordinatorScene.new()
 	_window_coordinator.close_requested.connect(_quit)
 	add_child(_window_coordinator)
-	_window_coordinator.setup(
-		get_window(), overrides, _liftie_state_service, overrides.show_diagnostics
-	)
+	_window_coordinator.setup(get_window(), options, _liftie_state_service)
 	_screen_flow = ScreenFlowControllerScene.new()
 	_screen_flow.quit_requested.connect(_quit)
 	add_child(_screen_flow)
@@ -57,8 +55,7 @@ func _ready() -> void:
 		_audio_manager,
 		_liftie_state_service,
 		_window_coordinator.primary_screen_index(),
-		overrides.designer_mode,
-		overrides.show_diagnostics
+		options
 	)
 
 

@@ -2,7 +2,7 @@
 ## diagnostics, terrain editor). Example: launch with `--sente` for 1080p + marquee windows.
 ##
 ## Lives under `src/services/` for CLI access but is purely a development helper.
-## Window configuration is owned by `WindowManager`; this only parses overrides.
+## Window configuration is owned by `WindowManager`; this only parses options.
 class_name DevSente
 extends RefCounted
 
@@ -14,44 +14,38 @@ extends RefCounted
 #   --marquee-size=WIDTHxHEIGHT override marquee size, forces marquee visible
 #   --marquee                  force marquee visible at 1920x360
 #   --designer-mode            show the debug terrain overlay in debug builds
-# Without overrides the cabinet behavior is unchanged (borderless fullscreen-cover).
-static func parse_overrides(primary_design: Vector2i, marquee_design: Vector2i) -> Dictionary:
-	var overrides := {
-		"primary_size": Vector2i(-1, -1),
-		"marquee_size": Vector2i(-1, -1),
-		"force_marquee": false,
-		"show_diagnostics": false,
-		"designer_mode": false,
-	}
+# Without dev options the cabinet behavior is unchanged (borderless fullscreen-cover).
+static func parse_options(primary_design: Vector2i, marquee_design: Vector2i) -> DevOptions:
+	var options := DevOptions.new()
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--sente":
-			overrides.primary_size = primary_design
-			overrides.marquee_size = marquee_design
-			overrides.force_marquee = true
+			options.primary_size = primary_design
+			options.marquee_size = marquee_design
+			options.force_marquee = true
 		elif arg.begins_with("--primary-size="):
-			overrides.primary_size = parse_size_arg(arg.get_slice("=", 1))
+			options.primary_size = parse_size_arg(arg.get_slice("=", 1))
 		elif arg.begins_with("--marquee-size="):
-			overrides.marquee_size = parse_size_arg(arg.get_slice("=", 1))
-			overrides.force_marquee = true
+			options.marquee_size = parse_size_arg(arg.get_slice("=", 1))
+			options.force_marquee = true
 		elif arg == "--marquee":
-			overrides.force_marquee = true
+			options.force_marquee = true
 		elif arg == "--diagnostics":
-			overrides.show_diagnostics = true
+			options.show_diagnostics = true
 		elif arg == "--designer-mode" and OS.is_debug_build():
-			overrides.designer_mode = true
-	if overrides.force_marquee and overrides.marquee_size.x < 0:
-		overrides.marquee_size = marquee_design
-	if overrides.primary_size.x > 0 or overrides.force_marquee:
+			options.designer_mode = true
+	if options.force_marquee and options.marquee_size.x < 0:
+		options.marquee_size = marquee_design
+	if options.primary_size.x > 0 or options.force_marquee:
 		print(
 			(
 				"HEAVENLY dev windows: primary %s marquee %s"
 				% [
-					size_to_string(overrides.primary_size),
-					size_to_string(overrides.marquee_size),
+					size_to_string(options.primary_size),
+					size_to_string(options.marquee_size),
 				]
 			)
 		)
-	return overrides
+	return options
 
 
 static func parse_size_arg(text: String) -> Vector2i:
