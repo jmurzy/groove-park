@@ -33,6 +33,7 @@ var _snowboarder_speed: Label
 var _airborne := false
 var _spin_gesture := SpinGestureController.new()
 var _speed_mph := INITIAL_SPEED_MPH
+var _active_air_grab_action: StringName = &""
 
 
 func _ready() -> void:
@@ -46,6 +47,18 @@ func _ready() -> void:
 	_snowboarder_speed = _add_rider_speed(SNOWBOARDER_LANE_POSITION + Vector2(0, 35))
 	_skier_status = _add_rider_status(SKIER_LANE_POSITION.x)
 	_snowboarder_status = _add_rider_status(SNOWBOARDER_LANE_POSITION.x)
+
+
+func _input(event: InputEvent) -> void:
+	# A grab cannot change into a B tweak (or vice versa) until its button is released.
+	if not _active_air_grab_action.is_empty() and event.is_action_released(_active_air_grab_action):
+		_active_air_grab_action = &""
+	if not _active_air_grab_action.is_empty():
+		return
+	if event.is_action_pressed(&"action_a"):
+		_active_air_grab_action = &"action_a"
+	elif event.is_action_pressed(&"action_b"):
+		_active_air_grab_action = &"action_b"
 
 
 func tick(delta: float = 0.0) -> void:
@@ -193,7 +206,7 @@ func _demo_animation() -> Dictionary:
 			snowboarder = &"landing_prep"
 			label = "X  HOLD TO LAND"
 		elif _air_grab_held():
-			if Input.is_action_pressed(&"action_b"):
+			if _air_grab_is_tweak():
 				skier = &"grab_tweak"
 				snowboarder = &"grab_tweak"
 				label = "B  HOLD TWEAK GRAB"
@@ -256,7 +269,7 @@ func _update_air_rotation(delta: float) -> void:
 		Input.is_action_just_pressed(&"action_lt"),
 		Input.is_action_just_pressed(&"action_rt"),
 		true,
-		Input.is_action_pressed(&"action_b"),
+		_air_grab_is_tweak(),
 		0.5,
 		1.0
 	)
@@ -317,4 +330,8 @@ func _reset_rider_rotation() -> void:
 
 
 func _air_grab_held() -> bool:
-	return Input.is_action_pressed(&"action_a") or Input.is_action_pressed(&"action_b")
+	return not _active_air_grab_action.is_empty()
+
+
+func _air_grab_is_tweak() -> bool:
+	return _active_air_grab_action == &"action_b"
