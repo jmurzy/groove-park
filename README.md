@@ -45,7 +45,7 @@ On a cabinet with two displays, the primary window opens on the main display and
 
 ## Terrain editor
 
-Run `just run -- --show-terrain` to view the debug course overlay in a debug
+Run `just run -- --designer-mode` to view the debug course overlay in a debug
 build.
 
 ### Course profile

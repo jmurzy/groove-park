@@ -15,7 +15,7 @@ const PauseFlowControllerScene := preload(
 
 var game_session: GameSession
 var input_router: InputRouter
-var show_terrain := OS.is_debug_build()
+var designer_mode := OS.is_debug_build()
 var _course: ParkCourse
 var _run_presenter: GameplayRunPresenter
 var _pause_flow: PauseFlowController
@@ -40,7 +40,7 @@ func _ready() -> void:
 	_build_ui_layer()
 	_run_presenter = GameplayRunPresenterScene.new()
 	_run_presenter.setup(
-		self, _ui_layer, game_session, input_router, _course, _rider_tuning, show_terrain
+		self, _ui_layer, game_session, input_router, _course, _rider_tuning, designer_mode
 	)
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)

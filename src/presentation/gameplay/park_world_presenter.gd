@@ -15,7 +15,7 @@ const ReleaseDeadlineWarningScene := preload(
 )
 
 var course: ParkCourse
-var show_terrain := false
+var designer_mode := false
 var compression_window_distance := 0.0
 var rider_kind: StringName = RiderKind.SNOWBOARDER
 var _tuning: RiderTuning
@@ -33,7 +33,7 @@ var _marker_presenter: ParkMarkerPresenter
 
 func setup(
 	next_course: ParkCourse,
-	next_show_terrain: bool,
+	next_designer_mode: bool,
 	next_tuning: RiderTuning,
 	next_rider_kind: StringName
 ) -> void:
@@ -41,7 +41,7 @@ func setup(
 	z_index = -1
 	course = next_course
 	_projection = ParkProjectionScene.new(course)
-	show_terrain = next_show_terrain
+	designer_mode = next_designer_mode
 	_tuning = next_tuning
 	compression_window_distance = next_tuning.compression_window_distance
 	rider_kind = next_rider_kind
@@ -92,7 +92,7 @@ func _build_world() -> void:
 	)
 	_rider = RiderView.new(rider_definition)
 	_rider.z_index = 2
-	_rider.set_show_source_bounds(show_terrain)
+	_rider.set_show_source_bounds(designer_mode)
 	add_child(_rider)
 	_release_deadline_warning = ReleaseDeadlineWarningScene.new()
 	_release_deadline_warning.name = "ReleaseDeadlineWarning"
@@ -113,7 +113,7 @@ func _build_world() -> void:
 	_camera.limit_right = GAMEPLAY_BG.get_width()
 	_camera.limit_bottom = GAMEPLAY_BG.get_height()
 	add_child(_camera)
-	if show_terrain:
+	if designer_mode:
 		_debug_overlay = ParkDebugOverlayScene.new()
 		_debug_overlay.name = "ParkDebugOverlay"
 		_debug_overlay.z_index = 3

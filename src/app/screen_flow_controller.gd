@@ -13,7 +13,7 @@ var _input_router: InputRouter
 var _audio_manager: AudioManager
 var _liftie_state_service: LiftieStateService
 var _primary_screen_index := 0
-var _show_terrain := false
+var _designer_mode := false
 var _show_diagnostics := false
 var _primary_view: PrimaryScreen
 var _gameplay_screen: GameplayScreen
@@ -26,7 +26,7 @@ func setup(
 	audio_manager: AudioManager,
 	liftie_state_service: LiftieStateService,
 	primary_screen_index: int,
-	show_terrain: bool,
+	designer_mode: bool,
 	show_diagnostics: bool
 ) -> void:
 	_game_session = game_session
@@ -34,7 +34,7 @@ func setup(
 	_audio_manager = audio_manager
 	_liftie_state_service = liftie_state_service
 	_primary_screen_index = primary_screen_index
-	_show_terrain = show_terrain
+	_designer_mode = designer_mode
 	_show_diagnostics = show_diagnostics
 	_show_attract()
 
@@ -69,7 +69,7 @@ func _show_gameplay(rider_kind: StringName, transition: CrtTransition) -> void:
 	_gameplay_screen = GameplayScreenScene.new()
 	_gameplay_screen.game_session = _game_session
 	_gameplay_screen.input_router = _input_router
-	_gameplay_screen.show_terrain = _show_terrain
+	_gameplay_screen.designer_mode = _designer_mode
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	add_child(_gameplay_screen)
 	move_child(_gameplay_screen, transition.get_index())

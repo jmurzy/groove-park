@@ -57,7 +57,7 @@ func _ready() -> void:
 		_audio_manager,
 		_liftie_state_service,
 		_window_coordinator.primary_screen_index(),
-		overrides.show_terrain,
+		overrides.designer_mode,
 		overrides.show_diagnostics
 	)
 

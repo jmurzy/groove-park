@@ -416,7 +416,7 @@ true while LT is held and `spin_rt_pressed` is true while RT is held, with match
 
 ### Debug Overlay
 
-- Approach and landing paths remain visible under `--show-terrain`.
+- Approach and landing paths remain visible under `--designer-mode`.
 - Flight routes shade an bail zone between their virtual miss boundaries and curved zone floors; the authoritative `BAIL LINE` runs through the center.
 - The lower route labels its `GROUND JOIN`.
 - Future flight debugging should add velocity vectors, predicted trajectory, release deadline, and first contact.
@@ -645,7 +645,7 @@ Implementation:
 - Marked the run `COMPLETE` at the selected landing endpoint.
 - Completed missed-flight crashes after a deterministic simulation-owned delay.
 - Added an automatic runout handoff when a descending rider falls below the visible center bail line.
-- Added matching shaded warning zones, miss boundaries, and crash-floor lines to `--show-terrain`.
+- Added matching shaded warning zones, miss boundaries, and crash-floor lines to `--designer-mode`.
 - Added end-to-end clean completion coverage for all three shipped routes at baseline speed.
 
 Automated acceptance:
@@ -818,7 +818,7 @@ Implementation:
 - Made cabinet Start restart completed runs instead of opening pause; `R` continues to restart.
 - Kept contextual action hints phase-specific through completion.
 - Retained flight camera, shadow projection, and effects behavior through the completed loop.
-- Added `--show-terrain` velocity, predicted trajectory, release-deadline, and first-contact diagnostics.
+- Added `--designer-mode` velocity, predicted trajectory, release-deadline, and first-contact diagnostics.
 - Expanded reset coverage for rotation and release-deadline state.
 
 Automated acceptance:
@@ -849,7 +849,7 @@ just format-check
 
 Course tests cover authoring invariants and collision geometry. Rider simulation tests cover deterministic state transitions, fixed-step kinematics, held grabs, rotation gestures, deadlines, landing outcomes, and completion.
 
-Manual testing should use `--show-terrain` while geometry or collision is changing. Each milestone should be tested on upper, center, and lower routes even when the change primarily targets flight.
+Manual testing should use `--designer-mode` while geometry or collision is changing. Each milestone should be tested on upper, center, and lower routes even when the change primarily targets flight.
 
 ## Deferred Work
 

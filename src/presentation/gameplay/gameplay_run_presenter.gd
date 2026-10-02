@@ -27,19 +27,19 @@ func setup(
 	input_router: InputRouter,
 	course: ParkCourse,
 	tuning: RiderTuning,
-	show_terrain: bool
+	designer_mode: bool
 ) -> void:
 	_session = session
 	_input_router = input_router
 	_course = course
 	_tuning = tuning
 	input = GameplayInputControllerScene.new()
-	input.configure(show_terrain and OS.is_debug_build())
+	input.configure(designer_mode and OS.is_debug_build())
 	_hud = GameplayHudPresenterScene.new()
 	_hud.build(ui_layer, session.rider_kind)
 	_world = ParkWorldPresenterScene.new()
 	owner.add_child(_world)
-	_world.setup(course, show_terrain, tuning, session.rider_kind)
+	_world.setup(course, designer_mode, tuning, session.rider_kind)
 	_session.jump_started.connect(_on_jump_started)
 	_world.update_from_run(_session.run_manager, 0.0, _hud.is_occluded)
 	_update_hud_occlusion()
