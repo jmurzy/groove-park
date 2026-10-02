@@ -63,6 +63,9 @@ func accepts_screen_input() -> bool:
 func _open_controls() -> void:
 	if _controls_screen:
 		return
+	# The focused pause-menu buttons consume ui_left/ui_right for their own focus
+	# traversal, so remove them from GUI input while the controls overlay is active.
+	_pause_menu.hide()
 	_controls_screen = HowToPlayScreenScene.new()
 	_controls_screen.closed.connect(_close_controls)
 	_ui_layer.add_child(_controls_screen)
@@ -76,4 +79,5 @@ func _close_controls() -> void:
 	if is_instance_valid(_back_sound):
 		_back_sound.play()
 	if is_instance_valid(_pause_menu):
+		_pause_menu.show()
 		_pause_menu.focus_controls_button()
