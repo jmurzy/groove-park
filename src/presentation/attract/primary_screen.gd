@@ -13,6 +13,7 @@ const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 @export var screen_index: int = 0
 var show_diagnostics := false
 var liftie_state_service: LiftieStateService
+var input_router: InputRouter
 var _menu: AttractMenu
 var _player_select: PlayerSelectScreen
 var _controls_screen: HowToPlayScreen
@@ -54,6 +55,7 @@ func _open_player_select() -> void:
 	_menu.play_confirmation()
 	_menu.hide()
 	_player_select = PlayerSelectScreen.new()
+	_player_select.input_router = input_router
 	_player_select.confirmed.connect(_on_player_select_confirmed)
 	_player_select.cancelled.connect(_close_player_select)
 	add_child(_player_select)
@@ -65,6 +67,7 @@ func _close_player_select() -> void:
 		return
 	_player_select.queue_free()
 	_player_select = null
+	input_router.release_owner()
 	_menu.show()
 	_menu.focus_default()
 

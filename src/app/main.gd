@@ -7,6 +7,7 @@ const MARQUEE_DESIGN_SIZE := Vector2i(1920, 360)
 const DevSente := preload("res://src/services/dev_sente.gd")
 const AudioManagerScript := preload("res://src/app/audio_manager.gd")
 const CabinetExitHandlerScript := preload("res://src/app/cabinet_exit_handler.gd")
+const InputRouterScene := preload("res://src/app/input_router.gd")
 const WindowCoordinatorScene := preload("res://src/app/window_coordinator.gd")
 const ScreenFlowControllerScene := preload("res://src/app/screen_flow_controller.gd")
 const GameSessionScene := preload("res://src/game/game_session.gd")
@@ -17,6 +18,7 @@ const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 
 var _audio_manager: AudioManager
 var _cabinet_exit_handler := CabinetExitHandlerScript.new()
+var _input_router: InputRouter
 var _game_session: GameSession
 var _mountain_state_source: MountainStateSource
 var _liftie_state_service: LiftieStateService
@@ -31,6 +33,10 @@ func _ready() -> void:
 	# Load rider animation textures before a gameplay transition needs to build their views.
 	RiderVisualDefinition.warm()
 	_setup_audio()
+	_input_router = InputRouterScene.new()
+	# Production cabinets reserve the keyboard for maintenance; Web and debug builds support it.
+	_input_router.configure(OS.is_debug_build() or OS.has_feature("web"))
+	add_child(_input_router)
 	_log_displays(DisplayServer.get_screen_count())
 	_log_connected_controllers()
 
@@ -47,6 +53,7 @@ func _ready() -> void:
 	add_child(_screen_flow)
 	_screen_flow.setup(
 		_game_session,
+		_input_router,
 		_audio_manager,
 		_liftie_state_service,
 		_window_coordinator.primary_screen_index(),

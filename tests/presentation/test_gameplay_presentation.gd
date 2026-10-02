@@ -28,20 +28,25 @@ func _init() -> void:
 func _test_tally_start_continues_and_active_start_pauses() -> void:
 	var controller := GameplayInputControllerScene.new()
 	var session := GameSession.new()
+	var input_router := _claimed_gamepad_router()
 	session.start_game(RiderKind.SKIER)
-	var start_event := InputEventAction.new()
-	start_event.action = &"controller_start"
-	start_event.pressed = true
+	var start_event := _button_event(JOY_BUTTON_START)
 	_expect(
-		controller.screen_command(start_event, session) == &"pause",
+		controller.screen_command(start_event, session, input_router) == &"pause",
 		"Start must pause an active run."
 	)
 	session.run_manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
 	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CLEAN
 	session.step_run(RiderInputFrame.new(), 0.0)
 	_expect(
-		controller.screen_command(start_event, session) == &"continue",
+		controller.screen_command(start_event, session, input_router) == &"continue",
 		"Start must continue a completed jump tally."
+	)
+	var unowned_start_event := _button_event(JOY_BUTTON_START)
+	unowned_start_event.device = 2
+	_expect(
+		controller.screen_command(unowned_start_event, session, input_router).is_empty(),
+		"An unowned controller must not advance a tally."
 	)
 	session.free()
 
@@ -49,20 +54,42 @@ func _test_tally_start_continues_and_active_start_pauses() -> void:
 func _test_r_key_requires_terrain_debug_mode() -> void:
 	var controller := GameplayInputControllerScene.new()
 	var session := GameSession.new()
+	var input_router := InputRouter.new()
+	input_router.configure(true)
+	var claim_event := InputEventKey.new()
+	claim_event.keycode = KEY_J
+	claim_event.pressed = true
+	input_router.claim_from_rider_select(claim_event)
 	session.start_game(RiderKind.SKIER)
 	var restart_event := InputEventKey.new()
 	restart_event.keycode = KEY_R
 	restart_event.pressed = true
 	_expect(
-		controller.screen_command(restart_event, session).is_empty(),
-		"R must not restart a normal gameplay run."
+		controller.screen_command(restart_event, session, input_router).is_empty(),
+		"R must not restart without terrain debug mode."
 	)
 	controller.configure(true)
 	_expect(
-		controller.screen_command(restart_event, session) == &"restart",
+		controller.screen_command(restart_event, session, input_router) == &"restart",
 		"R must restart an active run when terrain debug mode is enabled."
 	)
 	session.free()
+
+
+func _claimed_gamepad_router() -> InputRouter:
+	var router := InputRouter.new()
+	router.configure(true)
+	var claim_event := _button_event(JOY_BUTTON_A)
+	router.claim_from_rider_select(claim_event)
+	return router
+
+
+func _button_event(button: JoyButton) -> InputEventJoypadButton:
+	var event := InputEventJoypadButton.new()
+	event.device = 1
+	event.button_index = button
+	event.pressed = true
+	return event
 
 
 func _test_release_deadline_warning_visibility() -> void:

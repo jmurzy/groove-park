@@ -14,6 +14,7 @@ const SNOWBOARDER_POSITION := Vector2(375, 545)
 const SKIER_POSITION := Vector2(985, 545)
 
 var selected_rider_kind: StringName = RiderKind.SNOWBOARDER
+var input_router: InputRouter
 var _cards: Array[Button] = []
 var _riders: Array[RiderPreview] = []
 var _switch_sound: AudioStreamPlayer
@@ -32,11 +33,19 @@ func _ready() -> void:
 	_select(RiderKind.SNOWBOARDER)
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_left") or event.is_action_pressed(&"ui_right"):
+		if input_router == null or not input_router.claim_from_rider_select(event):
+			return
 		_select(_other_rider_kind())
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"controller_start"):
+	elif (
+		event.is_action_pressed(&"controller_start")
+		or event.is_action_pressed(&"action_a")
+		or event.is_action_pressed(&"ui_accept")
+	):
+		if input_router == null or not input_router.claim_from_rider_select(event):
+			return
 		_confirm(selected_rider_kind)
 		get_viewport().set_input_as_handled()
 	elif (

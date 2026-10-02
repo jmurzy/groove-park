@@ -9,6 +9,7 @@ const GameplayScreenScene := preload("res://src/presentation/gameplay/gameplay_s
 const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
 
 var _game_session: GameSession
+var _input_router: InputRouter
 var _audio_manager: AudioManager
 var _liftie_state_service: LiftieStateService
 var _primary_screen_index := 0
@@ -21,6 +22,7 @@ var _transitioning := false
 
 func setup(
 	game_session: GameSession,
+	input_router: InputRouter,
 	audio_manager: AudioManager,
 	liftie_state_service: LiftieStateService,
 	primary_screen_index: int,
@@ -28,6 +30,7 @@ func setup(
 	show_diagnostics: bool
 ) -> void:
 	_game_session = game_session
+	_input_router = input_router
 	_audio_manager = audio_manager
 	_liftie_state_service = liftie_state_service
 	_primary_screen_index = primary_screen_index
@@ -65,6 +68,7 @@ func _show_gameplay(rider_kind: StringName, transition: CrtTransition) -> void:
 	_game_session.start_game(rider_kind)
 	_gameplay_screen = GameplayScreenScene.new()
 	_gameplay_screen.game_session = _game_session
+	_gameplay_screen.input_router = _input_router
 	_gameplay_screen.show_terrain = _show_terrain
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	add_child(_gameplay_screen)
@@ -86,6 +90,7 @@ func _return_to_attract() -> void:
 	_audio_manager.play_confirmation()
 	_audio_manager.play_background_music()
 	_game_session.return_to_attract()
+	_input_router.release_owner()
 	_show_attract()
 
 
@@ -93,6 +98,7 @@ func _show_attract() -> void:
 	_primary_view = PrimaryScreenScene.new()
 	_primary_view.screen_index = _primary_screen_index
 	_primary_view.liftie_state_service = _liftie_state_service
+	_primary_view.input_router = _input_router
 	_primary_view.show_diagnostics = _show_diagnostics
 	_primary_view.start_game_requested.connect(_start_game)
 	_primary_view.exit_requested.connect(quit_requested.emit)

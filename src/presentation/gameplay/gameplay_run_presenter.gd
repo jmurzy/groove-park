@@ -10,10 +10,12 @@ const GameplayHudPresenterScene := preload(
 )
 const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
 
+var input: GameplayInputController
+
 var _session: GameSession
+var _input_router: InputRouter
 var _course: ParkCourse
 var _tuning: RiderTuning
-var _input: GameplayInputController
 var _hud: GameplayHudPresenter
 var _world: ParkWorldPresenter
 
@@ -22,15 +24,17 @@ func setup(
 	owner: Node,
 	ui_layer: CanvasLayer,
 	session: GameSession,
+	input_router: InputRouter,
 	course: ParkCourse,
 	tuning: RiderTuning,
 	show_terrain: bool
 ) -> void:
 	_session = session
+	_input_router = input_router
 	_course = course
 	_tuning = tuning
-	_input = GameplayInputControllerScene.new()
-	_input.configure(show_terrain)
+	input = GameplayInputControllerScene.new()
+	input.configure(show_terrain and OS.is_debug_build())
 	_hud = GameplayHudPresenterScene.new()
 	_hud.build(ui_layer, session.rider_kind)
 	_world = ParkWorldPresenterScene.new()
@@ -42,17 +46,14 @@ func setup(
 
 
 func update(delta: float) -> void:
-	_hud.update(delta, _session, _input.sample_frame())
+	_hud.update(delta, _session, input.sample_frame(_input_router))
 
 
 func physics_update(delta: float) -> void:
-	_session.step_run(_input.sample_frame(), delta)
+	_session.step_run(input.sample_frame(_input_router), delta)
+	_input_router.finish_physics_frame()
 	_world.update_from_run(_session.run_manager, delta, _hud.is_occluded)
 	_update_hud_occlusion()
-
-
-func screen_command(event: InputEvent) -> StringName:
-	return _input.screen_command(event, _session)
 
 
 func restart() -> void:

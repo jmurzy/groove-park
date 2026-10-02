@@ -14,6 +14,7 @@ const PauseFlowControllerScene := preload(
 )
 
 var game_session: GameSession
+var input_router: InputRouter
 var show_terrain := OS.is_debug_build()
 var _course: ParkCourse
 var _run_presenter: GameplayRunPresenter
@@ -28,8 +29,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if game_session == null:
-		push_error("GameplayScreen requires a GameSession.")
+	if game_session == null or input_router == null:
+		push_error("GameplayScreen requires a GameSession and InputRouter.")
 		return
 	_course = game_session.course()
 	_rider_tuning = game_session.tuning()
@@ -38,7 +39,9 @@ func _ready() -> void:
 		push_error("Invalid ParkCourse:\n%s" % "\n".join(course_errors))
 	_build_ui_layer()
 	_run_presenter = GameplayRunPresenterScene.new()
-	_run_presenter.setup(self, _ui_layer, game_session, _course, _rider_tuning, show_terrain)
+	_run_presenter.setup(
+		self, _ui_layer, game_session, input_router, _course, _rider_tuning, show_terrain
+	)
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)
 	_pause_flow.abort_requested.connect(_confirm_return_to_title)
@@ -72,7 +75,7 @@ func close_exit_confirmation() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _pause_flow.accepts_screen_input():
 		return
-	match _run_presenter.screen_command(event):
+	match _run_presenter.input.screen_command(event, game_session, input_router):
 		&"continue":
 			_run_presenter.continue_tally()
 			get_viewport().set_input_as_handled()
