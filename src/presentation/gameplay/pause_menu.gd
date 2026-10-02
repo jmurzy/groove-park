@@ -1,5 +1,5 @@
-## Pause/exit dialog: "BAIL THIS RUN?" with KEEP PLAYING / HOW TO PLAY /
-## BAIL RUN. Owns its panel styling, focus wiring, and switch/confirm SFX.
+## Pause/exit dialog: "ABORT THIS RUN?" with KEEP PLAYING / HOW TO PLAY /
+## ABORT RUN. Owns its panel styling, focus wiring, and switch/confirm SFX.
 ## Emits intent signals; PauseFlowController pauses the tree, frees this control
 ## on close, and hosts the HowToPlay overlay + return-to-title flow.
 class_name PauseMenu
@@ -7,7 +7,7 @@ extends Control
 
 signal resume_requested
 signal controls_requested
-signal bail_requested
+signal abort_requested
 
 const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
@@ -75,7 +75,7 @@ func _build_dialog() -> void:
 	panel.add_theme_stylebox_override("panel", ArcadeTheme.dialog_panel_style())
 	add_child(panel)
 
-	var title := ArcadeTheme.make_label("BAIL THIS RUN?", 36, Color("fff16a"))
+	var title := ArcadeTheme.make_label("ABORT THIS RUN?", 36, Color("fff16a"))
 	title.position = Vector2(0, 55)
 	title.size = Vector2(panel.size.x, 58)
 	panel.add_child(title)
@@ -99,8 +99,8 @@ func _build_dialog() -> void:
 	_controls_button.pressed.connect(_on_controls_pressed)
 	panel.add_child(_controls_button)
 
-	_return_button = _build_button("BAIL RUN", Vector2(860, 248))
-	_return_button.pressed.connect(_on_bail_pressed)
+	_return_button = _build_button("ABORT RUN", Vector2(860, 248))
+	_return_button.pressed.connect(_on_abort_pressed)
 	panel.add_child(_return_button)
 	_wire_button_focus()
 
@@ -140,7 +140,7 @@ func _cycle_focus() -> void:
 
 func _confirm_focused() -> void:
 	if _return_button.has_focus():
-		_on_bail_pressed()
+		_on_abort_pressed()
 	elif _controls_button.has_focus():
 		_on_controls_pressed()
 	else:
@@ -157,8 +157,8 @@ func _on_controls_pressed() -> void:
 	controls_requested.emit()
 
 
-func _on_bail_pressed() -> void:
-	bail_requested.emit()
+func _on_abort_pressed() -> void:
+	abort_requested.emit()
 
 
 func _play_confirmation() -> void:

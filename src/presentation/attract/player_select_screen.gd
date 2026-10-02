@@ -39,7 +39,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"controller_start"):
 		_confirm(selected_rider_kind)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"controller_back"):
+	elif (
+		event.is_action_pressed(&"ui_cancel")
+		or event.is_action_pressed(&"action_b")
+		or event.is_action_pressed(&"controller_back")
+	):
 		cancelled.emit()
 		get_viewport().set_input_as_handled()
 
