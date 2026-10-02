@@ -103,6 +103,8 @@ func _update_low_momentum_detection(
 ) -> void:
 	if _is_rolling_back_from_low_momentum(state):
 		return
+	state.run.low_momentum_detector_armed = false
+	state.run.low_momentum_detector_reason = StringName()
 	var route_index := clampi(
 		roundi(state.kinematics.approach_path_position), 0, course.routes.size() - 1
 	)
@@ -114,15 +116,19 @@ func _update_low_momentum_detection(
 		state.kinematics.approach_path_position, float(state.kinematics.approach_path_target)
 	)
 	var low_speed := state.kinematics.ground_velocity.x <= tuning.low_momentum_speed_threshold
+	var recoverable_acceleration := _best_recoverable_forward_acceleration(state, course, tuning)
+	state.run.low_momentum_recoverable_acceleration = recoverable_acceleration
 	if (
 		course.route_at(route_index).kind != ParkRoute.Kind.FLIGHT
 		or not route_change_complete
 		or not near_lip
 		or not low_speed
-		or _best_recoverable_forward_acceleration(state, course, tuning) > 0.0
+		or recoverable_acceleration > 0.0
 	):
 		_reset_low_momentum_detection(state)
 		return
+	state.run.low_momentum_detector_armed = true
+	state.run.low_momentum_detector_reason = &"no_recoverable_forward_acceleration"
 	if (
 		state.kinematics.course_progress
 		> state.run.low_momentum_last_progress + tuning.low_momentum_progress_epsilon

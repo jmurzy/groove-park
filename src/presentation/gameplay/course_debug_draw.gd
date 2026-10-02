@@ -16,6 +16,7 @@ const COMPRESSION_FILL_ALPHA := 0.28
 const COMPRESSION_ACTIVE_ALPHA := 0.72
 const FLIGHT_DEBUG_COLOR := Color("68efff")
 const CONTACT_DEBUG_COLOR := Color("ff75e1")
+const LOW_MOMENTUM_DEBUG_COLOR := Color("ffb347")
 const FLIGHT_PREDICTION_DURATION := 1.2
 
 
@@ -270,3 +271,34 @@ static func draw_flight_debug(canvas: CanvasItem, state: RiderState, tuning: Rid
 		2.0,
 		8.0
 	)
+
+
+static func draw_low_momentum_debug(
+	canvas: CanvasItem, state: RiderState, tuning: RiderTuning
+) -> void:
+	if not state.run.low_momentum_detector_armed:
+		return
+	var position := Vector2(state.kinematics.course_progress, state.kinematics.vertical_position)
+	var timer_text := (
+		"%.2f / %.2f"
+		% [
+			state.run.low_momentum_no_progress_time,
+			tuning.low_momentum_detection_duration,
+		]
+	)
+	var lines := [
+		"LOW MOMENTUM ARMED",
+		"TIMER %s" % timer_text,
+		"RECOVERABLE ACCEL %.1f" % state.run.low_momentum_recoverable_acceleration,
+		"REASON %s" % state.run.low_momentum_detector_reason.to_upper(),
+	]
+	for line_index in lines.size():
+		canvas.draw_string(
+			ThemeDB.fallback_font,
+			position + Vector2(20.0, -62.0 + line_index * 18.0),
+			lines[line_index],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			14.0,
+			LOW_MOMENTUM_DEBUG_COLOR
+		)

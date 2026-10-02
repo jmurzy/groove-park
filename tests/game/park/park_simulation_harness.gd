@@ -1079,6 +1079,14 @@ func _test_low_momentum_rider_ends_run() -> void:
 		state.run.jump_outcome == JumpOutcome.Value.LOW_MOMENTUM,
 		"A low-momentum rider should receive a warning before the run ends."
 	)
+	_expect(
+		state.run.low_momentum_detector_armed,
+		"The low-momentum warning must retain its armed diagnostic state."
+	)
+	_expect(
+		state.run.low_momentum_detector_reason == &"no_recoverable_forward_acceleration",
+		"The detector must report why it armed in terrain debug."
+	)
 	for _tick in 1500:
 		_step_on(state, roller, Vector2.RIGHT)
 		if state.run.run_phase == RiderRunState.RunPhase.COMPLETE:
@@ -1128,6 +1136,50 @@ func _test_low_momentum_stop_fallback() -> void:
 		"The stopped-rider fallback should not require an impossible slide distance."
 	)
 	_tuning = original_tuning
+
+
+func _test_low_momentum_is_deterministic_across_fixed_deltas() -> void:
+	var results: Array[Dictionary] = [
+		_simulate_low_momentum(1.0 / 30.0),
+		_simulate_low_momentum(1.0 / 60.0),
+		_simulate_low_momentum(1.0 / 120.0),
+	]
+	for result: Dictionary in results:
+		_expect(
+			result.outcome == JumpOutcome.Value.LOW_MOMENTUM,
+			"Low momentum must resolve at every supported fixed physics delta."
+		)
+		_expect(
+			result.completed, "Low momentum must complete at every supported fixed physics delta."
+		)
+		_expect(
+			result.completion_progress < result.start_progress,
+			"Low momentum must roll back before completion at every fixed physics delta."
+		)
+
+
+func _simulate_low_momentum(delta: float) -> Dictionary:
+	var roller := _roller_course()
+	var flight_path := PackedVector2Array([Vector2(0, 400), Vector2(800, 600), Vector2(1050, 350)])
+	roller.routes[0].approach_path = flight_path
+	roller.routes[1].approach_path = flight_path
+	var state := RiderStateScene.new()
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	var input := RiderInputFrameScene.new()
+	input.heading = Vector2.RIGHT
+	var start_progress := state.kinematics.course_progress
+	for _tick in 3000:
+		_simulation.step(state, input, roller, _tuning, delta)
+		if state.run.run_phase == RiderRunState.RunPhase.COMPLETE:
+			break
+	return {
+		"outcome": state.run.jump_outcome,
+		"completed": state.run.run_phase == RiderRunState.RunPhase.COMPLETE,
+		"completion_progress": state.kinematics.course_progress,
+		"start_progress": start_progress,
+	}
 
 
 func _test_uphill_clears_with_momentum() -> void:

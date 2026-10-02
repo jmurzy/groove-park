@@ -51,3 +51,4 @@ func _draw() -> void:
 	CourseDebugDrawScene.draw_terrain_handles(self, projection)
 	if rider_state != null and rider_tuning != null:
 		CourseDebugDrawScene.draw_flight_debug(self, rider_state, rider_tuning)
+		CourseDebugDrawScene.draw_low_momentum_debug(self, rider_state, rider_tuning)

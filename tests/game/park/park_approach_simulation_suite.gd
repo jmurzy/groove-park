@@ -18,4 +18,5 @@ func run_checks() -> void:
 	_test_gradient_sign_matches_terrain_pitch()
 	_test_low_momentum_rider_ends_run()
 	_test_low_momentum_stop_fallback()
+	_test_low_momentum_is_deterministic_across_fixed_deltas()
 	_test_uphill_clears_with_momentum()
