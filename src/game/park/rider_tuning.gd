@@ -51,5 +51,5 @@ extends Resource
 @export var score_rotation_per_rotation := 300
 @export var score_grab_duration_cap := 0.8
 @export var score_grab_per_second := 150
-@export var score_tweak_duration_cap := 0.6
-@export var score_tweak_per_second := 100
+@export var score_tweak_style_bonus := 25
+@export_range(0.0, 1.0) var score_sketchy_landing_multiplier := 0.5
