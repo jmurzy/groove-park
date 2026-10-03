@@ -37,10 +37,12 @@ func setup(
 	input.configure(designer_mode and OS.is_debug_build())
 	_hud = GameplayHudPresenterScene.new()
 	_hud.build(ui_layer, session.rider_kind)
+	_hud.show_round_state(session.round_state())
 	_world = ParkWorldPresenterScene.new()
 	owner.add_child(_world)
 	_world.setup(course, designer_mode, tuning, session.rider_kind)
 	_session.jump_started.connect(_on_jump_started)
+	_session.jump_result_recorded.connect(_on_jump_result_recorded)
 	_world.update_from_run(_session.run_manager, 0.0, _hud.is_occluded)
 	_update_hud_occlusion()
 
@@ -67,10 +69,15 @@ func continue_tally() -> void:
 	_session.complete_tally()
 
 
-func _on_jump_started(_round_state: RoundState) -> void:
+func _on_jump_started(round_state: RoundState) -> void:
 	_hud.reset(_session.rider_kind)
+	_hud.show_round_state(round_state)
 	_world.reset_presentation(_session.run_manager, _hud.is_occluded)
 	_update_hud_occlusion()
+
+
+func _on_jump_result_recorded(round_state: RoundState, _jump_result: JumpResult) -> void:
+	_hud.show_round_state(round_state)
 
 
 func _update_hud_occlusion() -> void:

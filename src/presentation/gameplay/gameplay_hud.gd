@@ -6,6 +6,8 @@ class_name GameplayHud
 extends Control
 
 var _frame: HudFrame
+var _score_value: Label
+var _jump_value: Label
 var _speed_value: Label
 var _rotation_value: Label
 var _rotation_quota_value: Label
@@ -35,6 +37,24 @@ func set_speed(world_speed: float) -> void:
 	_speed_value.text = "%d MPH" % speed_to_mph(world_speed)
 
 
+func set_round_score(score: int) -> void:
+	_score_value.text = "%05d" % max(score, 0)
+
+
+func set_jump_number(jump_number: int) -> void:
+	_jump_value.text = (
+		"%d / %d" % [clampi(jump_number, 1, RoundState.MAX_JUMPS), RoundState.MAX_JUMPS]
+	)
+
+
+func score_text() -> String:
+	return _score_value.text
+
+
+func jump_text() -> String:
+	return _jump_value.text
+
+
 func set_rotation_text(rotation_text: String) -> void:
 	_rotation_value.text = rotation_text
 
@@ -44,8 +64,10 @@ func set_rotation_quota_text(rotation_quota_text: String) -> void:
 
 
 func _build_metrics() -> void:
-	_add_metric("SCORE", "0000", 506, Color("42eaff"), Color("ffe126"))
-	_add_metric("JUMP", "01 / 01", 780, Color("42eaff"), Color("f3f6ff"))
+	_score_value = _add_metric("SCORE", "00000", 506, Color("42eaff"), Color("ffe126"))
+	_jump_value = _add_metric(
+		"JUMP", "1 / %d" % RoundState.MAX_JUMPS, 780, Color("42eaff"), Color("f3f6ff")
+	)
 	_speed_value = _add_metric("SPEED", "0 MPH", 1054, Color("42eaff"), Color("f3f6ff"))
 	_rotation_value = _add_metric("ROTATION", "+0°", 1328, Color("42eaff"), Color("f3f6ff"))
 	_rotation_quota_value = _add_metric("SPINS", "--", 1602, Color("42eaff"), Color("f3f6ff"))

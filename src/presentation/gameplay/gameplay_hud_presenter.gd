@@ -73,6 +73,13 @@ func reset(rider_kind: StringName) -> void:
 	_cta_label.text = _ready_text(rider_kind)
 
 
+func show_round_state(round_state: RoundState) -> void:
+	if round_state == null:
+		return
+	_hud.set_round_score(round_state.round_score())
+	_hud.set_jump_number(round_state.current_jump_number())
+
+
 func is_occluded(rect: Rect2) -> bool:
 	return _hud.is_occluded(rect)
 

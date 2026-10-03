@@ -8,11 +8,13 @@ const ReleaseDeadlineWarningScene := preload(
 	"res://src/presentation/gameplay/release_deadline_warning.gd"
 )
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
+const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
 
 var _failures := PackedStringArray()
 
 
 func _init() -> void:
+	_test_hud_displays_round_score_and_jump()
 	_test_tally_start_continues_and_active_start_pauses()
 	_test_r_key_requires_terrain_debug_mode()
 	_test_release_deadline_warning_visibility()
@@ -23,6 +25,22 @@ func _init() -> void:
 	for failure in _failures:
 		push_error(failure)
 	quit(1)
+
+
+func _test_hud_displays_round_score_and_jump() -> void:
+	var hud := GameplayHudScene.new()
+	hud._ready()
+	hud.set_round_score(450)
+	hud.set_jump_number(2)
+	_expect(hud.score_text() == "00450", "HUD must display the accumulated round score.")
+	_expect(hud.jump_text() == "2 / 3", "HUD must display the current jump out of three.")
+	hud.set_round_score(450)
+	hud.set_jump_number(2)
+	_expect(
+		hud.score_text() == "00450" and hud.jump_text() == "2 / 3",
+		"Resetting an unrecorded jump must preserve the session HUD values."
+	)
+	hud.free()
 
 
 func _test_tally_start_continues_and_active_start_pauses() -> void:
