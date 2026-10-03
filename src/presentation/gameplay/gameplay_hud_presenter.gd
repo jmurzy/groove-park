@@ -39,6 +39,7 @@ func _build_status_label() -> Label:
 func update(delta: float, session: GameSession, input: RiderInputFrame) -> void:
 	var run_manager := session.run_manager
 	_elapsed += delta
+	_update_score(session, run_manager)
 	_cta_label.visible = (
 		(
 			not run_manager.has_started_moving
@@ -78,6 +79,13 @@ func show_round_state(round_state: RoundState) -> void:
 		return
 	_hud.set_round_score(round_state.round_score())
 	_hud.set_jump_number(round_state.current_jump_number())
+
+
+func _update_score(session: GameSession, run_manager: RiderRunManager) -> void:
+	var score := session.round_state().round_score()
+	if session.session_phase == RoundState.SessionPhase.JUMP_ACTIVE:
+		score += run_manager.preview_score(session.tuning())
+	_hud.set_round_score(score)
 
 
 func is_occluded(rect: Rect2) -> bool:

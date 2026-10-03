@@ -53,7 +53,19 @@ func terminal_snapshot() -> JumpSnapshot:
 	return _terminal_snapshot
 
 
+func preview_score(tuning: RiderTuning) -> int:
+	if is_complete():
+		return 0
+	# An active jump has no outcome yet; project it with the clean 1.0 multiplier.
+	var snapshot := _create_snapshot(JumpOutcome.Value.CLEAN, tuning)
+	return JumpScorer.score_jump(snapshot, tuning).total() if snapshot != null else 0
+
+
 func _freeze_terminal_snapshot(tuning: RiderTuning) -> JumpSnapshot:
+	return _create_snapshot(rider_state.run.jump_outcome, tuning)
+
+
+func _create_snapshot(outcome: int, tuning: RiderTuning) -> JumpSnapshot:
 	var tracker := rider_state.jump.trick_tracker
 	var grab_style := rider_state.jump.scored_grab_style
 	var valid_grab_duration := tracker.valid_grab_duration
@@ -65,7 +77,7 @@ func _freeze_terminal_snapshot(tuning: RiderTuning) -> JumpSnapshot:
 		)
 		valid_grab_duration = tracker.grab_duration
 	var created := JumpSnapshot.create(
-		rider_state.run.jump_outcome,
+		outcome,
 		maxf(rider_state.jump.takeoff_velocity.x, 0.0),
 		maxf(rider_state.jump.takeoff_pop_impulse, 0.0),
 		maxf(rider_state.jump.airtime, 0.0),

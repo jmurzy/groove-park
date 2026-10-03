@@ -7,6 +7,7 @@ var _failures := PackedStringArray()
 func _init() -> void:
 	_test_completed_simulation_records_each_outcome_once()
 	_test_completed_run_freezes_and_scores_terminal_measurements()
+	_test_active_run_previews_current_score()
 	_test_restarting_an_unrecorded_run_discards_partial_measurements()
 	_test_result_requires_a_completed_active_run_and_records_once()
 	_test_non_crash_tallies_advance_through_three_jumps()
@@ -95,6 +96,26 @@ func _test_completed_run_freezes_and_scores_terminal_measurements() -> void:
 	_expect(
 		result.resolved_score() == 686 and result.snapshot().airtime() == 0.75,
 		"Repeated completion frames cannot alter a recorded score."
+	)
+	session.free()
+
+
+func _test_active_run_previews_current_score() -> void:
+	var session := _active_session()
+	var state := session.run_manager.rider_state
+	state.jump.takeoff_velocity = Vector2(450.0, -100.0)
+	state.jump.takeoff_pop_impulse = 130.0
+	state.jump.airtime = 0.75
+	state.jump.completed_rotations = 1
+	state.jump.scored_grab_style = JumpSnapshot.GrabStyle.TWEAK
+	state.jump.trick_tracker.valid_grab_duration = 0.4
+	_expect(
+		session.run_manager.preview_score(session.tuning()) == 686,
+		"An active run must preview its current score as a clean landing."
+	)
+	_expect(
+		session.round_state().round_score() == 0,
+		"Previewing an active score must not mutate the authoritative round total."
 	)
 	session.free()
 
