@@ -2,29 +2,50 @@
 class_name JumpResult
 extends RefCounted
 
-var _outcome: int
-var _resolved_score: int
+var _snapshot: JumpSnapshot
+var _score: JumpScore
 
 
-func _init(outcome: int, resolved_score: int) -> void:
-	_outcome = outcome
-	_resolved_score = resolved_score
+func _init(snapshot: JumpSnapshot, score: JumpScore) -> void:
+	_snapshot = snapshot
+	_score = score
 
 
-static func create(outcome: int, resolved_score: int) -> RecordValidationResult:
+static func create(snapshot: JumpSnapshot, score: JumpScore) -> RecordValidationResult:
 	var errors := PackedStringArray()
-	if not JumpOutcome.is_terminal(outcome):
-		errors.append("JumpResult requires a terminal JumpOutcome.")
-	if resolved_score < 0:
+	if snapshot == null:
+		errors.append("JumpResult requires a frozen JumpSnapshot.")
+	if score == null:
+		errors.append("JumpResult requires a resolved JumpScore.")
+	elif score.total() < 0:
 		errors.append("JumpResult score must be non-negative.")
 	if not errors.is_empty():
 		return RecordValidationResult.failure(errors)
-	return RecordValidationResult.success(JumpResult.new(outcome, resolved_score))
+	return RecordValidationResult.success(JumpResult.new(snapshot, score))
 
 
 func outcome() -> int:
-	return _outcome
+	return _snapshot.outcome()
 
 
 func resolved_score() -> int:
-	return _resolved_score
+	return _score.total()
+
+
+func snapshot() -> JumpSnapshot:
+	return _snapshot
+
+
+func score() -> JumpScore:
+	return _score
+
+
+func trick_summary() -> String:
+	var parts := PackedStringArray([JumpOutcome.label(outcome())])
+	if _snapshot.completed_rotations() > 0:
+		parts.append("%d" % (_snapshot.completed_rotations() * 360))
+	if _snapshot.grab_style() == JumpSnapshot.GrabStyle.STANDARD:
+		parts.append("GRAB")
+	elif _snapshot.grab_style() == JumpSnapshot.GrabStyle.TWEAK:
+		parts.append("TWEAK GRAB")
+	return " ".join(parts)

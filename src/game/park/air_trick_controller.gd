@@ -13,6 +13,7 @@ func begin(state: RiderState, takeoff_speed: float, tuning: RiderTuning) -> void
 	state.jump.airtime = 0.0
 	state.jump.grab_reach_active = false
 	state.jump.tweak_active = false
+	state.jump.scored_grab_style = JumpSnapshot.GrabStyle.NONE
 	state.jump.grab_started_airtime = -1.0
 	state.jump.grab_active_at_deadline = false
 	state.jump.grab_released_after_deadline = false
@@ -53,7 +54,12 @@ func _start_grab(state: RiderState, tweak: bool) -> void:
 
 
 func _release_grab(state: RiderState, tuning: RiderTuning) -> void:
+	var grab_style := (
+		JumpSnapshot.GrabStyle.TWEAK if state.jump.tweak_active else JumpSnapshot.GrabStyle.STANDARD
+	)
 	state.jump.trick_tracker.release_grab(state.jump.airtime, tuning.minimum_grab_duration)
+	if state.jump.trick_tracker.valid_grab_duration > 0.0:
+		state.jump.scored_grab_style = grab_style
 	if state.jump.release_deadline_crossed:
 		state.jump.grab_released_after_deadline = true
 	state.jump.grab_reach_active = false

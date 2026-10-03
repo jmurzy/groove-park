@@ -75,19 +75,33 @@ func _test_invalid_round_data_is_rejected() -> void:
 
 func _test_invalid_jump_result_is_rejected() -> void:
 	_expect(
-		not JumpResult.create(JumpOutcome.Value.NONE, 0).is_valid,
-		"A jump result requires a terminal outcome."
+		not JumpResult.create(null, JumpScore.new(0, 0, 0, 0, 0, 0, 0, 0)).is_valid,
+		"A jump result requires a frozen snapshot."
 	)
 	_expect(
-		not JumpResult.create(JumpOutcome.Value.CLEAN, -1).is_valid,
+		not (
+			JumpResult
+			. create(_snapshot(JumpOutcome.Value.CLEAN), JumpScore.new(0, 0, 0, 0, 0, 0, 0, -1))
+			. is_valid
+		),
 		"A jump result cannot have a negative score."
 	)
 
 
 func _jump_result(outcome: int, score: int) -> JumpResult:
-	var created := JumpResult.create(outcome, score)
+	var created := JumpResult.create(
+		_snapshot(outcome), JumpScore.new(0, 0, 0, 0, 0, 0, 1000, score)
+	)
 	if not created.is_valid:
 		_failures.append("Test fixture must create a valid jump result.")
+		return null
+	return created.value
+
+
+func _snapshot(outcome: int) -> JumpSnapshot:
+	var created := JumpSnapshot.create(outcome, 0.0, 0.0, 0.0, 0, JumpSnapshot.GrabStyle.NONE, 0.0)
+	if not created.is_valid:
+		_failures.append("Test fixture must create a valid score snapshot.")
 		return null
 	return created.value
 

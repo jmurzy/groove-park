@@ -42,6 +42,7 @@ var airtime := 0.0
 var landing_prep_active := false
 var grab_reach_active := false
 var tweak_active := false
+var scored_grab_style := JumpSnapshot.GrabStyle.NONE
 var grab_started_airtime := -1.0
 var grab_active_at_deadline := false
 var trick_tracker: TrickTracker = TrickTrackerScene.new()

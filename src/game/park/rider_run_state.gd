@@ -2,7 +2,7 @@
 class_name RiderRunState
 extends RefCounted
 
-enum RunPhase {APPROACH, FLIGHT, LANDING, COMPLETE}
+enum RunPhase { APPROACH, FLIGHT, LANDING, COMPLETE }
 
 var run_phase := RunPhase.APPROACH
 var jump_outcome := JumpOutcome.Value.NONE

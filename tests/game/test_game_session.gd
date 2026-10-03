@@ -6,6 +6,8 @@ var _failures := PackedStringArray()
 
 func _init() -> void:
 	_test_completed_simulation_records_each_outcome_once()
+	_test_completed_run_freezes_and_scores_terminal_measurements()
+	_test_restarting_an_unrecorded_run_discards_partial_measurements()
 	_test_result_requires_a_completed_active_run_and_records_once()
 	_test_non_crash_tallies_advance_through_three_jumps()
 	_test_crash_completes_the_round_once()
@@ -40,7 +42,7 @@ func _test_completed_simulation_records_each_outcome_once() -> void:
 		)
 		_expect(
 			session.round_state().round_score() == 0,
-			"Milestone 3 terminal results must use the temporary zero score."
+			"Empty terminal measurements must resolve to zero score."
 		)
 		session.step_run(RiderInputFrame.new(), 0.0)
 		_expect(
@@ -67,6 +69,52 @@ func _test_completed_simulation_records_each_outcome_once() -> void:
 				"A next jump must start in approach."
 			)
 		session.free()
+
+
+func _test_completed_run_freezes_and_scores_terminal_measurements() -> void:
+	var session := _active_session()
+	var state := session.run_manager.rider_state
+	state.run.jump_outcome = JumpOutcome.Value.CLEAN
+	state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+	state.jump.takeoff_velocity = Vector2(450.0, -100.0)
+	state.jump.takeoff_pop_impulse = 130.0
+	state.jump.airtime = 0.75
+	state.jump.completed_rotations = 1
+	state.jump.scored_grab_style = JumpSnapshot.GrabStyle.TWEAK
+	state.jump.trick_tracker.valid_grab_duration = 0.4
+	session.step_run(RiderInputFrame.new(), 0.0)
+	var result: JumpResult = session.round_state().jump_results().front()
+	_expect(result.resolved_score() == 686, "Completed runs must use their frozen score snapshot.")
+	_expect(
+		result.trick_summary() == "CLEAN 360 TWEAK GRAB",
+		"Trick summaries must derive from the resolved result."
+	)
+	state.jump.airtime = 10.0
+	state.jump.completed_rotations = 10
+	session.step_run(RiderInputFrame.new(), 0.0)
+	_expect(
+		result.resolved_score() == 686 and result.snapshot().airtime() == 0.75,
+		"Repeated completion frames cannot alter a recorded score."
+	)
+	session.free()
+
+
+func _test_restarting_an_unrecorded_run_discards_partial_measurements() -> void:
+	var session := _active_session()
+	var state := session.run_manager.rider_state
+	state.jump.takeoff_velocity.x = 900.0
+	state.jump.airtime = 1.5
+	state.jump.completed_rotations = 2
+	session.restart_run()
+	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CLEAN
+	_complete_active_run(session)
+	session.step_run(RiderInputFrame.new(), 0.0)
+	var result: JumpResult = session.round_state().jump_results().front()
+	_expect(
+		result.resolved_score() == 0,
+		"Restarting an unrecorded jump must discard partial score measurements."
+	)
+	session.free()
 
 
 func _test_result_requires_a_completed_active_run_and_records_once() -> void:
@@ -231,9 +279,18 @@ func _complete_active_run(session: GameSession) -> void:
 
 
 func _jump_result(outcome: int, score: int) -> JumpResult:
-	var created := JumpResult.create(outcome, score)
+	var snapshot := _snapshot(outcome)
+	var created := JumpResult.create(snapshot, JumpScore.new(0, 0, 0, 0, 0, 0, 1000, score))
 	if not created.is_valid:
 		_failures.append("Test fixture must create a valid jump result.")
+		return null
+	return created.value
+
+
+func _snapshot(outcome: int) -> JumpSnapshot:
+	var created := JumpSnapshot.create(outcome, 0.0, 0.0, 0.0, 0, JumpSnapshot.GrabStyle.NONE, 0.0)
+	if not created.is_valid:
+		_failures.append("Test fixture must create a valid score snapshot.")
 		return null
 	return created.value
 

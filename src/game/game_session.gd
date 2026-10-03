@@ -159,7 +159,11 @@ func _begin_current_jump() -> void:
 
 
 func _record_completed_run() -> void:
-	var created := JumpResult.create(run_manager.rider_state.run.jump_outcome, 0)
+	var snapshot := run_manager.terminal_snapshot()
+	if snapshot == null:
+		push_error("A completed run must provide frozen terminal measurements.")
+		return
+	var created := JumpResult.create(snapshot, JumpScorer.score_jump(snapshot, _tuning))
 	if not created.is_valid:
 		push_error("Unable to resolve the completed run: %s" % "; ".join(created.errors))
 		return
