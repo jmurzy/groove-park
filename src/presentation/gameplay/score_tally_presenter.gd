@@ -2,12 +2,15 @@
 class_name ScoreTallyPresenter
 extends RefCounted
 
+signal score_tick_requested
+
 const DESIGN_SIZE := Vector2(1920, 1080)
 const MINIMUM_DISPLAY_TIME := 1.0
 const COUNT_UP_START := 1.5
 const COUNT_UP_DURATION := 1.2
 const AUTO_COMPLETE_TIME := 10.0
 const ACCELERATED_RATE := 6.0
+const SCORE_TICK_INTERVAL := 0.1
 
 var _panel: Panel
 var _outcome_label: Label
@@ -24,6 +27,10 @@ var _current_jump_number := 1
 var _elapsed := 0.0
 var _accelerated := false
 var _complete := false
+# Compared with the current count-up score before emitting a tick, preventing repeated ticks when
+# the displayed value is unchanged or final. Rate-limited advances are discarded, not queued.
+var _last_displayed_jump_score := 0
+var _score_tick_cooldown := 0.0
 
 
 func build(ui_layer: CanvasLayer) -> void:
@@ -50,34 +57,16 @@ func start(round_state: RoundState, result: JumpResult) -> void:
 	_result = result
 	_previous_round_score = max(round_state.round_score() - result.resolved_score(), 0)
 	_current_jump_number = round_state.current_jump_number()
-	_elapsed = 0.0
-	_accelerated = false
-	_complete = false
-	if _panel != null:
-		_panel.show()
-		_outcome_label.text = JumpOutcome.label(result.outcome())
-		_trick_label.text = result.trick_summary()
-		_rows_label.text = _component_rows(result.score())
-		_multiplier_label.text = (
-			"LANDING x%.1f" % (float(result.score().landing_multiplier_milli()) / 1000.0)
-		)
-		_jump_total_label.text = "JUMP SCORE +0"
-		_round_total_label.text = "ROUND SCORE %5d" % _previous_round_score
-		_completion_label.hide()
-		_footer_label.text = "TALLYING..."
+	_reset_timing()
+	_show_initial_tally()
 
 
 func update(delta: float) -> bool:
 	if _result == null or _complete:
 		return false
-	_elapsed += maxf(delta, 0.0) * (ACCELERATED_RATE if _accelerated else 1.0)
+	_advance_clock(delta)
 	_update_labels()
-	if _elapsed < AUTO_COMPLETE_TIME:
-		return false
-	_complete = true
-	if _panel != null:
-		_panel.hide()
-	return true
+	return _complete_if_due()
 
 
 func request_continue() -> bool:
@@ -103,18 +92,69 @@ func completion_text() -> String:
 	return "JUMP %d COMPLETE" % _current_jump_number
 
 
+func _reset_timing() -> void:
+	_elapsed = 0.0
+	_accelerated = false
+	_complete = false
+	_last_displayed_jump_score = 0
+	_score_tick_cooldown = 0.0
+
+
+func _show_initial_tally() -> void:
+	if _panel != null:
+		_panel.show()
+		_outcome_label.text = JumpOutcome.label(_result.outcome())
+		_trick_label.text = _result.trick_summary()
+		_rows_label.text = _component_rows(_result.score())
+		_multiplier_label.text = (
+			"LANDING x%.1f" % (float(_result.score().landing_multiplier_milli()) / 1000.0)
+		)
+		_jump_total_label.text = "JUMP SCORE +0"
+		_round_total_label.text = "ROUND SCORE %5d" % _previous_round_score
+		_completion_label.hide()
+		_footer_label.text = "TALLYING..."
+
+
+func _advance_clock(delta: float) -> void:
+	var real_delta := maxf(delta, 0.0)
+	_elapsed += real_delta * (ACCELERATED_RATE if _accelerated else 1.0)
+	_score_tick_cooldown = maxf(_score_tick_cooldown - real_delta, 0.0)
+	_emit_score_tick_if_needed()
+
+
+func _complete_if_due() -> bool:
+	if _elapsed < AUTO_COMPLETE_TIME:
+		return false
+	_complete = true
+	if _panel != null:
+		_panel.hide()
+	return true
+
+
 func _update_labels() -> void:
 	if _panel == null:
 		return
+	_update_score_labels()
+	_update_completion_label()
+	_update_footer_label()
+
+
+func _update_score_labels() -> void:
 	var revealed := _elapsed >= COUNT_UP_START
 	_jump_total_label.text = "JUMP SCORE +%5d" % displayed_jump_score()
 	_round_total_label.text = "ROUND SCORE %5d" % displayed_round_score()
-	_footer_label.text = _next_action_text() if _elapsed >= MINIMUM_DISPLAY_TIME else "TALLYING..."
 	if not revealed:
 		_jump_total_label.text = "JUMP SCORE"
 		_round_total_label.text = "ROUND SCORE %5d" % _previous_round_score
+
+
+func _update_completion_label() -> void:
 	_completion_label.visible = _elapsed >= COUNT_UP_START + COUNT_UP_DURATION
 	_completion_label.text = completion_text()
+
+
+func _update_footer_label() -> void:
+	_footer_label.text = _next_action_text() if _elapsed >= MINIMUM_DISPLAY_TIME else "TALLYING..."
 
 
 func _next_action_text() -> String:
@@ -128,10 +168,21 @@ func _counted_score(score: int) -> int:
 	return roundi(float(score) * progress)
 
 
+func _emit_score_tick_if_needed() -> void:
+	var current_score := displayed_jump_score()
+	if current_score <= _last_displayed_jump_score:
+		return
+	_last_displayed_jump_score = current_score
+	if _score_tick_cooldown > 0.0:
+		return
+	_score_tick_cooldown = SCORE_TICK_INTERVAL
+	score_tick_requested.emit()
+
+
 func _component_rows(score: JumpScore) -> String:
 	return (
 		"\n"
-		.join(
+		. join(
 			[
 				"APPROACH      +%d" % score.approach_points(),
 				"TAKEOFF       +%d" % score.takeoff_points(),

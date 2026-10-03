@@ -66,6 +66,7 @@ func _show_gameplay(rider_kind: StringName, transition: CrtTransition) -> void:
 	_gameplay_screen = GameplayScreenScene.new()
 	_gameplay_screen.game_session = _game_session
 	_gameplay_screen.input_router = _input_router
+	_gameplay_screen.audio_manager = _audio_manager
 	_gameplay_screen.designer_mode = _options.designer_mode
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	add_child(_gameplay_screen)

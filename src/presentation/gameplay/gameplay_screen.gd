@@ -15,6 +15,7 @@ const PauseFlowControllerScene := preload(
 
 var game_session: GameSession
 var input_router: InputRouter
+var audio_manager: AudioManager
 var designer_mode := OS.is_debug_build()
 var _course: ParkCourse
 var _run_presenter: GameplayRunPresenter
@@ -29,8 +30,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if game_session == null or input_router == null:
-		push_error("GameplayScreen requires a GameSession and InputRouter.")
+	if game_session == null or input_router == null or audio_manager == null:
+		push_error("GameplayScreen requires a GameSession, InputRouter, and AudioManager.")
 		return
 	_course = game_session.course()
 	_rider_tuning = game_session.tuning()
@@ -40,7 +41,14 @@ func _ready() -> void:
 	_build_ui_layer()
 	_run_presenter = GameplayRunPresenterScene.new()
 	_run_presenter.setup(
-		self, _ui_layer, game_session, input_router, _course, _rider_tuning, designer_mode
+		self,
+		_ui_layer,
+		game_session,
+		input_router,
+		audio_manager,
+		_course,
+		_rider_tuning,
+		designer_mode
 	)
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)

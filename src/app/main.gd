@@ -13,8 +13,6 @@ const ScreenFlowControllerScene := preload("res://src/app/screen_flow_controller
 const GameSessionScene := preload("res://src/game/game_session.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
 const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
-const BackgroundMusic := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
-const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 
 var _audio_manager: AudioManager
 var _cabinet_exit_handler := CabinetExitHandlerScript.new()
@@ -85,7 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _setup_audio() -> void:
 	_audio_manager = AudioManagerScript.new()
 	add_child(_audio_manager)
-	_audio_manager.configure(BackgroundMusic.duplicate(), CONFIRMATION_SOUND)
+	_audio_manager.configure()
 	_audio_manager.play_background_music()
 
 

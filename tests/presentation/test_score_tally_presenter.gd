@@ -12,6 +12,7 @@ func _init() -> void:
 	_test_count_up_reaches_authoritative_totals_at_multiple_deltas()
 	_test_continue_respects_minimum_display_and_completes_once()
 	_test_completion_text_uses_the_recorded_jump_number()
+	_test_score_ticks_are_rate_limited()
 	if _failures.is_empty():
 		print("Score-tally presentation checks passed.")
 		quit(0)
@@ -54,6 +55,18 @@ func _test_completion_text_uses_the_recorded_jump_number() -> void:
 		tally.completion_text() == "JUMP 2 COMPLETE",
 		"The tally must identify the recorded jump as complete."
 	)
+
+
+func _test_score_ticks_are_rate_limited() -> void:
+	var tally := ScoreTallyPresenterScene.new()
+	var ticks: Array[bool] = []
+	tally.score_tick_requested.connect(func() -> void: ticks.append(true))
+	tally.start(_round_state(250, 250), _result(250))
+	var completed := false
+	while not completed:
+		completed = tally.update(1.0 / 120.0)
+	_expect(not ticks.is_empty(), "A changing score tally must emit score ticks.")
+	_expect(ticks.size() <= 13, "Score ticks must be capped at ten per real second.")
 
 
 func _round_state(previous_score: int, current_score: int) -> RoundState:

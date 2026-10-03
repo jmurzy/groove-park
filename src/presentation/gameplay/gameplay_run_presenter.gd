@@ -29,6 +29,7 @@ func setup(
 	ui_layer: CanvasLayer,
 	session: GameSession,
 	input_router: InputRouter,
+	audio_manager: AudioManager,
 	course: ParkCourse,
 	tuning: RiderTuning,
 	designer_mode: bool
@@ -44,6 +45,7 @@ func setup(
 	_hud.show_round_state(session.round_state())
 	_tally = ScoreTallyPresenterScene.new()
 	_tally.build(ui_layer)
+	_tally.score_tick_requested.connect(audio_manager.play_score_tick)
 	_world = ParkWorldPresenterScene.new()
 	owner.add_child(_world)
 	_world.setup(course, designer_mode, tuning, session.rider_kind)
