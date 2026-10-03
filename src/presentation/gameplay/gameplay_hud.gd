@@ -38,7 +38,7 @@ func set_speed(world_speed: float) -> void:
 
 
 func set_round_score(score: int) -> void:
-	_score_value.text = "%05d" % max(score, 0)
+	_score_value.text = "%5d" % max(score, 0)
 
 
 func set_jump_number(jump_number: int) -> void:

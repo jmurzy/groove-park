@@ -32,12 +32,12 @@ func _test_hud_displays_round_score_and_jump() -> void:
 	hud._ready()
 	hud.set_round_score(450)
 	hud.set_jump_number(2)
-	_expect(hud.score_text() == "00450", "HUD must display the accumulated round score.")
+	_expect(hud.score_text() == "  450", "HUD must display the accumulated round score.")
 	_expect(hud.jump_text() == "2 / 3", "HUD must display the current jump out of three.")
 	hud.set_round_score(450)
 	hud.set_jump_number(2)
 	_expect(
-		hud.score_text() == "00450" and hud.jump_text() == "2 / 3",
+		hud.score_text() == "  450" and hud.jump_text() == "2 / 3",
 		"Resetting an unrecorded jump must preserve the session HUD values."
 	)
 	hud.free()

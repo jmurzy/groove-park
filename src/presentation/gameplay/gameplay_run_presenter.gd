@@ -9,6 +9,9 @@ const GameplayHudPresenterScene := preload(
 	"res://src/presentation/gameplay/gameplay_hud_presenter.gd"
 )
 const ParkWorldPresenterScene := preload("res://src/presentation/gameplay/park_world_presenter.gd")
+const ScoreTallyPresenterScene := preload(
+	"res://src/presentation/gameplay/score_tally_presenter.gd"
+)
 
 var input: GameplayInputController
 
@@ -18,6 +21,7 @@ var _course: ParkCourse
 var _tuning: RiderTuning
 var _hud: GameplayHudPresenter
 var _world: ParkWorldPresenter
+var _tally: ScoreTallyPresenter
 
 
 func setup(
@@ -38,6 +42,8 @@ func setup(
 	_hud = GameplayHudPresenterScene.new()
 	_hud.build(ui_layer, session.rider_kind)
 	_hud.show_round_state(session.round_state())
+	_tally = ScoreTallyPresenterScene.new()
+	_tally.build(ui_layer)
 	_world = ParkWorldPresenterScene.new()
 	owner.add_child(_world)
 	_world.setup(course, designer_mode, tuning, session.rider_kind)
@@ -49,6 +55,8 @@ func setup(
 
 func update(delta: float) -> void:
 	_hud.update(delta, _session, input.sample_frame(_input_router))
+	if _tally.update(delta):
+		_session.complete_tally()
 
 
 func physics_update(delta: float) -> void:
@@ -66,7 +74,7 @@ func restart() -> void:
 
 
 func continue_tally() -> void:
-	_session.complete_tally()
+	_tally.request_continue()
 
 
 func _on_jump_started(round_state: RoundState) -> void:
@@ -78,6 +86,8 @@ func _on_jump_started(round_state: RoundState) -> void:
 
 func _on_jump_result_recorded(round_state: RoundState, _jump_result: JumpResult) -> void:
 	_hud.show_round_state(round_state)
+	if round_state.session_phase() == RoundState.SessionPhase.JUMP_TALLY:
+		_tally.start(round_state, _jump_result)
 
 
 func _update_hud_occlusion() -> void:

@@ -42,21 +42,16 @@ func update(delta: float, session: GameSession, input: RiderInputFrame) -> void:
 	_update_score(session, run_manager)
 	_cta_label.visible = (
 		(
-			not run_manager.has_started_moving
-			or session.session_phase == RoundState.SessionPhase.JUMP_TALLY
+			(
+				session.session_phase == RoundState.SessionPhase.JUMP_ACTIVE
+				and not run_manager.has_started_moving
+			)
 			or session.session_phase == RoundState.SessionPhase.GAME_OVER
 		)
 		and fmod(_elapsed, 0.8) < 0.56
 	)
 	if session.session_phase == RoundState.SessionPhase.GAME_OVER:
 		_cta_label.text = "GAME OVER"
-	elif session.session_phase == RoundState.SessionPhase.JUMP_TALLY:
-		var current_jump_number := session.round_state().current_jump_number()
-		_cta_label.text = (
-			"PRESS START OR A TO CONTINUE"
-			if current_jump_number == RoundState.MAX_JUMPS
-			else "JUMP %d NEXT! PRESS START OR A TO BEGIN" % (current_jump_number + 1)
-		)
 	else:
 		_cta_label.text = _ready_text(session.rider_kind)
 	_hud.set_speed(run_manager.rider_state.movement_velocity().length())
