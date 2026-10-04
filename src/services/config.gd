@@ -1,4 +1,4 @@
-## Reads `heavenly.cfg` settings (exe dir first, then res://) without logging values.
+## Reads deployment settings and persists app-owned user settings without logging values.
 ## Example: `Config.resolve_value("liftie_api", "user_agent")`.
 class_name Config
 extends RefCounted
@@ -9,10 +9,28 @@ extends RefCounted
 # Never log resolved values themselves.
 
 const CONFIG_FILENAME := "heavenly.cfg"
+const USER_SETTINGS_PATH := "user://leaderboard.cfg"
 
 
 static func resolve_liftie_user_agent() -> String:
 	return resolve_value("liftie_api", "user_agent")
+
+
+static func resolve_leaderboard_api_base_url() -> String:
+	return resolve_value("leaderboard_api", "base_url")
+
+
+static func resolve_installation_id() -> String:
+	var settings := ConfigFile.new()
+	if settings.load(USER_SETTINGS_PATH) == OK:
+		var existing := str(settings.get_value("leaderboard", "installation_id", ""))
+		if not existing.is_empty():
+			return existing
+	var generated := Id.generate_id()
+	settings.set_value("leaderboard", "installation_id", generated)
+	if settings.save(USER_SETTINGS_PATH) != OK:
+		push_warning("Unable to persist leaderboard installation ID.")
+	return generated
 
 
 static func resolve_value(section: String, key: String) -> String:

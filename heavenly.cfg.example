@@ -6,3 +6,7 @@
 
 [liftie_api]
 user_agent="Example/1.0 (+https://example.com; contact: you@example.com)"
+
+[leaderboard_api]
+; Staging or production Worker origin. Web/Wasm uses its same-origin URL in its export composition.
+base_url="https://example.com"

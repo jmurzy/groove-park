@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestones 1 through 8 are complete. `PLAN.md` remains the record
+Milestones 1 through 9 are complete. `PLAN.md` remains the record
 of the completed single-jump gameplay loop. This document covers the remaining work required to
 turn that loop into a complete three-jump arcade game and production-ready Polycade Sente and
 Cloudflare Web/Wasm release.
@@ -343,7 +343,7 @@ During gameplay the primary HUD displays:
 
 ```text
 SCORE       JUMP       SPEED       ROTATION       SPINS
-00450       2 / 3      31 MPH      +180°          0 / 1
+  450       2 / 3      31 MPH      +180°          0 / 1
 ```
 
 - `SCORE` shows the accumulated score from completed jumps plus the active jump's live,
@@ -972,6 +972,15 @@ Manual acceptance:
   1920x1080 and at 30, 60, and 120 render FPS.
 
 ### Milestone 9: Score Tally Presentation
+
+Status: Complete. `ScoreTallyPresenter` presents immutable recorded results with outcome,
+trick summary, component rows, landing multiplier, deterministic jump/round count-ups, `JUMP N
+COMPLETE`, and next-jump/final-tally messaging. It normally advances after 10 seconds; Start or A
+is ignored for the first second, then advances its presentation clock at 6x without mutating the
+result. Score ticks use the converted `score_tick.ogg` asset, are emitted only while the displayed
+jump score increases, and are capped at 10 per real second. Focused headless coverage verifies
+count-up totals at 30, 60, and 120 FPS, zero-score completion, minimum display time, acceleration,
+single completion, and tick-rate limiting. Manual visual and audio-mix acceptance passed.
 
 Implementation:
 

@@ -13,6 +13,9 @@ const ScreenFlowControllerScene := preload("res://src/app/screen_flow_controller
 const GameSessionScene := preload("res://src/game/game_session.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
 const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
+const RemoteLeaderboardRepositoryScene := preload(
+	"res://src/services/leaderboard/remote_leaderboard_repository.gd"
+)
 
 var _audio_manager: AudioManager
 var _cabinet_exit_handler := CabinetExitHandlerScript.new()
@@ -20,6 +23,7 @@ var _input_router: InputRouter
 var _game_session: GameSession
 var _mountain_state_source: MountainStateSource
 var _liftie_state_service: LiftieStateService
+var _leaderboard_repository: RemoteLeaderboardRepository
 var _window_coordinator: WindowCoordinator
 var _screen_flow: ScreenFlowController
 
@@ -35,6 +39,7 @@ func _ready() -> void:
 	# Production cabinets reserve the keyboard for maintenance; Web and debug builds support it.
 	_input_router.configure(OS.is_debug_build() or OS.has_feature("web"))
 	add_child(_input_router)
+	print("HEAVENLY user data: %s" % OS.get_user_data_dir())
 	_log_displays(DisplayServer.get_screen_count())
 	_log_connected_controllers()
 
@@ -95,6 +100,16 @@ func _setup_game_services() -> void:
 	add_child(_game_session)
 	_liftie_state_service = LiftieStateServiceScene.new()
 	add_child(_liftie_state_service)
+	_setup_leaderboard_repository()
+
+
+func _setup_leaderboard_repository() -> void:
+	_leaderboard_repository = RemoteLeaderboardRepositoryScene.new()
+	var http_client := LeaderboardHttpClient.new()
+	if not OS.has_feature("web"):
+		http_client.installation_id = Config.resolve_installation_id()
+	_leaderboard_repository.setup(Config.resolve_leaderboard_api_base_url(), http_client)
+	add_child(_leaderboard_repository)
 
 
 func _log_displays(screen_count: int) -> void:
