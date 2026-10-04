@@ -24,8 +24,8 @@ func _test_service_unavailable_response_marks_request_unavailable() -> void:
 	var request := repository._start_request()
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
 	_expect(
-		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
-		"A 503 response must mark its request unavailable."
+		request.status == LeaderboardRepository.Request.Status.FAILED,
+		"A 503 response must fail its request."
 	)
 	_expect(
 		request.error_code == "SERVICE_UNAVAILABLE",
@@ -39,8 +39,8 @@ func _test_timeout_response_marks_request_unavailable() -> void:
 	var request := repository._start_request()
 	repository._decode_response(request, HTTPRequest.RESULT_TIMEOUT, 0, PackedByteArray())
 	_expect(
-		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
-		"A timed-out request must mark its request unavailable."
+		request.status == LeaderboardRepository.Request.Status.FAILED,
+		"A timed-out request must fail its request."
 	)
 	_expect(
 		request.error_code == "NETWORK_UNAVAILABLE",

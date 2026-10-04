@@ -11,7 +11,6 @@ class Request:
 	enum Status {
 		PENDING,
 		SUCCEEDED,
-		UNAVAILABLE,
 		FAILED,
 		CANCELLED,
 	}

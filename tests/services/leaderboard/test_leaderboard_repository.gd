@@ -48,8 +48,8 @@ func _test_unavailable_service_returns_typed_failure() -> void:
 		"Unavailable requests must finish exactly once."
 	)
 	_expect(
-		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
-		"Unavailable requests must return an unavailable result."
+		request.status == LeaderboardRepository.Request.Status.FAILED,
+		"Unavailable services must return a failed request."
 	)
 
 

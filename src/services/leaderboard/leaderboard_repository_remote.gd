@@ -124,7 +124,7 @@ func _request_json(
 		_http_requests.erase(request)
 		http_request.queue_free()
 		request.error_code = "REQUEST_START_FAILED"
-		_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return {}
 	var completed: Array = await http_request.request_completed
 	var is_active := _http_requests.erase(request)
@@ -144,12 +144,12 @@ func _decode_response(
 		return {}
 	if request_result != HTTPRequest.RESULT_SUCCESS:
 		request.error_code = "NETWORK_UNAVAILABLE"
-		_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return {}
 	if response_code == 503 or response_code < 200 or response_code >= 300:
 		if response_code == 503:
 			request.error_code = "SERVICE_UNAVAILABLE"
-			_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
+			_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		else:
 			request.error_code = "HTTP_%d" % response_code
 			_finish_request(request, LeaderboardRepository.Request.Status.FAILED)

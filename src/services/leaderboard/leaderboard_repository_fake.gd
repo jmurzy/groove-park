@@ -56,7 +56,7 @@ func _cancel_request(request: LeaderboardRepository.Request) -> void:
 func _complete(request: LeaderboardRepository.Request, operation: Callable) -> void:
 	if not is_available:
 		request.error_code = "SERVICE_UNAVAILABLE"
-		_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	if deferred:
 		_deferred_operations[request] = operation
