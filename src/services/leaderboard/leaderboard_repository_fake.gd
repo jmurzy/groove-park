@@ -9,13 +9,13 @@ var _deferred_operations: Dictionary = {}
 
 
 func get_top_entries() -> LeaderboardRepository.Request:
-	var request := _start_request()
+	var request := _start_request(LeaderboardRepository.Request.Operation.GET)
 	_complete(request, func() -> void: request.result = entries.duplicate())
 	return request
 
 
 func check_qualification(total_score: int) -> LeaderboardRepository.Request:
-	var request := _start_request()
+	var request := _start_request(LeaderboardRepository.Request.Operation.POST)
 	_complete(
 		request,
 		func() -> void:
@@ -30,7 +30,7 @@ func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Request:
 	if _submission_request != null:
 		return _submission_request
-	var request := _start_request()
+	var request := _start_request(LeaderboardRepository.Request.Operation.POST)
 	_submission_request = request
 	if submission == null:
 		request.error_code = "INVALID_SUBMISSION"

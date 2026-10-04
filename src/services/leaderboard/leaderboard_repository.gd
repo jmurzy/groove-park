@@ -8,6 +8,11 @@ class Request:
 	signal completed(request: Request)
 	signal cancel_requested(request: Request)
 
+	enum Operation {
+		GET,
+		POST,
+	}
+
 	enum Status {
 		PENDING,
 		SUCCEEDED,
@@ -15,6 +20,7 @@ class Request:
 		CANCELLED,
 	}
 
+	var operation: Operation
 	var status := Status.PENDING
 	var result: Variant
 	var error_code := ""
@@ -53,8 +59,9 @@ func _cancel_request(request: Request) -> void:
 	request._complete(Request.Status.CANCELLED)
 
 
-func _start_request() -> Request:
+func _start_request(operation: Request.Operation) -> Request:
 	var request := Request.new()
+	request.operation = operation
 	request.cancel_requested.connect(_cancel_request)
 	return request
 

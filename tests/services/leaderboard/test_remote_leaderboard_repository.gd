@@ -21,7 +21,7 @@ func _init() -> void:
 
 func _test_service_unavailable_response_marks_request_unavailable() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	var request := repository._start_request()
+	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
 	_expect(
 		request.status == LeaderboardRepository.Request.Status.FAILED,
@@ -36,7 +36,7 @@ func _test_service_unavailable_response_marks_request_unavailable() -> void:
 
 func _test_timeout_response_marks_request_unavailable() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	var request := repository._start_request()
+	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 	repository._decode_response(request, HTTPRequest.RESULT_TIMEOUT, 0, PackedByteArray())
 	_expect(
 		request.status == LeaderboardRepository.Request.Status.FAILED,
@@ -51,7 +51,7 @@ func _test_timeout_response_marks_request_unavailable() -> void:
 
 func _test_malformed_json_response_fails() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	var request := repository._start_request()
+	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 	repository._decode_response(
 		request, HTTPRequest.RESULT_SUCCESS, 200, "not json".to_utf8_buffer()
 	)
@@ -67,7 +67,7 @@ func _test_malformed_json_response_fails() -> void:
 
 func _test_cancelled_request_ignores_late_response() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	var request := repository._start_request()
+	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 	request.cancel()
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
 	_expect(

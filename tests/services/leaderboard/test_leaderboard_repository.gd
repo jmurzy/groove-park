@@ -32,10 +32,11 @@ func _test_available_operations_return_typed_values() -> void:
 	_expect(
 		(
 			request.status == LeaderboardRepository.Request.Status.SUCCEEDED
+			and request.operation == LeaderboardRepository.Request.Operation.POST
 			and qualification != null
 			and qualification.qualified
 		),
-		"Qualification must preserve its typed result."
+		"Qualification must use POST and preserve its typed result."
 	)
 
 
@@ -62,8 +63,11 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	var first_request := repository.submit_score(submission)
 	var duplicate_request := repository.submit_score(submission)
 	_expect(
-		first_request == duplicate_request,
-		"An in-flight submission must not create a second request."
+		(
+			first_request == duplicate_request
+			and first_request.operation == LeaderboardRepository.Request.Operation.POST
+		),
+		"An in-flight POST submission must not create a second request."
 	)
 	_expect(repository.entries.is_empty(), "An in-flight submission must not mutate the board.")
 	repository.complete_deferred(first_request)
