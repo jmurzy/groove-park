@@ -4,7 +4,7 @@ extends Node
 
 const PRIMARY_DESIGN_SIZE := Vector2i(1920, 1080)
 const MARQUEE_DESIGN_SIZE := Vector2i(1920, 360)
-const DevSente := preload("res://src/services/dev_sente.gd")
+const DevSente := preload("res://src/app/dev_sente.gd")
 const AudioManagerScript := preload("res://src/app/audio_manager.gd")
 const CabinetExitHandlerScript := preload("res://src/app/cabinet_exit_handler.gd")
 const InputRouterScene := preload("res://src/app/input_router.gd")
@@ -12,7 +12,7 @@ const WindowCoordinatorScene := preload("res://src/app/window_coordinator.gd")
 const ScreenFlowControllerScene := preload("res://src/app/screen_flow_controller.gd")
 const GameSessionScene := preload("res://src/game/game_session.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
-const LiftieStateServiceScene := preload("res://src/services/liftie_state_service.gd")
+const LiftieStateServiceScene := preload("res://src/services/liftie/liftie_state_service.gd")
 const RemoteLeaderboardRepositoryScene := preload(
 	"res://src/services/leaderboard/remote_leaderboard_repository.gd"
 )

@@ -29,19 +29,6 @@ static func resolve_leaderboard_api_base_url() -> String:
 	return resolve_value("leaderboard_api", "base_url")
 
 
-static func resolve_installation_id() -> String:
-	var settings := ConfigFile.new()
-	if settings.load(USER_SETTINGS_PATH) == OK:
-		var existing := str(settings.get_value("leaderboard", "installation_id", ""))
-		if not existing.is_empty():
-			return existing
-	var generated := Id.generate_id()
-	settings.set_value("leaderboard", "installation_id", generated)
-	if settings.save(USER_SETTINGS_PATH) != OK:
-		push_warning("Unable to persist leaderboard installation ID.")
-	return generated
-
-
 static func resolve_value(section: String, key: String) -> String:
 	# Cabinet deployment: file next to the exported exe. In the editor this
 	# resolves to the editor binary dir and simply misses, falling through.
@@ -58,3 +45,16 @@ static func _read_from_config(path: String, section: String, key: String) -> Str
 	if cfg.load(path) != OK:
 		return ""
 	return str(cfg.get_value(section, key, "")).strip_edges()
+
+
+static func resolve_installation_id() -> String:
+	var settings := ConfigFile.new()
+	if settings.load(USER_SETTINGS_PATH) == OK:
+		var existing := str(settings.get_value("leaderboard", "installation_id", ""))
+		if not existing.is_empty():
+			return existing
+	var generated := Id.generate_id()
+	settings.set_value("leaderboard", "installation_id", generated)
+	if settings.save(USER_SETTINGS_PATH) != OK:
+		push_warning("Unable to persist leaderboard installation ID.")
+	return generated
