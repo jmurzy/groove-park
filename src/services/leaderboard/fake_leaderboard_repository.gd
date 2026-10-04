@@ -85,7 +85,7 @@ func _accept_submission(request: LeaderboardRequest, submission: LeaderboardSubm
 		entries.sort_custom(_is_higher_ranked)
 	var response := LeaderboardSubmissionResponse.new()
 	response.rank = entries.find(entry) + 1
-	response.entries.assign(entries.slice(0, 10))
+	response.top_entries.assign(entries.slice(0, 10))
 	request.result = response
 
 

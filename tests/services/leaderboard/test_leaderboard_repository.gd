@@ -71,7 +71,7 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	if first_request.result is LeaderboardSubmissionResponse:
 		response = first_request.result
 	_expect(
-		response != null and response.rank == 1 and response.entries.size() == 1,
+		response != null and response.rank == 1 and response.top_entries.size() == 1,
 		"Accepted submissions must return their typed rank and top entries."
 	)
 	repository.deferred = false

@@ -83,7 +83,7 @@ func _resolve_submission(request: LeaderboardRequest, submission: LeaderboardSub
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return
 	var submission_response := LeaderboardSubmissionResponse.new()
-	submission_response.entries = entries
+	submission_response.top_entries = entries
 	submission_response.rank = response.rank
 	request.result = submission_response
 	_complete_success(request)

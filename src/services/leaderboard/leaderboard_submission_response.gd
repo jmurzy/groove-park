@@ -2,5 +2,5 @@
 class_name LeaderboardSubmissionResponse
 extends RefCounted
 
-var entries: Array[LeaderboardEntry] = []
+var top_entries: Array[LeaderboardEntry] = []
 var rank: int
