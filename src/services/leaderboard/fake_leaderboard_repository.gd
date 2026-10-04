@@ -83,10 +83,10 @@ func _accept_submission(request: LeaderboardRequest, submission: LeaderboardSubm
 		entry.created_at = "test"
 		entries.append(entry)
 		entries.sort_custom(_is_higher_ranked)
-	var response := LeaderboardSubmissionResponse.new()
-	response.rank = entries.find(entry) + 1
-	response.top_entries.assign(entries.slice(0, 10))
-	request.result = response
+	var submission_result := LeaderboardSubmissionResult.new()
+	submission_result.rank = entries.find(entry) + 1
+	submission_result.top_entries.assign(entries.slice(0, 10))
+	request.result = submission_result
 
 
 func _entry_for_round(round_id: String) -> LeaderboardEntry:

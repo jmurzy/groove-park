@@ -67,17 +67,21 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	)
 	_expect(repository.entries.is_empty(), "An in-flight submission must not mutate the board.")
 	repository.complete_deferred(first_request)
-	var response: LeaderboardSubmissionResponse
-	if first_request.result is LeaderboardSubmissionResponse:
-		response = first_request.result
+	var submission_result: LeaderboardSubmissionResult
+	if first_request.result is LeaderboardSubmissionResult:
+		submission_result = first_request.result
 	_expect(
-		response != null and response.rank == 1 and response.top_entries.size() == 1,
+		(
+			submission_result != null
+			and submission_result.rank == 1
+			and submission_result.top_entries.size() == 1
+		),
 		"Accepted submissions must return their typed rank and top entries."
 	)
 	repository.deferred = false
 	var retry_request := repository.submit_score(submission)
 	_expect(
-		retry_request.result is LeaderboardSubmissionResponse and repository.entries.size() == 1,
+		retry_request.result is LeaderboardSubmissionResult and repository.entries.size() == 1,
 		"A repeated round ID must return the original submission without another entry."
 	)
 
