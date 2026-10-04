@@ -56,10 +56,10 @@ func _resolve_qualification(request: LeaderboardRequest, total_score: int) -> vo
 
 
 func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
-	var active_submission := _pending_submission()
-	if active_submission != null:
-		return active_submission
-	var request := _start_submission()
+	if _submission_request != null:
+		return _submission_request
+	var request := _start_request()
+	_submission_request = request
 	if submission == null:
 		_complete_failure(request, "INVALID_SUBMISSION")
 		return request
@@ -118,23 +118,30 @@ func _request_json(
 	var completed: Array = await http_request.request_completed
 	var is_active := _http_requests.erase(request)
 	http_request.queue_free()
-	if not is_active or request.status != LeaderboardRequest.Status.PENDING:
+	if not is_active:
 		return {}
-	if completed[0] != HTTPRequest.RESULT_SUCCESS:
+	return _decode_response(request, completed[0], completed[1], PackedByteArray(completed[3]))
+
+
+func _decode_response(
+	request: LeaderboardRequest, request_result: int, response_code: int, body: PackedByteArray
+) -> Dictionary:
+	if request.status != LeaderboardRequest.Status.PENDING:
+		return {}
+	if request_result != HTTPRequest.RESULT_SUCCESS:
 		_complete_unavailable(request, "NETWORK_UNAVAILABLE")
 		return {}
-	if completed[1] == 503 or completed[1] < 200 or completed[1] >= 300:
-		if completed[1] == 503:
+	if response_code == 503 or response_code < 200 or response_code >= 300:
+		if response_code == 503:
 			_complete_unavailable(request, "SERVICE_UNAVAILABLE")
 		else:
-			_complete_failure(request, "HTTP_%d" % completed[1])
+			_complete_failure(request, "HTTP_%d" % response_code)
 		return {}
-	var response_body := PackedByteArray(completed[3])
-	var parsed: Variant = JSON.parse_string(response_body.get_string_from_utf8())
-	if typeof(parsed) != TYPE_DICTIONARY:
+	var json := JSON.new()
+	if json.parse(body.get_string_from_utf8()) != OK or typeof(json.data) != TYPE_DICTIONARY:
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return {}
-	return parsed
+	return json.data
 
 
 func _can_request(request: LeaderboardRequest) -> bool:

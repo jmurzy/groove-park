@@ -4,7 +4,7 @@ extends Node
 
 signal availability_changed(available: bool)
 
-var _is_service_available := true
+var _is_service_available := false
 var _submission_request: LeaderboardRequest
 
 
@@ -34,11 +34,6 @@ func _start_request() -> LeaderboardRequest:
 	return request
 
 
-func _start_submission() -> LeaderboardRequest:
-	_submission_request = _start_request()
-	return _submission_request
-
-
 func _finish_request(request: LeaderboardRequest, next_status: LeaderboardRequest.Status) -> void:
 	if request == _submission_request:
 		_submission_request = null
@@ -52,5 +47,5 @@ func _set_available(next_available: bool) -> void:
 	availability_changed.emit(_is_service_available)
 
 
-func _pending_submission() -> LeaderboardRequest:
-	return _submission_request
+func is_service_available() -> bool:
+	return _is_service_available

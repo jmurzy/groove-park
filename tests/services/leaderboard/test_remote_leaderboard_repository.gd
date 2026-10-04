@@ -6,7 +6,9 @@ var _failures := PackedStringArray()
 
 func _init() -> void:
 	_test_unconfigured_client_is_unavailable()
-	_test_malformed_success_response_fails_without_retry()
+	_test_service_unavailable_response_marks_repository_unavailable()
+	_test_malformed_json_response_fails()
+	_test_cancelled_request_ignores_late_response()
 	if _failures.is_empty():
 		print("Remote leaderboard repository checks passed.")
 		quit(0)
@@ -26,14 +28,46 @@ func _test_unconfigured_client_is_unavailable() -> void:
 	)
 
 
-func _test_malformed_success_response_fails_without_retry() -> void:
+func _test_service_unavailable_response_marks_repository_unavailable() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	var entries: Array[LeaderboardEntry] = []
+	var request := repository._start_request()
+	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
 	_expect(
-		not repository._entries_from_api({}, entries),
-		"A malformed top-entry response must be rejected."
+		request.status == LeaderboardRequest.Status.UNAVAILABLE,
+		"A 503 response must mark its request unavailable."
 	)
-	_expect(entries.is_empty(), "Malformed top-entry responses must not produce partial entries.")
+	_expect(
+		not repository.is_service_available(),
+		"A 503 response must mark the repository unavailable."
+	)
+	repository.queue_free()
+
+
+func _test_malformed_json_response_fails() -> void:
+	var repository := RemoteLeaderboardRepository.new()
+	var request := repository._start_request()
+	repository._decode_response(
+		request, HTTPRequest.RESULT_SUCCESS, 200, "not json".to_utf8_buffer()
+	)
+	_expect(
+		(
+			request.status == LeaderboardRequest.Status.FAILED
+			and request.error_code == "MALFORMED_RESPONSE"
+		),
+		"Malformed JSON must fail the request."
+	)
+	repository.queue_free()
+
+
+func _test_cancelled_request_ignores_late_response() -> void:
+	var repository := RemoteLeaderboardRepository.new()
+	var request := repository._start_request()
+	request.cancel()
+	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
+	_expect(
+		request.status == LeaderboardRequest.Status.CANCELLED,
+		"A late response must not replace a cancelled request result."
+	)
 	repository.queue_free()
 
 

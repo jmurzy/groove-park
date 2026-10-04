@@ -26,10 +26,10 @@ func check_qualification(total_score: int) -> LeaderboardRequest:
 
 
 func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
-	var active_submission := _pending_submission()
-	if active_submission != null:
-		return active_submission
-	var request := _start_submission()
+	if _submission_request != null:
+		return _submission_request
+	var request := _start_request()
+	_submission_request = request
 	if submission == null:
 		request.error_code = "INVALID_SUBMISSION"
 		_finish_request(request, LeaderboardRequest.Status.FAILED)
