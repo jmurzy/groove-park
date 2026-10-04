@@ -9,7 +9,7 @@ extends RefCounted
 # Never log resolved values themselves.
 
 const CONFIG_PATH := "res://heavenly.cfg"
-const USER_SETTINGS_PATH := "user://leaderboard.cfg"
+const USER_SETTINGS_PATH := "user://installation.cfg"
 
 
 static func missing_required_values() -> PackedStringArray:
@@ -47,14 +47,14 @@ static func _read_from_config(path: String, section: String, key: String) -> Str
 	return str(cfg.get_value(section, key, "")).strip_edges()
 
 
-static func resolve_installation_id() -> String:
+static func resolve_installation_id(settings_path: String = USER_SETTINGS_PATH) -> String:
 	var settings := ConfigFile.new()
-	if settings.load(USER_SETTINGS_PATH) == OK:
+	if settings.load(settings_path) == OK:
 		var existing := str(settings.get_value("leaderboard", "installation_id", ""))
 		if not existing.is_empty():
 			return existing
 	var generated := Id.generate_id()
 	settings.set_value("leaderboard", "installation_id", generated)
-	if settings.save(USER_SETTINGS_PATH) != OK:
+	if settings.save(settings_path) != OK:
 		push_warning("Unable to persist leaderboard installation ID.")
 	return generated
