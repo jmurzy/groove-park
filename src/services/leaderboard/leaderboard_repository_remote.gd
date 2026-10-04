@@ -27,7 +27,7 @@ func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	var entries: Array[LeaderboardEntry] = []
-	if not _entries_from_api(response, entries):
+	if not LeaderboardEntry.entries_from_api(response.get("topEntries"), entries):
 		request.error_code = "MALFORMED_RESPONSE"
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
@@ -82,7 +82,7 @@ func _resolve_submission(
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	var entries: Array[LeaderboardEntry] = []
-	if not _entries_from_api(response, entries):
+	if not LeaderboardEntry.entries_from_api(response.get("topEntries"), entries):
 		request.error_code = "MALFORMED_RESPONSE"
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
@@ -157,17 +157,3 @@ func _decode_response(
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return {}
 	return json.data
-
-
-func _entries_from_api(response: Dictionary, entries: Array[LeaderboardEntry]) -> bool:
-	var values: Variant = response.get("topEntries")
-	if not values is Array:
-		return false
-	for value: Variant in values:
-		if not value is Dictionary:
-			return false
-		var entry := LeaderboardEntry.from_api(value)
-		if entry == null:
-			return false
-		entries.append(entry)
-	return true

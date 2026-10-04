@@ -8,6 +8,7 @@ func _init() -> void:
 	_test_service_unavailable_response_marks_request_unavailable()
 	_test_malformed_json_response_fails()
 	_test_cancelled_request_ignores_late_response()
+	_test_top_entries_require_entry_dictionaries()
 	if _failures.is_empty():
 		print("Remote leaderboard repository checks passed.")
 		quit(0)
@@ -58,6 +59,14 @@ func _test_cancelled_request_ignores_late_response() -> void:
 		"A late response must not replace a cancelled request result."
 	)
 	repository.queue_free()
+
+
+func _test_top_entries_require_entry_dictionaries() -> void:
+	var entries: Array[LeaderboardEntry] = []
+	_expect(
+		not LeaderboardEntry.entries_from_api(["invalid"], entries) and entries.is_empty(),
+		"Top-entry parsing must reject non-dictionary values."
+	)
 
 
 func _expect(condition: bool, message: String) -> void:

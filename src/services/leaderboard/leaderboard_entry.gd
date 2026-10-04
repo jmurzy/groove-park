@@ -28,3 +28,16 @@ static func from_api(value: Dictionary) -> LeaderboardEntry:
 	entry.platform = StringName(value.platform)
 	entry.created_at = value.createdAt
 	return entry
+
+
+static func entries_from_api(values: Variant, entries: Array[LeaderboardEntry]) -> bool:
+	if not values is Array:
+		return false
+	for value: Variant in values:
+		if not value is Dictionary:
+			return false
+		var entry := from_api(value)
+		if entry == null:
+			return false
+		entries.append(entry)
+	return true
