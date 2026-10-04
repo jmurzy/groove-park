@@ -1,27 +1,32 @@
-## One cancellable leaderboard operation that a caller may await directly.
+## One cancellable leaderboard operation and its terminal response.
 class_name LeaderboardRequest
 extends RefCounted
 
-signal completed(result: LeaderboardOperationResult)
+signal completed(request: LeaderboardRequest)
 signal cancel_requested(request: LeaderboardRequest)
 
-var kind: LeaderboardOperationResult.Kind
-var result: LeaderboardOperationResult
+enum Status {
+	PENDING,
+	SUCCEEDED,
+	UNAVAILABLE,
+	FAILED,
+	CANCELLED,
+}
+
+var status := Status.PENDING
+var entries: Array[LeaderboardEntry] = []
+var qualification: LeaderboardQualification
+var rank: Variant
+var error_code := ""
 
 
 func cancel() -> void:
-	if result == null:
+	if status == Status.PENDING:
 		cancel_requested.emit(self)
 
 
-func wait_for_result() -> LeaderboardOperationResult:
-	if result != null:
-		return result
-	return await completed
-
-
-func _complete(next_result: LeaderboardOperationResult) -> void:
-	if result != null:
+func _complete(next_status: Status) -> void:
+	if status != Status.PENDING:
 		return
-	result = next_result
-	completed.emit(result)
+	status = next_status
+	completed.emit(self)

@@ -21,12 +21,12 @@ func _init() -> void:
 func _test_available_operations_return_typed_values() -> void:
 	var repository := FakeLeaderboardRepository.new()
 	var request := repository.check_qualification(250)
-	_expect(request.result != null, "Available fake qualification must complete.")
 	_expect(
-		(
-			request.result.status == LeaderboardOperationResult.Status.SUCCEEDED
-			and request.result.qualification.qualified
-		),
+		request.status != LeaderboardRequest.Status.PENDING,
+		"Available fake qualification must complete."
+	)
+	_expect(
+		request.status == LeaderboardRequest.Status.SUCCEEDED and request.qualification.qualified,
 		"Qualification must preserve its typed result."
 	)
 
@@ -35,9 +35,12 @@ func _test_unavailable_service_returns_typed_failure() -> void:
 	var repository := FakeLeaderboardRepository.new()
 	repository.is_available = false
 	var request := repository.get_top_entries()
-	_expect(request.result != null, "Unavailable requests must finish exactly once.")
 	_expect(
-		request.result.status == LeaderboardOperationResult.Status.UNAVAILABLE,
+		request.status != LeaderboardRequest.Status.PENDING,
+		"Unavailable requests must finish exactly once."
+	)
+	_expect(
+		request.status == LeaderboardRequest.Status.UNAVAILABLE,
 		"Unavailable requests must return an unavailable result."
 	)
 
@@ -64,9 +67,12 @@ func _test_cancelled_operation_cannot_complete_late() -> void:
 	var request := repository.check_qualification(400)
 	request.cancel()
 	repository.complete_deferred(request)
-	_expect(request.result != null, "Cancelled requests must finish exactly once.")
 	_expect(
-		request.result.status == LeaderboardOperationResult.Status.CANCELLED,
+		request.status != LeaderboardRequest.Status.PENDING,
+		"Cancelled requests must finish exactly once."
+	)
+	_expect(
+		request.status == LeaderboardRequest.Status.CANCELLED,
 		"Cancellation must emit an explicit cancelled result."
 	)
 

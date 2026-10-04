@@ -4,18 +4,8 @@ extends Node
 
 signal availability_changed(available: bool)
 
-enum State {
-	AVAILABLE,
-	UNAVAILABLE,
-	QUALIFYING,
-	SUBMITTING,
-	ACCEPTED,
-	FAILED,
-}
-
-var state := State.AVAILABLE
-var _available := true
-var _pending: Dictionary = {}
+var _is_service_available := true
+var _submission_request: LeaderboardRequest
 
 
 func get_top_entries() -> LeaderboardRequest:
@@ -31,36 +21,36 @@ func submit_score(_submission: LeaderboardSubmission) -> LeaderboardRequest:
 
 
 func _cancel_request(request: LeaderboardRequest) -> void:
-	if not _pending.erase(request):
+	if request.status != LeaderboardRequest.Status.PENDING:
 		return
-	var result := LeaderboardOperationResult.new()
-	result.status = LeaderboardOperationResult.Status.CANCELLED
-	request._complete(result)
+	if request == _submission_request:
+		_submission_request = null
+	request._complete(LeaderboardRequest.Status.CANCELLED)
 
 
-func _start_request(kind: LeaderboardOperationResult.Kind) -> LeaderboardRequest:
+func _start_request() -> LeaderboardRequest:
 	var request := LeaderboardRequest.new()
-	request.kind = kind
 	request.cancel_requested.connect(_cancel_request)
-	_pending[request] = true
 	return request
 
 
-func _finish_request(request: LeaderboardRequest, result: LeaderboardOperationResult) -> void:
-	if not _pending.erase(request):
-		return
-	request._complete(result)
+func _start_submission() -> LeaderboardRequest:
+	_submission_request = _start_request()
+	return _submission_request
+
+
+func _finish_request(request: LeaderboardRequest, next_status: LeaderboardRequest.Status) -> void:
+	if request == _submission_request:
+		_submission_request = null
+	request._complete(next_status)
 
 
 func _set_available(next_available: bool) -> void:
-	if _available == next_available:
+	if _is_service_available == next_available:
 		return
-	_available = next_available
-	availability_changed.emit(_available)
+	_is_service_available = next_available
+	availability_changed.emit(_is_service_available)
 
 
 func _pending_submission() -> LeaderboardRequest:
-	for request: LeaderboardRequest in _pending.keys():
-		if request.kind == LeaderboardOperationResult.Kind.SUBMISSION:
-			return request
-	return null
+	return _submission_request

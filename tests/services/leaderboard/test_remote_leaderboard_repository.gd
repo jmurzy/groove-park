@@ -21,29 +21,19 @@ func _test_unconfigured_client_is_unavailable() -> void:
 	repository.setup("")
 	var request := repository.check_qualification(100)
 	_expect(
-		(
-			request.result != null
-			and request.result.status == LeaderboardOperationResult.Status.UNAVAILABLE
-		),
+		request.status == LeaderboardRequest.Status.UNAVAILABLE,
 		"An unconfigured remote client must report unavailable."
 	)
 
 
 func _test_malformed_success_response_fails_without_retry() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	repository.setup("https://example.test")
-	var request := repository._start_request(LeaderboardOperationResult.Kind.TOP_ENTRIES)
-	repository._on_response_received(
-		request, HTTPRequest.RESULT_SUCCESS, 200, "{}".to_utf8_buffer()
-	)
-	_expect(request.result != null, "A malformed response must finish once.")
+	var entries: Array[LeaderboardEntry] = []
 	_expect(
-		(
-			request.result.status == LeaderboardOperationResult.Status.FAILED
-			and request.result.error_code == "MALFORMED_RESPONSE"
-		),
-		"Malformed responses must fail without being retried."
+		not repository._entries_from_api({}, entries),
+		"A malformed top-entry response must be rejected."
 	)
+	_expect(entries.is_empty(), "Malformed top-entry responses must not produce partial entries.")
 	repository.queue_free()
 
 

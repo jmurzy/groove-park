@@ -5,27 +5,24 @@ extends LeaderboardRepository
 var entries: Array[LeaderboardEntry] = []
 var is_available := true
 var deferred := false
-var _deferred_results: Dictionary = {}
+var _deferred_requests: Dictionary = {}
 
 
 func get_top_entries() -> LeaderboardRequest:
-	var request := _start_request(LeaderboardOperationResult.Kind.TOP_ENTRIES)
-	var result := LeaderboardOperationResult.new()
-	result.entries = entries.duplicate()
-	_complete(request, result)
+	var request := _start_request()
+	request.entries = entries.duplicate()
+	_complete(request)
 	return request
 
 
 func check_qualification(total_score: int) -> LeaderboardRequest:
-	var request := _start_request(LeaderboardOperationResult.Kind.QUALIFICATION)
-	var result := LeaderboardOperationResult.new()
-	state = State.QUALIFYING
+	var request := _start_request()
 	var qualification := LeaderboardQualification.new()
 	qualification.qualified = entries.size() < 10 or total_score > entries[9].total_score
 	qualification.rank = entries.size() + 1 if qualification.qualified else null
-	result.qualification = qualification
-	result.rank = qualification.rank
-	_complete(request, result)
+	request.qualification = qualification
+	request.rank = qualification.rank
+	_complete(request)
 	return request
 
 
@@ -33,13 +30,10 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
 	var active_submission := _pending_submission()
 	if active_submission != null:
 		return active_submission
-	var request := _start_request(LeaderboardOperationResult.Kind.SUBMISSION)
-	var result := LeaderboardOperationResult.new()
-	state = State.SUBMITTING
+	var request := _start_submission()
 	if submission == null:
-		result.status = LeaderboardOperationResult.Status.FAILED
-		result.error_code = "INVALID_SUBMISSION"
-		_complete(request, result)
+		request.error_code = "INVALID_SUBMISSION"
+		_finish_request(request, LeaderboardRequest.Status.FAILED)
 		return request
 	var entry := LeaderboardEntry.new()
 	entry.round_id = submission.round_id
@@ -52,40 +46,32 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
 	entries.sort_custom(
 		func(a: LeaderboardEntry, b: LeaderboardEntry) -> bool: return a.total_score > b.total_score
 	)
-	result.rank = entries.find(entry) + 1
-	result.entries = entries.slice(0, 10)
-	_complete(request, result)
+	request.rank = entries.find(entry) + 1
+	request.entries = entries.slice(0, 10)
+	_complete(request)
 	return request
 
 
 func complete_deferred(request: LeaderboardRequest) -> void:
-	var result: LeaderboardOperationResult = _deferred_results.get(request)
-	if result == null:
+	if not _deferred_requests.erase(request):
 		return
-	_deferred_results.erase(request)
-	_finish_completed(request, result)
+	_finish_completed(request)
 
 
-func _complete(request: LeaderboardRequest, result: LeaderboardOperationResult) -> void:
+func _complete(request: LeaderboardRequest) -> void:
 	if not is_available:
-		result.status = LeaderboardOperationResult.Status.UNAVAILABLE
-		result.error_code = "SERVICE_UNAVAILABLE"
-		state = State.UNAVAILABLE
+		request.error_code = "SERVICE_UNAVAILABLE"
 		_set_available(false)
-		_finish_request(request, result)
+		_finish_request(request, LeaderboardRequest.Status.UNAVAILABLE)
 		return
-	result.status = LeaderboardOperationResult.Status.SUCCEEDED
 	if deferred:
-		_deferred_results[request] = result
+		_deferred_requests[request] = true
 		return
-	_finish_completed(request, result)
+	_finish_completed(request)
 
 
-func _finish_completed(request: LeaderboardRequest, result: LeaderboardOperationResult) -> void:
-	state = (
-		State.ACCEPTED
-		if request.kind == LeaderboardOperationResult.Kind.SUBMISSION
-		else State.AVAILABLE
-	)
+func _finish_completed(request: LeaderboardRequest) -> void:
+	if request.status != LeaderboardRequest.Status.PENDING:
+		return
 	_set_available(true)
-	_finish_request(request, result)
+	_finish_request(request, LeaderboardRequest.Status.SUCCEEDED)
