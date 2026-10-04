@@ -11,19 +11,19 @@ func setup(base_url: String) -> void:
 	_base_url = base_url.rstrip("/")
 
 
-func get_top_entries() -> LeaderboardRequest:
+func get_top_entries() -> LeaderboardRepository.Request:
 	var request := _start_request()
 	_resolve_top_entries(request)
 	return request
 
 
-func _resolve_top_entries(request: LeaderboardRequest) -> void:
+func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
 	if not _can_request(request):
 		return
 	var response: Dictionary = await _request_json(
 		request, HTTPClient.METHOD_GET, "/api/leaderboard"
 	)
-	if request.status != LeaderboardRequest.Status.PENDING:
+	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	var entries: Array[LeaderboardEntry] = []
 	if not _entries_from_api(response, entries):
@@ -33,19 +33,19 @@ func _resolve_top_entries(request: LeaderboardRequest) -> void:
 	_complete_success(request)
 
 
-func check_qualification(total_score: int) -> LeaderboardRequest:
+func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 	var request := _start_request()
 	_resolve_qualification(request, total_score)
 	return request
 
 
-func _resolve_qualification(request: LeaderboardRequest, total_score: int) -> void:
+func _resolve_qualification(request: LeaderboardRepository.Request, total_score: int) -> void:
 	if not _can_request(request):
 		return
 	var response: Dictionary = await _request_json(
 		request, HTTPClient.METHOD_POST, "/api/leaderboard/qualify", {"totalScore": total_score}
 	)
-	if request.status != LeaderboardRequest.Status.PENDING:
+	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	var qualification := LeaderboardQualification.from_api(response)
 	if qualification == null:
@@ -55,7 +55,7 @@ func _resolve_qualification(request: LeaderboardRequest, total_score: int) -> vo
 	_complete_success(request)
 
 
-func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
+func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Request:
 	if _submission_request != null:
 		return _submission_request
 	var request := _start_request()
@@ -67,13 +67,15 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
 	return request
 
 
-func _resolve_submission(request: LeaderboardRequest, submission: LeaderboardSubmission) -> void:
+func _resolve_submission(
+	request: LeaderboardRepository.Request, submission: LeaderboardSubmission
+) -> void:
 	if not _can_request(request):
 		return
 	var response: Dictionary = await _request_json(
 		request, HTTPClient.METHOD_POST, "/api/leaderboard/submissions", submission.to_api()
 	)
-	if request.status != LeaderboardRequest.Status.PENDING:
+	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	if response.get("accepted") != true or not response.get("rank") is int:
 		_complete_failure(request, "MALFORMED_RESPONSE")
@@ -89,7 +91,7 @@ func _resolve_submission(request: LeaderboardRequest, submission: LeaderboardSub
 	_complete_success(request)
 
 
-func _cancel_request(request: LeaderboardRequest) -> void:
+func _cancel_request(request: LeaderboardRepository.Request) -> void:
 	var http_request: HTTPRequest = _http_requests.get(request)
 	if http_request:
 		http_request.cancel_request()
@@ -97,7 +99,10 @@ func _cancel_request(request: LeaderboardRequest) -> void:
 
 
 func _request_json(
-	request: LeaderboardRequest, method: HTTPClient.Method, path: String, payload: Dictionary = {}
+	request: LeaderboardRepository.Request,
+	method: HTTPClient.Method,
+	path: String,
+	payload: Dictionary = {}
 ) -> Dictionary:
 	var http_request := HTTPRequest.new()
 	add_child(http_request)
@@ -124,9 +129,12 @@ func _request_json(
 
 
 func _decode_response(
-	request: LeaderboardRequest, request_result: int, response_code: int, body: PackedByteArray
+	request: LeaderboardRepository.Request,
+	request_result: int,
+	response_code: int,
+	body: PackedByteArray
 ) -> Dictionary:
-	if request.status != LeaderboardRequest.Status.PENDING:
+	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return {}
 	if request_result != HTTPRequest.RESULT_SUCCESS:
 		_complete_unavailable(request, "NETWORK_UNAVAILABLE")
@@ -144,25 +152,25 @@ func _decode_response(
 	return json.data
 
 
-func _can_request(request: LeaderboardRequest) -> bool:
+func _can_request(request: LeaderboardRepository.Request) -> bool:
 	if not _base_url.is_empty():
 		return true
 	_complete_unavailable(request, "API_UNCONFIGURED")
 	return false
 
 
-func _complete_success(request: LeaderboardRequest) -> void:
-	_finish_request(request, LeaderboardRequest.Status.SUCCEEDED)
+func _complete_success(request: LeaderboardRepository.Request) -> void:
+	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
 
-func _complete_unavailable(request: LeaderboardRequest, error_code: String) -> void:
+func _complete_unavailable(request: LeaderboardRepository.Request, error_code: String) -> void:
 	request.error_code = error_code
-	_finish_request(request, LeaderboardRequest.Status.UNAVAILABLE)
+	_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
 
 
-func _complete_failure(request: LeaderboardRequest, error_code: String) -> void:
+func _complete_failure(request: LeaderboardRepository.Request, error_code: String) -> void:
 	request.error_code = error_code
-	_finish_request(request, LeaderboardRequest.Status.FAILED)
+	_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 
 
 func _entries_from_api(response: Dictionary, entries: Array[LeaderboardEntry]) -> bool:

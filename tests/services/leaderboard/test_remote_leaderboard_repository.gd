@@ -23,7 +23,7 @@ func _test_unconfigured_client_is_unavailable() -> void:
 	repository.setup("")
 	var request := repository.check_qualification(100)
 	_expect(
-		request.status == LeaderboardRequest.Status.UNAVAILABLE,
+		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
 		"An unconfigured remote client must report unavailable."
 	)
 
@@ -33,7 +33,7 @@ func _test_service_unavailable_response_marks_request_unavailable() -> void:
 	var request := repository._start_request()
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
 	_expect(
-		request.status == LeaderboardRequest.Status.UNAVAILABLE,
+		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
 		"A 503 response must mark its request unavailable."
 	)
 	_expect(
@@ -51,7 +51,7 @@ func _test_malformed_json_response_fails() -> void:
 	)
 	_expect(
 		(
-			request.status == LeaderboardRequest.Status.FAILED
+			request.status == LeaderboardRepository.Request.Status.FAILED
 			and request.error_code == "MALFORMED_RESPONSE"
 		),
 		"Malformed JSON must fail the request."
@@ -65,7 +65,7 @@ func _test_cancelled_request_ignores_late_response() -> void:
 	request.cancel()
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
 	_expect(
-		request.status == LeaderboardRequest.Status.CANCELLED,
+		request.status == LeaderboardRepository.Request.Status.CANCELLED,
 		"A late response must not replace a cancelled request result."
 	)
 	repository.queue_free()

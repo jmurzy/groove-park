@@ -26,12 +26,12 @@ func _test_available_operations_return_typed_values() -> void:
 	if request.result is LeaderboardQualification:
 		qualification = request.result
 	_expect(
-		request.status != LeaderboardRequest.Status.PENDING,
+		request.status != LeaderboardRepository.Request.Status.PENDING,
 		"Available fake qualification must complete."
 	)
 	_expect(
 		(
-			request.status == LeaderboardRequest.Status.SUCCEEDED
+			request.status == LeaderboardRepository.Request.Status.SUCCEEDED
 			and qualification != null
 			and qualification.qualified
 		),
@@ -44,11 +44,11 @@ func _test_unavailable_service_returns_typed_failure() -> void:
 	repository.is_available = false
 	var request := repository.get_top_entries()
 	_expect(
-		request.status != LeaderboardRequest.Status.PENDING,
+		request.status != LeaderboardRepository.Request.Status.PENDING,
 		"Unavailable requests must finish exactly once."
 	)
 	_expect(
-		request.status == LeaderboardRequest.Status.UNAVAILABLE,
+		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
 		"Unavailable requests must return an unavailable result."
 	)
 
@@ -93,11 +93,11 @@ func _test_cancelled_operation_cannot_complete_late() -> void:
 	request.cancel()
 	repository.complete_deferred(request)
 	_expect(
-		request.status != LeaderboardRequest.Status.PENDING,
+		request.status != LeaderboardRepository.Request.Status.PENDING,
 		"Cancelled requests must finish exactly once."
 	)
 	_expect(
-		request.status == LeaderboardRequest.Status.CANCELLED,
+		request.status == LeaderboardRepository.Request.Status.CANCELLED,
 		"Cancellation must emit an explicit cancelled result."
 	)
 
@@ -116,7 +116,10 @@ func _test_cancelled_submission_does_not_mutate_board() -> void:
 	request.cancel()
 	repository.complete_deferred(request)
 	_expect(
-		request.status == LeaderboardRequest.Status.CANCELLED and repository.entries.is_empty(),
+		(
+			request.status == LeaderboardRepository.Request.Status.CANCELLED
+			and repository.entries.is_empty()
+		),
 		"A cancelled submission must not mutate the board when its deferred completion arrives."
 	)
 

@@ -8,13 +8,13 @@ var deferred := false
 var _deferred_operations: Dictionary = {}
 
 
-func get_top_entries() -> LeaderboardRequest:
+func get_top_entries() -> LeaderboardRepository.Request:
 	var request := _start_request()
 	_complete(request, func() -> void: request.result = entries.duplicate())
 	return request
 
 
-func check_qualification(total_score: int) -> LeaderboardRequest:
+func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 	var request := _start_request()
 	_complete(
 		request,
@@ -27,20 +27,20 @@ func check_qualification(total_score: int) -> LeaderboardRequest:
 	return request
 
 
-func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
+func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Request:
 	if _submission_request != null:
 		return _submission_request
 	var request := _start_request()
 	_submission_request = request
 	if submission == null:
 		request.error_code = "INVALID_SUBMISSION"
-		_finish_request(request, LeaderboardRequest.Status.FAILED)
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return request
 	_complete(request, func() -> void: _accept_submission(request, submission))
 	return request
 
 
-func complete_deferred(request: LeaderboardRequest) -> void:
+func complete_deferred(request: LeaderboardRepository.Request) -> void:
 	if not _deferred_operations.has(request):
 		return
 	var operation: Callable = _deferred_operations[request]
@@ -48,15 +48,15 @@ func complete_deferred(request: LeaderboardRequest) -> void:
 	_finish_completed(request, operation)
 
 
-func _cancel_request(request: LeaderboardRequest) -> void:
+func _cancel_request(request: LeaderboardRepository.Request) -> void:
 	_deferred_operations.erase(request)
 	super._cancel_request(request)
 
 
-func _complete(request: LeaderboardRequest, operation: Callable) -> void:
+func _complete(request: LeaderboardRepository.Request, operation: Callable) -> void:
 	if not is_available:
 		request.error_code = "SERVICE_UNAVAILABLE"
-		_finish_request(request, LeaderboardRequest.Status.UNAVAILABLE)
+		_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
 		return
 	if deferred:
 		_deferred_operations[request] = operation
@@ -64,14 +64,16 @@ func _complete(request: LeaderboardRequest, operation: Callable) -> void:
 	_finish_completed(request, operation)
 
 
-func _finish_completed(request: LeaderboardRequest, operation: Callable) -> void:
-	if request.status != LeaderboardRequest.Status.PENDING:
+func _finish_completed(request: LeaderboardRepository.Request, operation: Callable) -> void:
+	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	operation.call()
-	_finish_request(request, LeaderboardRequest.Status.SUCCEEDED)
+	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
 
-func _accept_submission(request: LeaderboardRequest, submission: LeaderboardSubmission) -> void:
+func _accept_submission(
+	request: LeaderboardRepository.Request, submission: LeaderboardSubmission
+) -> void:
 	var entry := _entry_for_round(submission.round_id)
 	if entry == null:
 		entry = LeaderboardEntry.new()
