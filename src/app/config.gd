@@ -8,7 +8,7 @@ extends RefCounted
 # to HEAVENLY.exe), then res:// (dev: repo root).
 # Never log resolved values themselves.
 
-const CONFIG_FILENAME := "heavenly.cfg"
+const CONFIG_PATH := "res://heavenly.cfg"
 const USER_SETTINGS_PATH := "user://leaderboard.cfg"
 
 
@@ -34,10 +34,10 @@ static func resolve_value(section: String, key: String) -> String:
 	# resolves to the editor binary dir and simply misses, falling through.
 	var exe_dir := OS.get_executable_path().get_base_dir()
 	if not exe_dir.is_empty():
-		var exe_cfg := _read_from_config(exe_dir.path_join(CONFIG_FILENAME), section, key)
+		var exe_cfg := _read_from_config(exe_dir.path_join(CONFIG_PATH.get_file()), section, key)
 		if not exe_cfg.is_empty():
 			return exe_cfg
-	return _read_from_config("res://" + CONFIG_FILENAME, section, key)
+	return _read_from_config(CONFIG_PATH, section, key)
 
 
 static func _read_from_config(path: String, section: String, key: String) -> String:
