@@ -28,10 +28,11 @@ func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
 		return
 	var entries: Array[LeaderboardEntry] = []
 	if not _entries_from_api(response, entries):
-		_complete_failure(request, "MALFORMED_RESPONSE")
+		request.error_code = "MALFORMED_RESPONSE"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	request.result = entries
-	_complete_success(request)
+	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
 
 func check_qualification(total_score: int) -> LeaderboardRepository.Request:
@@ -48,10 +49,11 @@ func _resolve_qualification(request: LeaderboardRepository.Request, total_score:
 		return
 	var qualification := LeaderboardQualification.from_api(response)
 	if qualification == null:
-		_complete_failure(request, "MALFORMED_RESPONSE")
+		request.error_code = "MALFORMED_RESPONSE"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	request.result = qualification
-	_complete_success(request)
+	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
 
 func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Request:
@@ -60,7 +62,8 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Re
 	var request := _start_request()
 	_submission_request = request
 	if submission == null:
-		_complete_failure(request, "INVALID_SUBMISSION")
+		request.error_code = "INVALID_SUBMISSION"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return request
 	_resolve_submission(request, submission)
 	return request
@@ -75,17 +78,19 @@ func _resolve_submission(
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	if response.get("accepted") != true or not response.get("rank") is int:
-		_complete_failure(request, "MALFORMED_RESPONSE")
+		request.error_code = "MALFORMED_RESPONSE"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	var entries: Array[LeaderboardEntry] = []
 	if not _entries_from_api(response, entries):
-		_complete_failure(request, "MALFORMED_RESPONSE")
+		request.error_code = "MALFORMED_RESPONSE"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	var submission_result := LeaderboardSubmissionResult.new()
 	submission_result.top_entries = entries
 	submission_result.rank = response.rank
 	request.result = submission_result
-	_complete_success(request)
+	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
 
 func _cancel_request(request: LeaderboardRepository.Request) -> void:
@@ -115,7 +120,8 @@ func _request_json(
 	if request_error != OK:
 		_http_requests.erase(request)
 		http_request.queue_free()
-		_complete_unavailable(request, "REQUEST_START_FAILED")
+		request.error_code = "REQUEST_START_FAILED"
+		_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
 		return {}
 	var completed: Array = await http_request.request_completed
 	var is_active := _http_requests.erase(request)
@@ -134,33 +140,23 @@ func _decode_response(
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return {}
 	if request_result != HTTPRequest.RESULT_SUCCESS:
-		_complete_unavailable(request, "NETWORK_UNAVAILABLE")
+		request.error_code = "NETWORK_UNAVAILABLE"
+		_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
 		return {}
 	if response_code == 503 or response_code < 200 or response_code >= 300:
 		if response_code == 503:
-			_complete_unavailable(request, "SERVICE_UNAVAILABLE")
+			request.error_code = "SERVICE_UNAVAILABLE"
+			_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
 		else:
-			_complete_failure(request, "HTTP_%d" % response_code)
+			request.error_code = "HTTP_%d" % response_code
+			_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return {}
 	var json := JSON.new()
 	if json.parse(body.get_string_from_utf8()) != OK or typeof(json.data) != TYPE_DICTIONARY:
-		_complete_failure(request, "MALFORMED_RESPONSE")
+		request.error_code = "MALFORMED_RESPONSE"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return {}
 	return json.data
-
-
-func _complete_success(request: LeaderboardRepository.Request) -> void:
-	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
-
-
-func _complete_unavailable(request: LeaderboardRepository.Request, error_code: String) -> void:
-	request.error_code = error_code
-	_finish_request(request, LeaderboardRepository.Request.Status.UNAVAILABLE)
-
-
-func _complete_failure(request: LeaderboardRepository.Request, error_code: String) -> void:
-	request.error_code = error_code
-	_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 
 
 func _entries_from_api(response: Dictionary, entries: Array[LeaderboardEntry]) -> bool:
