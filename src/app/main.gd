@@ -14,7 +14,7 @@ const GameSessionScene := preload("res://src/game/game_session.gd")
 const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
 const LiftieStateServiceScene := preload("res://src/services/liftie/liftie_state_service.gd")
 const RemoteLeaderboardRepositoryScene := preload(
-	"res://src/services/leaderboard/remote_leaderboard_repository.gd"
+	"res://src/services/leaderboard/leaderboard_repository_remote.gd"
 )
 
 var _audio_manager: AudioManager
