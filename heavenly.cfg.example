@@ -5,8 +5,9 @@
 ; Install.ps1 seeds it only when missing and never overwrites live values.
 
 [liftie_api]
+; Required Liftie API user agent. Startup fails when this is blank.
 user_agent="Example/1.0 (+https://example.com; contact: you@example.com)"
 
 [leaderboard_api]
-; Staging or production Worker origin. Web/Wasm uses its same-origin URL in its export composition.
+; Required staging or production Worker origin. Startup fails when this is blank.
 base_url="https://example.com"

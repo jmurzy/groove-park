@@ -12,6 +12,15 @@ const CONFIG_FILENAME := "heavenly.cfg"
 const USER_SETTINGS_PATH := "user://leaderboard.cfg"
 
 
+static func missing_required_values() -> PackedStringArray:
+	var missing := PackedStringArray()
+	if resolve_liftie_user_agent().is_empty():
+		missing.append("liftie_api/user_agent")
+	if resolve_leaderboard_api_base_url().is_empty():
+		missing.append("leaderboard_api/base_url")
+	return missing
+
+
 static func resolve_liftie_user_agent() -> String:
 	return resolve_value("liftie_api", "user_agent")
 

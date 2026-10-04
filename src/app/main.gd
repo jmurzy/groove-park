@@ -32,6 +32,12 @@ func _ready() -> void:
 	get_tree().set_auto_accept_quit(false)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	var missing_config_values := Config.missing_required_values()
+	if not missing_config_values.is_empty():
+		push_error("Missing required configuration: %s." % ", ".join(missing_config_values))
+		get_tree().quit()
+		return
+	var leaderboard_api_base_url := Config.resolve_leaderboard_api_base_url()
 	# Load rider animation textures before a gameplay transition needs to build their views.
 	RiderVisualDefinition.warm()
 	_setup_audio()
@@ -44,7 +50,7 @@ func _ready() -> void:
 	_log_connected_controllers()
 
 	var options := DevSente.parse_options(PRIMARY_DESIGN_SIZE, MARQUEE_DESIGN_SIZE)
-	_setup_game_services()
+	_setup_game_services(leaderboard_api_base_url)
 	_window_coordinator = WindowCoordinatorScene.new()
 	_window_coordinator.close_requested.connect(_quit)
 	add_child(_window_coordinator)
@@ -92,7 +98,7 @@ func _setup_audio() -> void:
 	_audio_manager.play_background_music()
 
 
-func _setup_game_services() -> void:
+func _setup_game_services(leaderboard_api_base_url: String) -> void:
 	# Mountain conditions outlive individual rounds and are shared by app-level views.
 	_mountain_state_source = MockMountainStateSourceScene.new()
 	add_child(_mountain_state_source)
@@ -100,14 +106,14 @@ func _setup_game_services() -> void:
 	add_child(_game_session)
 	_liftie_state_service = LiftieStateServiceScene.new()
 	add_child(_liftie_state_service)
-	_setup_leaderboard_repository()
+	_setup_leaderboard_repository(leaderboard_api_base_url)
 
 
-func _setup_leaderboard_repository() -> void:
+func _setup_leaderboard_repository(leaderboard_api_base_url: String) -> void:
 	_leaderboard_repository = RemoteLeaderboardRepositoryScene.new()
 	if not OS.has_feature("web"):
 		_leaderboard_repository.installation_id = Config.resolve_installation_id()
-	_leaderboard_repository.setup(Config.resolve_leaderboard_api_base_url())
+	_leaderboard_repository.setup(leaderboard_api_base_url)
 	add_child(_leaderboard_repository)
 
 

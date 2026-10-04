@@ -9,6 +9,9 @@ var _http_requests: Dictionary = {}
 
 func setup(base_url: String) -> void:
 	_base_url = base_url.rstrip("/")
+	assert(
+		not _base_url.is_empty(), "RemoteLeaderboardRepository requires a configured API base URL."
+	)
 
 
 func get_top_entries() -> LeaderboardRepository.Request:
@@ -18,8 +21,6 @@ func get_top_entries() -> LeaderboardRepository.Request:
 
 
 func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
-	if not _can_request(request):
-		return
 	var response: Dictionary = await _request_json(
 		request, HTTPClient.METHOD_GET, "/api/leaderboard"
 	)
@@ -40,8 +41,6 @@ func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 
 
 func _resolve_qualification(request: LeaderboardRepository.Request, total_score: int) -> void:
-	if not _can_request(request):
-		return
 	var response: Dictionary = await _request_json(
 		request, HTTPClient.METHOD_POST, "/api/leaderboard/qualify", {"totalScore": total_score}
 	)
@@ -70,8 +69,6 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Re
 func _resolve_submission(
 	request: LeaderboardRepository.Request, submission: LeaderboardSubmission
 ) -> void:
-	if not _can_request(request):
-		return
 	var response: Dictionary = await _request_json(
 		request, HTTPClient.METHOD_POST, "/api/leaderboard/submissions", submission.to_api()
 	)
@@ -150,13 +147,6 @@ func _decode_response(
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return {}
 	return json.data
-
-
-func _can_request(request: LeaderboardRepository.Request) -> bool:
-	if not _base_url.is_empty():
-		return true
-	_complete_unavailable(request, "API_UNCONFIGURED")
-	return false
 
 
 func _complete_success(request: LeaderboardRepository.Request) -> void:

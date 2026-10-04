@@ -5,7 +5,6 @@ var _failures := PackedStringArray()
 
 
 func _init() -> void:
-	_test_unconfigured_client_is_unavailable()
 	_test_service_unavailable_response_marks_request_unavailable()
 	_test_malformed_json_response_fails()
 	_test_cancelled_request_ignores_late_response()
@@ -16,16 +15,6 @@ func _init() -> void:
 	for failure in _failures:
 		push_error(failure)
 	quit(1)
-
-
-func _test_unconfigured_client_is_unavailable() -> void:
-	var repository := RemoteLeaderboardRepository.new()
-	repository.setup("")
-	var request := repository.check_qualification(100)
-	_expect(
-		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
-		"An unconfigured remote client must report unavailable."
-	)
 
 
 func _test_service_unavailable_response_marks_request_unavailable() -> void:
