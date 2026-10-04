@@ -1,4 +1,4 @@
-import { env, SELF } from "cloudflare:test";
+import { env, evictDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
 import { normalizeResortResponse, UNKNOWN_LIFTIE_STATE } from "../src/liftie/handlers";
@@ -110,6 +110,33 @@ describe("leaderboard API", () => {
 		expect(rejected.status).toBe(400);
 		expect(await rejected.json()).toEqual({ error: { code: "INVALID_PLAYER_NAME" } });
 	});
+
+	it("requires a score above tenth place", async () => {
+		for (let score = 1000; score > 990; score -= 1) {
+			const response = await submit({ ...submission, roundId: roundId(score), totalScore: score });
+			expect(response.status).toBe(201);
+		}
+
+		expect(await qualify(991)).toEqual({ qualified: false, rank: null });
+		expect(await qualify(992)).toEqual({ qualified: true, rank: null });
+
+	});
+
+	it("serializes concurrent submissions and survives Durable Object eviction", async () => {
+		const responses = await Promise.all(
+			Array.from({ length: 12 }, (_, index) =>
+				submit({ ...submission, roundId: roundId(index), totalScore: 500 + index }),
+			),
+		);
+		expect(responses.map((response) => response.status)).toEqual(Array(12).fill(201));
+
+		const leaderboard = env.LEADERBOARD.getByName("leaderboard-global");
+		const beforeEviction = await leaderboard.getBoard();
+		expect(beforeEviction.topEntries).toHaveLength(10);
+		await evictDurableObject(leaderboard);
+		const restored = await leaderboard.getBoard();
+		expect(restored).toEqual(beforeEviction);
+	});
 });
 
 function submit(payload: object): Promise<Response> {
@@ -118,4 +145,17 @@ function submit(payload: object): Promise<Response> {
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(payload),
 	});
+}
+
+async function qualify(totalScore: number): Promise<{ qualified: boolean; rank: number | null }> {
+	const response = await SELF.fetch("https://example.test/api/leaderboard/qualify", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ totalScore }),
+	});
+	return response.json();
+}
+
+function roundId(value: number): string {
+	return `018f3d8e-6b1c-7ef9-8cf6-${value.toString(16).padStart(12, "0")}`;
 }

@@ -1,8 +1,8 @@
 # Heavenly API Worker
 
 The Heavenly API is a Cloudflare Worker that serves Liftie status and fronts one SQLite-backed
-Durable Object named `leaderboard-global` for the shared leaderboard. Godot client integration, Turnstile,
-rate limits, deployment configuration, and recovery operations are deferred.
+Durable Object named `leaderboard-global` for the shared leaderboard. Turnstile, rate limits, and
+recovery operations are deferred.
 
 ## Requirements
 
@@ -27,13 +27,13 @@ it in `.env` for local development and as a Cloudflare Worker secret for deploym
 ## Database migrations
 
 `wrangler.jsonc` declaratively exports the SQLite-backed `GlobalLeaderboard` Durable Object class.
-SQL table changes are separately versioned in `src/leaderboard/schema.ts` and recorded in
+SQL table changes are versioned in `src/leaderboard/durableObject.ts` and recorded in
 `_sql_schema_migrations`. Add a new, strictly increasing migration entry for every persistent
 schema change; never edit an applied one.
 
 ## Local API
 
-- `GET /api/leaderboard` returns the current top ten and server time.
+- `GET /api/leaderboard` returns the current top ten as `{ "topEntries": [...] }`.
 - `POST /api/leaderboard/qualify` accepts `{ "totalScore": number }`.
 - `POST /api/leaderboard/submissions` accepts a validated immutable round submission.
 - `GET /api/liftie/resort/:resortName` proxies the matching Liftie resort with the
@@ -43,6 +43,10 @@ schema change; never edit an applied one.
 
 The Worker validates payload shape, a normalized player name of up to 12 characters, total score,
 rider kind, and the `ags` or `web` platform.
+
+Scores are accepted as opaque integer totals. The Worker can validate payload bounds and rank a
+submitted total, but cannot prove client-observed motion measurements or reconstruct scoring
+arithmetic from that total alone.
 
 For the initial deployment, copy `.env.example` to `.env`, replace its placeholder values, then
 upload the Worker and its required secrets together:
