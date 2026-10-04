@@ -5,23 +5,25 @@ extends LeaderboardRepository
 var entries: Array[LeaderboardEntry] = []
 var is_available := true
 var deferred := false
-var _deferred_requests: Dictionary = {}
+var _deferred_operations: Dictionary = {}
 
 
 func get_top_entries() -> LeaderboardRequest:
 	var request := _start_request()
-	request.result = entries.duplicate()
-	_complete(request)
+	_complete(request, func() -> void: request.result = entries.duplicate())
 	return request
 
 
 func check_qualification(total_score: int) -> LeaderboardRequest:
 	var request := _start_request()
-	var qualification := LeaderboardQualification.new()
-	qualification.qualified = entries.size() < 10 or total_score > entries[9].total_score
-	qualification.rank = entries.size() + 1 if qualification.qualified else null
-	request.result = qualification
-	_complete(request)
+	_complete(
+		request,
+		func() -> void:
+			var qualification := LeaderboardQualification.new()
+			qualification.qualified = entries.size() < 10 or total_score > entries[9].total_score
+			qualification.rank = entries.size() + 1 if qualification.qualified else null
+			request.result = qualification
+	)
 	return request
 
 
@@ -34,45 +36,69 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
 		request.error_code = "INVALID_SUBMISSION"
 		_finish_request(request, LeaderboardRequest.Status.FAILED)
 		return request
-	var entry := LeaderboardEntry.new()
-	entry.round_id = submission.round_id
-	entry.player_name = submission.player_name
-	entry.rider_kind = submission.rider_kind
-	entry.total_score = submission.total_score
-	entry.platform = submission.platform
-	entry.created_at = "test"
-	entries.append(entry)
-	entries.sort_custom(
-		func(a: LeaderboardEntry, b: LeaderboardEntry) -> bool: return a.total_score > b.total_score
-	)
-	var response := LeaderboardSubmissionResponse.new()
-	response.rank = entries.find(entry) + 1
-	response.entries = entries.slice(0, 10)
-	request.result = response
-	_complete(request)
+	_complete(request, func() -> void: _accept_submission(request, submission))
 	return request
 
 
 func complete_deferred(request: LeaderboardRequest) -> void:
-	if not _deferred_requests.erase(request):
+	if not _deferred_operations.has(request):
 		return
-	_finish_completed(request)
+	var operation: Callable = _deferred_operations[request]
+	_deferred_operations.erase(request)
+	_finish_completed(request, operation)
 
 
-func _complete(request: LeaderboardRequest) -> void:
+func _cancel_request(request: LeaderboardRequest) -> void:
+	_deferred_operations.erase(request)
+	super._cancel_request(request)
+
+
+func _complete(request: LeaderboardRequest, operation: Callable) -> void:
 	if not is_available:
 		request.error_code = "SERVICE_UNAVAILABLE"
-		_set_available(false)
 		_finish_request(request, LeaderboardRequest.Status.UNAVAILABLE)
 		return
 	if deferred:
-		_deferred_requests[request] = true
+		_deferred_operations[request] = operation
 		return
-	_finish_completed(request)
+	_finish_completed(request, operation)
 
 
-func _finish_completed(request: LeaderboardRequest) -> void:
+func _finish_completed(request: LeaderboardRequest, operation: Callable) -> void:
 	if request.status != LeaderboardRequest.Status.PENDING:
 		return
-	_set_available(true)
+	operation.call()
 	_finish_request(request, LeaderboardRequest.Status.SUCCEEDED)
+
+
+func _accept_submission(request: LeaderboardRequest, submission: LeaderboardSubmission) -> void:
+	var entry := _entry_for_round(submission.round_id)
+	if entry == null:
+		entry = LeaderboardEntry.new()
+		entry.round_id = submission.round_id
+		entry.player_name = submission.player_name
+		entry.rider_kind = submission.rider_kind
+		entry.total_score = submission.total_score
+		entry.platform = submission.platform
+		entry.created_at = "test"
+		entries.append(entry)
+		entries.sort_custom(_is_higher_ranked)
+	var response := LeaderboardSubmissionResponse.new()
+	response.rank = entries.find(entry) + 1
+	response.entries.assign(entries.slice(0, 10))
+	request.result = response
+
+
+func _entry_for_round(round_id: String) -> LeaderboardEntry:
+	for entry in entries:
+		if entry.round_id == round_id:
+			return entry
+	return null
+
+
+func _is_higher_ranked(a: LeaderboardEntry, b: LeaderboardEntry) -> bool:
+	if a.total_score != b.total_score:
+		return a.total_score > b.total_score
+	if a.created_at != b.created_at:
+		return a.created_at < b.created_at
+	return a.round_id < b.round_id

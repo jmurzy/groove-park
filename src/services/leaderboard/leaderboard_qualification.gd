@@ -1,4 +1,4 @@
-## Authoritative result of checking whether a completed round may be submitted.
+## Typed result of checking whether a completed round may be submitted.
 class_name LeaderboardQualification
 extends RefCounted
 

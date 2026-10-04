@@ -1,4 +1,4 @@
-## Typed immutable payload for a single idempotent leaderboard submission.
+## Typed payload for a single idempotent leaderboard submission.
 class_name LeaderboardSubmission
 extends RefCounted
 
@@ -16,14 +16,6 @@ static func create(
 	next_total_score: int,
 	next_platform: StringName
 ) -> LeaderboardSubmission:
-	if (
-		next_round_id.is_empty()
-		or next_player_name.strip_edges().is_empty()
-		or not RiderKind.is_valid(next_rider_kind)
-		or next_total_score < 0
-		or next_platform != &"ags" and next_platform != &"web"
-	):
-		return null
 	var submission := LeaderboardSubmission.new()
 	submission.round_id = next_round_id
 	submission.player_name = next_player_name

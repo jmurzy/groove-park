@@ -152,13 +152,11 @@ func _can_request(request: LeaderboardRequest) -> bool:
 
 
 func _complete_success(request: LeaderboardRequest) -> void:
-	_set_available(true)
 	_finish_request(request, LeaderboardRequest.Status.SUCCEEDED)
 
 
 func _complete_unavailable(request: LeaderboardRequest, error_code: String) -> void:
 	request.error_code = error_code
-	_set_available(false)
 	_finish_request(request, LeaderboardRequest.Status.UNAVAILABLE)
 
 

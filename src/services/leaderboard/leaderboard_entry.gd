@@ -1,4 +1,4 @@
-## Immutable entry returned by the authoritative leaderboard API.
+## Typed entry returned by the authoritative leaderboard API.
 class_name LeaderboardEntry
 extends RefCounted
 

@@ -6,7 +6,7 @@ var _failures := PackedStringArray()
 
 func _init() -> void:
 	_test_unconfigured_client_is_unavailable()
-	_test_service_unavailable_response_marks_repository_unavailable()
+	_test_service_unavailable_response_marks_request_unavailable()
 	_test_malformed_json_response_fails()
 	_test_cancelled_request_ignores_late_response()
 	if _failures.is_empty():
@@ -28,7 +28,7 @@ func _test_unconfigured_client_is_unavailable() -> void:
 	)
 
 
-func _test_service_unavailable_response_marks_repository_unavailable() -> void:
+func _test_service_unavailable_response_marks_request_unavailable() -> void:
 	var repository := RemoteLeaderboardRepository.new()
 	var request := repository._start_request()
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
@@ -37,8 +37,8 @@ func _test_service_unavailable_response_marks_repository_unavailable() -> void:
 		"A 503 response must mark its request unavailable."
 	)
 	_expect(
-		not repository.is_service_available(),
-		"A 503 response must mark the repository unavailable."
+		request.error_code == "SERVICE_UNAVAILABLE",
+		"A 503 response must report an unavailable error on its request."
 	)
 	repository.queue_free()
 

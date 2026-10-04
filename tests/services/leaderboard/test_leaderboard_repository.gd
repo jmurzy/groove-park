@@ -9,6 +9,7 @@ func _init() -> void:
 	_test_unavailable_service_returns_typed_failure()
 	_test_submission_is_not_duplicated_while_in_flight()
 	_test_cancelled_operation_cannot_complete_late()
+	_test_cancelled_submission_does_not_mutate_board()
 	if _failures.is_empty():
 		print("Leaderboard repository checks passed.")
 		quit(0)
@@ -64,7 +65,7 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 		first_request == duplicate_request,
 		"An in-flight submission must not create a second request."
 	)
-	_expect(repository.entries.size() == 1, "An in-flight duplicate must not create another entry.")
+	_expect(repository.entries.is_empty(), "An in-flight submission must not mutate the board.")
 	repository.complete_deferred(first_request)
 	var response: LeaderboardSubmissionResponse
 	if first_request.result is LeaderboardSubmissionResponse:
@@ -72,6 +73,12 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	_expect(
 		response != null and response.rank == 1 and response.entries.size() == 1,
 		"Accepted submissions must return their typed rank and top entries."
+	)
+	repository.deferred = false
+	var retry_request := repository.submit_score(submission)
+	_expect(
+		retry_request.result is LeaderboardSubmissionResponse and repository.entries.size() == 1,
+		"A repeated round ID must return the original submission without another entry."
 	)
 
 
@@ -88,6 +95,25 @@ func _test_cancelled_operation_cannot_complete_late() -> void:
 	_expect(
 		request.status == LeaderboardRequest.Status.CANCELLED,
 		"Cancellation must emit an explicit cancelled result."
+	)
+
+
+func _test_cancelled_submission_does_not_mutate_board() -> void:
+	var repository := FakeLeaderboardRepository.new()
+	repository.deferred = true
+	var submission := LeaderboardSubmission.create(
+		"018f3d8e-6b1c-7ef9-8cf6-252ff3d07124", "PLAYER", RiderKind.SKIER, 400, &"ags"
+	)
+	var request := repository.submit_score(submission)
+	_expect(
+		repository.entries.is_empty() and request.result == null,
+		"A deferred submission must not mutate the board or expose a result."
+	)
+	request.cancel()
+	repository.complete_deferred(request)
+	_expect(
+		request.status == LeaderboardRequest.Status.CANCELLED and repository.entries.is_empty(),
+		"A cancelled submission must not mutate the board when its deferred completion arrives."
 	)
 
 

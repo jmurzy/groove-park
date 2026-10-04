@@ -2,9 +2,6 @@
 class_name LeaderboardRepository
 extends Node
 
-signal availability_changed(available: bool)
-
-var _is_service_available := false
 var _submission_request: LeaderboardRequest
 
 
@@ -38,14 +35,3 @@ func _finish_request(request: LeaderboardRequest, next_status: LeaderboardReques
 	if request == _submission_request:
 		_submission_request = null
 	request._complete(next_status)
-
-
-func _set_available(next_available: bool) -> void:
-	if _is_service_available == next_available:
-		return
-	_is_service_available = next_available
-	availability_changed.emit(_is_service_available)
-
-
-func is_service_available() -> bool:
-	return _is_service_available
