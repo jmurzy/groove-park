@@ -6,6 +6,7 @@ var _failures := PackedStringArray()
 
 func _init() -> void:
 	_test_service_unavailable_response_marks_request_unavailable()
+	_test_timeout_response_marks_request_unavailable()
 	_test_malformed_json_response_fails()
 	_test_cancelled_request_ignores_late_response()
 	_test_top_entries_require_entry_dictionaries()
@@ -29,6 +30,21 @@ func _test_service_unavailable_response_marks_request_unavailable() -> void:
 	_expect(
 		request.error_code == "SERVICE_UNAVAILABLE",
 		"A 503 response must report an unavailable error on its request."
+	)
+	repository.queue_free()
+
+
+func _test_timeout_response_marks_request_unavailable() -> void:
+	var repository := RemoteLeaderboardRepository.new()
+	var request := repository._start_request()
+	repository._decode_response(request, HTTPRequest.RESULT_TIMEOUT, 0, PackedByteArray())
+	_expect(
+		request.status == LeaderboardRepository.Request.Status.UNAVAILABLE,
+		"A timed-out request must mark its request unavailable."
+	)
+	_expect(
+		request.error_code == "NETWORK_UNAVAILABLE",
+		"A timed-out request must report an unavailable error on its request."
 	)
 	repository.queue_free()
 

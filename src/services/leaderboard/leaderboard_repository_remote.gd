@@ -2,6 +2,8 @@
 class_name RemoteLeaderboardRepository
 extends LeaderboardRepository
 
+const REQUEST_TIMEOUT_SECONDS := 10.0
+
 var installation_id := ""
 var _base_url := ""
 var _http_requests: Dictionary = {}
@@ -107,6 +109,7 @@ func _request_json(
 	payload: Dictionary = {}
 ) -> Dictionary:
 	var http_request := HTTPRequest.new()
+	http_request.timeout = REQUEST_TIMEOUT_SECONDS
 	add_child(http_request)
 	_http_requests[request] = http_request
 	var headers := PackedStringArray(["Accept: application/json"])
