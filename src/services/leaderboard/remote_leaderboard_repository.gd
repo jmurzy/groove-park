@@ -6,15 +6,13 @@ const TOP_ENTRIES_PATH := "/api/leaderboard"
 const QUALIFICATION_PATH := "/api/leaderboard/qualify"
 const SUBMISSIONS_PATH := "/api/leaderboard/submissions"
 
+var installation_id := ""
 var _base_url := ""
-var _http_client: LeaderboardHttpClient
+var _http_requests: Dictionary = {}
 
 
-func setup(base_url: String, http_client: LeaderboardHttpClient = null) -> void:
+func setup(base_url: String) -> void:
 	_base_url = base_url.rstrip("/")
-	_http_client = http_client if http_client else LeaderboardHttpClient.new()
-	if _http_client.get_parent() == null:
-		add_child(_http_client)
 
 
 func get_top_entries() -> LeaderboardRequest:
@@ -46,39 +44,57 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
 
 
 func _cancel_request(request: LeaderboardRequest) -> void:
-	if _http_client:
-		_http_client.cancel(request)
+	var http_request: HTTPRequest = _http_requests.get(request)
+	if http_request:
+		http_request.cancel_request()
 	super._cancel_request(request)
 
 
 func _resolve_request(
 	request: LeaderboardRequest, method: HTTPClient.Method, path: String, payload: Dictionary = {}
 ) -> void:
-	if _http_client == null or _base_url.is_empty():
+	if _base_url.is_empty():
 		_complete_unavailable(request, "API_UNCONFIGURED")
 		return
-	var response: LeaderboardHttpResponse = await _http_client.request_json(
-		request, _base_url + path, method, payload
-	)
-	if not _pending.has(request):
-		return
-	if response.request_error != OK:
+	var http_request := HTTPRequest.new()
+	add_child(http_request)
+	_http_requests[request] = http_request
+	var headers := PackedStringArray(["Accept: application/json"])
+	if not installation_id.is_empty():
+		headers.append("X-Installation-Id: %s" % installation_id)
+	var body := ""
+	if method == HTTPClient.METHOD_POST:
+		headers.append("Content-Type: application/json")
+		body = JSON.stringify(payload)
+	var request_error := http_request.request(_base_url + path, headers, method, body)
+	if request_error != OK:
+		_http_requests.erase(request)
+		http_request.queue_free()
 		_complete_unavailable(request, "REQUEST_START_FAILED")
 		return
-	_on_response_received(request, response)
+	var completed: Array = await http_request.request_completed
+	if not _http_requests.erase(request):
+		http_request.queue_free()
+		return
+	http_request.queue_free()
+	if not _pending.has(request):
+		return
+	_on_response_received(request, completed[0], completed[1], completed[3])
 
 
-func _on_response_received(request: LeaderboardRequest, response: LeaderboardHttpResponse) -> void:
-	if response.request_result != HTTPRequest.RESULT_SUCCESS:
+func _on_response_received(
+	request: LeaderboardRequest, request_result: int, response_code: int, body: PackedByteArray
+) -> void:
+	if request_result != HTTPRequest.RESULT_SUCCESS:
 		_complete_unavailable(request, "NETWORK_UNAVAILABLE")
 		return
-	if response.response_code == 503:
+	if response_code == 503:
 		_complete_unavailable(request, "SERVICE_UNAVAILABLE")
 		return
-	if response.response_code < 200 or response.response_code >= 300:
-		_complete_failure(request, "HTTP_%d" % response.response_code)
+	if response_code < 200 or response_code >= 300:
+		_complete_failure(request, "HTTP_%d" % response_code)
 		return
-	var parsed: Variant = JSON.parse_string(response.body.get_string_from_utf8())
+	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if typeof(parsed) != TYPE_DICTIONARY:
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return

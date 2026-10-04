@@ -1,23 +1,6 @@
 ## Headless parsing and failure checks for the Worker-backed repository.
 extends SceneTree
 
-
-class StubHttpClient:
-	extends LeaderboardHttpClient
-
-	func request_json(
-		_operation: LeaderboardRequest,
-		_url: String,
-		_method: HTTPClient.Method,
-		_payload: Dictionary = {}
-	) -> LeaderboardHttpResponse:
-		var response := LeaderboardHttpResponse.new()
-		response.request_result = HTTPRequest.RESULT_SUCCESS
-		response.response_code = 200
-		response.body = "{}".to_utf8_buffer()
-		return response
-
-
 var _failures := PackedStringArray()
 
 
@@ -47,10 +30,12 @@ func _test_unconfigured_client_is_unavailable() -> void:
 
 
 func _test_malformed_success_response_fails_without_retry() -> void:
-	var http := StubHttpClient.new()
 	var repository := RemoteLeaderboardRepository.new()
-	repository.setup("https://example.test", http)
-	var request := repository.get_top_entries()
+	repository.setup("https://example.test")
+	var request := repository._start_request(LeaderboardOperationResult.Kind.TOP_ENTRIES)
+	repository._on_response_received(
+		request, HTTPRequest.RESULT_SUCCESS, 200, "{}".to_utf8_buffer()
+	)
 	_expect(request.result != null, "A malformed response must finish once.")
 	_expect(
 		(

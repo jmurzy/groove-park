@@ -105,10 +105,9 @@ func _setup_game_services() -> void:
 
 func _setup_leaderboard_repository() -> void:
 	_leaderboard_repository = RemoteLeaderboardRepositoryScene.new()
-	var http_client := LeaderboardHttpClient.new()
 	if not OS.has_feature("web"):
-		http_client.installation_id = Config.resolve_installation_id()
-	_leaderboard_repository.setup(Config.resolve_leaderboard_api_base_url(), http_client)
+		_leaderboard_repository.installation_id = Config.resolve_installation_id()
+	_leaderboard_repository.setup(Config.resolve_leaderboard_api_base_url())
 	add_child(_leaderboard_repository)
 
 
