@@ -1,8 +1,8 @@
 # Heavenly API Worker
 
 The Heavenly API is a Cloudflare Worker that serves Liftie status and fronts one SQLite-backed
-Durable Object named `leaderboard-global` for the shared leaderboard. Turnstile, rate limits, and
-recovery operations are deferred.
+Durable Object named `leaderboard-global` for the shared leaderboard. Recovery operations are
+deferred.
 
 ## Requirements
 
@@ -43,6 +43,19 @@ schema change; never edit an applied one.
 
 The Worker validates payload shape, a normalized player name of up to 12 characters, total score,
 rider kind, and the `ags` or `web` platform.
+
+## Cabinet limits and observability
+
+Every request is first limited to 60 requests per 60 seconds per Cloudflare connecting IP, then
+must include the generated UUID `X-Installation-Id` and is additionally limited to 20 requests per
+60 seconds per installation. Missing or invalid installation IDs return
+`400 MISSING_INSTALLATION_ID` or `400 INVALID_INSTALLATION_ID`; exhausted limits return
+`429 RATE_LIMITED` with `Retry-After: 60`. Rejected or limited requests are stopped before the
+Durable Object is invoked.
+
+Every response includes `X-Request-Id`. The Worker emits JSON request-completion logs containing
+only the method, matched route pattern, request ID, status, rounded latency, and outcome. It never
+logs player names, round IDs, installation IDs, IP addresses, or submission bodies.
 
 Scores are accepted as opaque integer totals. The Worker can validate payload bounds and rank a
 submitted total, but cannot prove client-observed motion measurements or reconstruct scoring

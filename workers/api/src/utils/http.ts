@@ -2,8 +2,8 @@ export function json(value: unknown, status = 200, headers?: HeadersInit): Respo
 	return Response.json(value, { status, headers });
 }
 
-export function error(code: string, status: number): Response {
-	return json({ error: { code } }, status);
+export function error(code: string, status: number, headers?: HeadersInit): Response {
+	return json({ error: { code } }, status, headers);
 }
 
 export async function requestJson(
