@@ -29,7 +29,7 @@ func _resolve_top_entries(request: LeaderboardRequest) -> void:
 	if not _entries_from_api(response, entries):
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return
-	request.entries = entries
+	request.result = entries
 	_complete_success(request)
 
 
@@ -51,8 +51,7 @@ func _resolve_qualification(request: LeaderboardRequest, total_score: int) -> vo
 	if qualification == null:
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return
-	request.qualification = qualification
-	request.rank = qualification.rank
+	request.result = qualification
 	_complete_success(request)
 
 
@@ -83,8 +82,10 @@ func _resolve_submission(request: LeaderboardRequest, submission: LeaderboardSub
 	if not _entries_from_api(response, entries):
 		_complete_failure(request, "MALFORMED_RESPONSE")
 		return
-	request.entries = entries
-	request.rank = response.rank
+	var submission_response := LeaderboardSubmissionResponse.new()
+	submission_response.entries = entries
+	submission_response.rank = response.rank
+	request.result = submission_response
 	_complete_success(request)
 
 

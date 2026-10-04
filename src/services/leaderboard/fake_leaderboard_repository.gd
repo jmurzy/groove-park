@@ -10,7 +10,7 @@ var _deferred_requests: Dictionary = {}
 
 func get_top_entries() -> LeaderboardRequest:
 	var request := _start_request()
-	request.entries = entries.duplicate()
+	request.result = entries.duplicate()
 	_complete(request)
 	return request
 
@@ -20,8 +20,7 @@ func check_qualification(total_score: int) -> LeaderboardRequest:
 	var qualification := LeaderboardQualification.new()
 	qualification.qualified = entries.size() < 10 or total_score > entries[9].total_score
 	qualification.rank = entries.size() + 1 if qualification.qualified else null
-	request.qualification = qualification
-	request.rank = qualification.rank
+	request.result = qualification
 	_complete(request)
 	return request
 
@@ -46,8 +45,10 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
 	entries.sort_custom(
 		func(a: LeaderboardEntry, b: LeaderboardEntry) -> bool: return a.total_score > b.total_score
 	)
-	request.rank = entries.find(entry) + 1
-	request.entries = entries.slice(0, 10)
+	var response := LeaderboardSubmissionResponse.new()
+	response.rank = entries.find(entry) + 1
+	response.entries = entries.slice(0, 10)
+	request.result = response
 	_complete(request)
 	return request
 

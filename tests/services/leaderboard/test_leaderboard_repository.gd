@@ -21,12 +21,19 @@ func _init() -> void:
 func _test_available_operations_return_typed_values() -> void:
 	var repository := FakeLeaderboardRepository.new()
 	var request := repository.check_qualification(250)
+	var qualification: LeaderboardQualification
+	if request.result is LeaderboardQualification:
+		qualification = request.result
 	_expect(
 		request.status != LeaderboardRequest.Status.PENDING,
 		"Available fake qualification must complete."
 	)
 	_expect(
-		request.status == LeaderboardRequest.Status.SUCCEEDED and request.qualification.qualified,
+		(
+			request.status == LeaderboardRequest.Status.SUCCEEDED
+			and qualification != null
+			and qualification.qualified
+		),
 		"Qualification must preserve its typed result."
 	)
 
@@ -59,6 +66,13 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	)
 	_expect(repository.entries.size() == 1, "An in-flight duplicate must not create another entry.")
 	repository.complete_deferred(first_request)
+	var response: LeaderboardSubmissionResponse
+	if first_request.result is LeaderboardSubmissionResponse:
+		response = first_request.result
+	_expect(
+		response != null and response.rank == 1 and response.entries.size() == 1,
+		"Accepted submissions must return their typed rank and top entries."
+	)
 
 
 func _test_cancelled_operation_cannot_complete_late() -> void:

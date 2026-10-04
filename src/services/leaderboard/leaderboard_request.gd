@@ -14,9 +14,7 @@ enum Status {
 }
 
 var status := Status.PENDING
-var entries: Array[LeaderboardEntry] = []
-var qualification: LeaderboardQualification
-var rank: Variant
+var result: Variant
 var error_code := ""
 
 
