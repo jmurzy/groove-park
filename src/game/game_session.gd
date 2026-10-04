@@ -13,7 +13,6 @@ const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
 var session_phase := RoundState.SessionPhase.ATTRACT
 var rider_kind: StringName = RiderKind.SNOWBOARDER
 var round_id := ""
-var leaderboard_generation := 0
 var run_manager: RiderRunManager
 var is_paused := false
 var _round_state: RoundState
@@ -26,7 +25,6 @@ func start_game(selected_rider_kind: StringName) -> void:
 		push_error("A game can only start with a valid rider kind.")
 		return
 	rider_kind = selected_rider_kind
-	leaderboard_generation += 1
 	round_id = Id.generate_id()
 	run_manager = null
 	is_paused = false
@@ -62,7 +60,6 @@ func set_paused(next_paused: bool) -> void:
 
 
 func return_to_attract() -> void:
-	leaderboard_generation += 1
 	is_paused = false
 	run_manager = null
 	_round_state = null
@@ -72,10 +69,6 @@ func return_to_attract() -> void:
 
 func round_state() -> RoundState:
 	return _round_state
-
-
-func current_leaderboard_generation() -> int:
-	return leaderboard_generation
 
 
 func course() -> ParkCourse:

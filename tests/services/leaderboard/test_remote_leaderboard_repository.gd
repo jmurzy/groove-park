@@ -6,9 +6,16 @@ class StubHttpClient:
 	extends LeaderboardHttpClient
 
 	func request_json(
-		_operation_id: int, _url: String, _method: HTTPClient.Method, _payload: Dictionary = {}
-	) -> Error:
-		return OK
+		_operation: LeaderboardRequest,
+		_url: String,
+		_method: HTTPClient.Method,
+		_payload: Dictionary = {}
+	) -> LeaderboardHttpResponse:
+		var response := LeaderboardHttpResponse.new()
+		response.request_result = HTTPRequest.RESULT_SUCCESS
+		response.response_code = 200
+		response.body = "{}".to_utf8_buffer()
+		return response
 
 
 var _failures := PackedStringArray()
@@ -28,14 +35,13 @@ func _init() -> void:
 
 func _test_unconfigured_client_is_unavailable() -> void:
 	var repository := RemoteLeaderboardRepository.new()
-	var results: Array[LeaderboardOperationResult] = []
-	repository.operation_completed.connect(
-		func(result: LeaderboardOperationResult) -> void: results.append(result)
-	)
 	repository.setup("")
-	repository.check_qualification(100, 1)
+	var request := repository.check_qualification(100)
 	_expect(
-		results.size() == 1 and results[0].status == LeaderboardOperationResult.Status.UNAVAILABLE,
+		(
+			request.result != null
+			and request.result.status == LeaderboardOperationResult.Status.UNAVAILABLE
+		),
 		"An unconfigured remote client must report unavailable."
 	)
 
@@ -43,20 +49,13 @@ func _test_unconfigured_client_is_unavailable() -> void:
 func _test_malformed_success_response_fails_without_retry() -> void:
 	var http := StubHttpClient.new()
 	var repository := RemoteLeaderboardRepository.new()
-	var results: Array[LeaderboardOperationResult] = []
-	repository.operation_completed.connect(
-		func(result: LeaderboardOperationResult) -> void: results.append(result)
-	)
 	repository.setup("https://example.test", http)
-	var operation_id := repository.get_top_entries(3)
-	http.response_received.emit(
-		operation_id, HTTPRequest.RESULT_SUCCESS, 200, "{}".to_utf8_buffer()
-	)
-	_expect(results.size() == 1, "A malformed response must finish once.")
+	var request := repository.get_top_entries()
+	_expect(request.result != null, "A malformed response must finish once.")
 	_expect(
 		(
-			results[0].status == LeaderboardOperationResult.Status.FAILED
-			and results[0].error_code == "MALFORMED_RESPONSE"
+			request.result.status == LeaderboardOperationResult.Status.FAILED
+			and request.result.error_code == "MALFORMED_RESPONSE"
 		),
 		"Malformed responses must fail without being retried."
 	)

@@ -15,115 +15,110 @@ func setup(base_url: String, http_client: LeaderboardHttpClient = null) -> void:
 	_http_client = http_client if http_client else LeaderboardHttpClient.new()
 	if _http_client.get_parent() == null:
 		add_child(_http_client)
-	_http_client.response_received.connect(_on_response_received)
 
 
-func get_top_entries(session_generation: int) -> int:
-	var result := _start_operation(LeaderboardOperationResult.Kind.TOP_ENTRIES, session_generation)
-	if not _request(result, HTTPClient.METHOD_GET, TOP_ENTRIES_PATH):
-		return result.operation_id
-	return result.operation_id
+func get_top_entries() -> LeaderboardRequest:
+	var request := _start_request(LeaderboardOperationResult.Kind.TOP_ENTRIES)
+	_resolve_request(request, HTTPClient.METHOD_GET, TOP_ENTRIES_PATH)
+	return request
 
 
-func check_qualification(total_score: int, session_generation: int) -> int:
-	var result := _start_operation(
-		LeaderboardOperationResult.Kind.QUALIFICATION, session_generation
-	)
+func check_qualification(total_score: int) -> LeaderboardRequest:
+	var request := _start_request(LeaderboardOperationResult.Kind.QUALIFICATION)
 	state = State.QUALIFYING
-	_request(result, HTTPClient.METHOD_POST, QUALIFICATION_PATH, {"totalScore": total_score})
-	return result.operation_id
+	_resolve_request(
+		request, HTTPClient.METHOD_POST, QUALIFICATION_PATH, {"totalScore": total_score}
+	)
+	return request
 
 
-func submit_score(submission: LeaderboardSubmission, session_generation: int) -> int:
-	var active_submission_id := _pending_submission_id()
-	if active_submission_id >= 0:
-		return active_submission_id
-	var result := _start_operation(LeaderboardOperationResult.Kind.SUBMISSION, session_generation)
+func submit_score(submission: LeaderboardSubmission) -> LeaderboardRequest:
+	var active_submission := _pending_submission()
+	if active_submission != null:
+		return active_submission
+	var request := _start_request(LeaderboardOperationResult.Kind.SUBMISSION)
 	state = State.SUBMITTING
 	if submission == null:
-		_complete_failure(result, "INVALID_SUBMISSION")
-		return result.operation_id
-	_request(result, HTTPClient.METHOD_POST, SUBMISSIONS_PATH, submission.to_api())
-	return result.operation_id
+		_complete_failure(request, "INVALID_SUBMISSION")
+		return request
+	_resolve_request(request, HTTPClient.METHOD_POST, SUBMISSIONS_PATH, submission.to_api())
+	return request
 
 
-func cancel(operation_id: int) -> void:
+func _cancel_request(request: LeaderboardRequest) -> void:
 	if _http_client:
-		_http_client.cancel(operation_id)
-	super.cancel(operation_id)
+		_http_client.cancel(request)
+	super._cancel_request(request)
 
 
-func _request(
-	result: LeaderboardOperationResult,
-	method: HTTPClient.Method,
-	path: String,
-	payload: Dictionary = {}
-) -> bool:
-	if _http_client == null or _base_url.is_empty():
-		_complete_unavailable(result, "API_UNCONFIGURED")
-		return false
-	var error := _http_client.request_json(result.operation_id, _base_url + path, method, payload)
-	if error != OK:
-		_complete_unavailable(result, "REQUEST_START_FAILED")
-		return false
-	return true
-
-
-func _on_response_received(
-	operation_id: int, request_result: int, response_code: int, body: PackedByteArray
+func _resolve_request(
+	request: LeaderboardRequest, method: HTTPClient.Method, path: String, payload: Dictionary = {}
 ) -> void:
-	var result: LeaderboardOperationResult = _pending.get(operation_id)
-	if result == null:
+	if _http_client == null or _base_url.is_empty():
+		_complete_unavailable(request, "API_UNCONFIGURED")
 		return
-	if request_result != HTTPRequest.RESULT_SUCCESS:
-		_complete_unavailable(result, "NETWORK_UNAVAILABLE")
+	var response: LeaderboardHttpResponse = await _http_client.request_json(
+		request, _base_url + path, method, payload
+	)
+	if not _pending.has(request):
 		return
-	if response_code == 503:
-		_complete_unavailable(result, "SERVICE_UNAVAILABLE")
+	if response.request_error != OK:
+		_complete_unavailable(request, "REQUEST_START_FAILED")
 		return
-	if response_code < 200 or response_code >= 300:
-		_complete_failure(result, "HTTP_%d" % response_code)
+	_on_response_received(request, response)
+
+
+func _on_response_received(request: LeaderboardRequest, response: LeaderboardHttpResponse) -> void:
+	if response.request_result != HTTPRequest.RESULT_SUCCESS:
+		_complete_unavailable(request, "NETWORK_UNAVAILABLE")
 		return
-	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
+	if response.response_code == 503:
+		_complete_unavailable(request, "SERVICE_UNAVAILABLE")
+		return
+	if response.response_code < 200 or response.response_code >= 300:
+		_complete_failure(request, "HTTP_%d" % response.response_code)
+		return
+	var parsed: Variant = JSON.parse_string(response.body.get_string_from_utf8())
 	if typeof(parsed) != TYPE_DICTIONARY:
-		_complete_failure(result, "MALFORMED_RESPONSE")
+		_complete_failure(request, "MALFORMED_RESPONSE")
 		return
-	_apply_success(result, parsed)
+	_apply_success(request, parsed)
 
 
-func _apply_success(result: LeaderboardOperationResult, response: Dictionary) -> void:
-	match result.kind:
+func _apply_success(request: LeaderboardRequest, response: Dictionary) -> void:
+	var result := LeaderboardOperationResult.new()
+	match request.kind:
 		LeaderboardOperationResult.Kind.TOP_ENTRIES:
 			var top_entries: Array[LeaderboardEntry] = []
 			if not _entries_from_api(response, top_entries):
-				_complete_failure(result, "MALFORMED_RESPONSE")
+				_complete_failure(request, "MALFORMED_RESPONSE")
 				return
 			result.entries = top_entries
 		LeaderboardOperationResult.Kind.QUALIFICATION:
 			var qualification := LeaderboardQualification.from_api(response)
 			if qualification == null:
-				_complete_failure(result, "MALFORMED_RESPONSE")
+				_complete_failure(request, "MALFORMED_RESPONSE")
 				return
 			result.qualification = qualification
 			result.rank = qualification.rank
 		LeaderboardOperationResult.Kind.SUBMISSION:
 			if response.get("accepted") != true or not response.get("rank") is int:
-				_complete_failure(result, "MALFORMED_RESPONSE")
+				_complete_failure(request, "MALFORMED_RESPONSE")
 				return
 			var submission_entries: Array[LeaderboardEntry] = []
 			if not _entries_from_api(response, submission_entries):
-				_complete_failure(result, "MALFORMED_RESPONSE")
+				_complete_failure(request, "MALFORMED_RESPONSE")
 				return
 			result.entries = submission_entries
 			result.rank = response.rank
 	result.status = LeaderboardOperationResult.Status.SUCCEEDED
 	state = (
 		State.ACCEPTED
-		if result.kind == LeaderboardOperationResult.Kind.SUBMISSION
+		if request.kind == LeaderboardOperationResult.Kind.SUBMISSION
 		else State.AVAILABLE
 	)
 	_set_available(true)
-	_finish_operation(result)
+	_finish_request(request, result)
 
 
 func _entries_from_api(response: Dictionary, entries: Array[LeaderboardEntry]) -> bool:
@@ -140,16 +135,18 @@ func _entries_from_api(response: Dictionary, entries: Array[LeaderboardEntry]) -
 	return true
 
 
-func _complete_unavailable(result: LeaderboardOperationResult, error_code: String) -> void:
+func _complete_unavailable(request: LeaderboardRequest, error_code: String) -> void:
+	var result := LeaderboardOperationResult.new()
 	result.status = LeaderboardOperationResult.Status.UNAVAILABLE
 	result.error_code = error_code
 	state = State.UNAVAILABLE
 	_set_available(false)
-	_finish_operation(result)
+	_finish_request(request, result)
 
 
-func _complete_failure(result: LeaderboardOperationResult, error_code: String) -> void:
+func _complete_failure(request: LeaderboardRequest, error_code: String) -> void:
+	var result := LeaderboardOperationResult.new()
 	result.status = LeaderboardOperationResult.Status.FAILED
 	result.error_code = error_code
 	state = State.FAILED
-	_finish_operation(result)
+	_finish_request(request, result)

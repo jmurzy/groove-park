@@ -15,9 +15,6 @@ enum Status {
 	CANCELLED,
 }
 
-var operation_id: int
-var session_generation: int
-var kind: Kind
 var status: Status
 var entries: Array[LeaderboardEntry] = []
 var qualification: LeaderboardQualification
