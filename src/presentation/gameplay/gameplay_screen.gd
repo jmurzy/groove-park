@@ -3,6 +3,7 @@ class_name GameplayScreen
 extends Control
 
 signal return_to_title_requested
+signal new_round_requested
 
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
@@ -12,6 +13,8 @@ const GameplayRunPresenterScene := preload(
 const PauseFlowControllerScene := preload(
 	"res://src/presentation/gameplay/pause_flow_controller.gd"
 )
+const GameOverScreenScene := preload("res://src/presentation/results/game_over_screen.gd")
+const RoundResultsScreenScene := preload("res://src/presentation/results/round_results_screen.gd")
 
 var game_session: GameSession
 var input_router: InputRouter
@@ -23,6 +26,8 @@ var _pause_flow: PauseFlowController
 var _rider_tuning: RiderTuning
 var _ui_layer: CanvasLayer
 var _gameplay_music: AudioStreamPlayer
+var _game_over_screen: GameOverScreen
+var _round_results_screen: RoundResultsScreen
 
 
 func _ready() -> void:
@@ -65,6 +70,16 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
+	if (
+		game_session.session_phase
+		in [
+			RoundState.SessionPhase.GAME_OVER,
+			RoundState.SessionPhase.QUALIFYING,
+			RoundState.SessionPhase.NAME_ENTRY,
+			RoundState.SessionPhase.ROUND_RESULTS,
+		]
+	):
+		return
 	_run_presenter.physics_update(delta)
 
 
@@ -87,6 +102,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		&"continue":
 			_run_presenter.continue_tally()
 			get_viewport().set_input_as_handled()
+		&"new_round":
+			new_round_requested.emit()
+			get_viewport().set_input_as_handled()
+		&"return_to_attract":
+			return_to_title_requested.emit()
+			get_viewport().set_input_as_handled()
 		&"restart":
 			_restart_run()
 			get_viewport().set_input_as_handled()
@@ -102,6 +123,25 @@ func _restart_run() -> void:
 func _confirm_return_to_title() -> void:
 	_pause_flow.close_for_navigation(get_tree())
 	return_to_title_requested.emit()
+
+
+func show_game_over() -> void:
+	if _game_over_screen or game_session.round_state() == null:
+		return
+	_game_over_screen = GameOverScreenScene.new()
+	_game_over_screen.show_round(game_session.round_state())
+	_ui_layer.add_child(_game_over_screen)
+
+
+func show_round_results() -> void:
+	if _round_results_screen or game_session.round_state() == null:
+		return
+	if _game_over_screen:
+		_game_over_screen.queue_free()
+		_game_over_screen = null
+	_round_results_screen = RoundResultsScreenScene.new()
+	_round_results_screen.show_round(game_session.round_state())
+	_ui_layer.add_child(_round_results_screen)
 
 
 func _build_ui_layer() -> void:

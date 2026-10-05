@@ -10,6 +10,9 @@ signal round_completed(round_state: RoundState)
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
 
+const GAME_OVER_AUTO_ADVANCE_DELAY := 3.0
+const ROUND_RESULTS_AUTO_RETURN_TIMEOUT := 20.0
+
 var session_phase := RoundState.SessionPhase.ATTRACT
 var rider_kind: StringName = RiderKind.SNOWBOARDER
 var round_id := ""
@@ -18,6 +21,8 @@ var is_paused := false
 var _round_state: RoundState
 var _course: ParkCourse = PARK_COURSE_RESOURCE.duplicate()
 var _tuning: RiderTuning = RIDER_TUNING_RESOURCE
+var _game_over_elapsed := 0.0
+var _round_results_elapsed := 0.0
 
 
 func start_game(selected_rider_kind: StringName) -> void:
@@ -57,6 +62,20 @@ func set_paused(next_paused: bool) -> void:
 	if is_paused == next_paused:
 		return
 	is_paused = next_paused
+
+
+func advance(delta: float) -> void:
+	if is_paused:
+		return
+	var elapsed := maxf(delta, 0.0)
+	if session_phase == RoundState.SessionPhase.GAME_OVER:
+		_game_over_elapsed += elapsed
+		if _game_over_elapsed >= GAME_OVER_AUTO_ADVANCE_DELAY:
+			_enter_round_results()
+	elif session_phase == RoundState.SessionPhase.ROUND_RESULTS:
+		_round_results_elapsed += elapsed
+		if _round_results_elapsed >= ROUND_RESULTS_AUTO_RETURN_TIMEOUT:
+			return_to_attract()
 
 
 func return_to_attract() -> void:
@@ -126,10 +145,30 @@ func complete_tally() -> bool:
 	return true
 
 
+func _enter_round_results() -> bool:
+	if _round_state == null or session_phase != RoundState.SessionPhase.GAME_OVER:
+		return false
+	var created := RoundState.create(
+		rider_kind,
+		_round_state.current_jump_number(),
+		_round_state.jump_results(),
+		RoundState.SessionPhase.ROUND_RESULTS
+	)
+	if not created.is_valid:
+		push_error("Unable to enter round results: %s" % "; ".join(created.errors))
+		return false
+	_replace_round_state(created.value)
+	return true
+
+
 func _set_session_phase(next_phase: int) -> void:
 	if session_phase == next_phase:
 		return
 	session_phase = next_phase
+	if session_phase == RoundState.SessionPhase.GAME_OVER:
+		_game_over_elapsed = 0.0
+	elif session_phase == RoundState.SessionPhase.ROUND_RESULTS:
+		_round_results_elapsed = 0.0
 	phase_changed.emit(session_phase)
 
 

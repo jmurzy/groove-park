@@ -33,6 +33,7 @@ func setup(
 	_liftie_state_service = liftie_state_service
 	_primary_screen_index = primary_screen_index
 	_options = options
+	_game_session.phase_changed.connect(_on_session_phase_changed)
 	_show_attract()
 
 
@@ -46,6 +47,10 @@ func handle_exit_input() -> bool:
 			_gameplay_screen.request_exit_confirmation()
 		return true
 	return false
+
+
+func _process(delta: float) -> void:
+	_game_session.advance(delta)
 
 
 func _start_game(rider_kind: StringName) -> void:
@@ -69,6 +74,7 @@ func _show_gameplay(rider_kind: StringName, transition: CrtTransition) -> void:
 	_gameplay_screen.audio_manager = _audio_manager
 	_gameplay_screen.designer_mode = _options.designer_mode
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
+	_gameplay_screen.new_round_requested.connect(_start_new_round)
 	add_child(_gameplay_screen)
 	move_child(_gameplay_screen, transition.get_index())
 	_audio_manager.stop_background_music()
@@ -83,6 +89,8 @@ func _return_to_attract() -> void:
 	if _gameplay_screen == null:
 		return
 	get_tree().paused = false
+	_gameplay_screen.set_process(false)
+	_gameplay_screen.set_physics_process(false)
 	_gameplay_screen.queue_free()
 	_gameplay_screen = null
 	_audio_manager.play_confirmation()
@@ -90,6 +98,23 @@ func _return_to_attract() -> void:
 	_game_session.return_to_attract()
 	_input_router.release_owner()
 	_show_attract()
+
+
+func _start_new_round() -> void:
+	_return_to_attract()
+	if _primary_view:
+		_primary_view.call_deferred("show_rider_select")
+
+
+func _on_session_phase_changed(phase: int) -> void:
+	if _gameplay_screen == null:
+		return
+	if phase == RoundState.SessionPhase.GAME_OVER:
+		_gameplay_screen.show_game_over()
+	elif phase == RoundState.SessionPhase.ROUND_RESULTS:
+		_gameplay_screen.show_round_results()
+	elif phase == RoundState.SessionPhase.ATTRACT:
+		_return_to_attract()
 
 
 func _show_attract() -> void:

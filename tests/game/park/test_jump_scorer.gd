@@ -191,21 +191,21 @@ func _print_representative_breakdowns() -> void:
 		var result := JumpScorer.score_jump(snapshot, RiderTuningScene.new())
 		print(
 			(
-				"Score breakdown: outcome=%d approach=%d takeoff=%d airtime=%d rotation=%d "
-				+ (
-					"grab=%d style=%d multiplier=%d total=%d"
-					% [
-						snapshot.outcome(),
-						result.approach_points(),
-						result.takeoff_points(),
-						result.airtime_points(),
-						result.rotation_points(),
-						result.grab_points(),
-						result.style_bonus_points(),
-						result.landing_multiplier_milli(),
-						result.total(),
-					]
+				(
+					"Score breakdown: outcome=%d approach=%d takeoff=%d airtime=%d rotation=%d "
+					+ "grab=%d style=%d multiplier=%d total=%d"
 				)
+				% [
+					snapshot.outcome(),
+					result.approach_points(),
+					result.takeoff_points(),
+					result.airtime_points(),
+					result.rotation_points(),
+					result.grab_points(),
+					result.style_bonus_points(),
+					result.landing_multiplier_milli(),
+					result.total(),
+				]
 			)
 		)
 

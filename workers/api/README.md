@@ -1,8 +1,7 @@
 # Heavenly API Worker
 
 The Heavenly API is a Cloudflare Worker that serves Liftie status and fronts one SQLite-backed
-Durable Object named `leaderboard-global` for the shared leaderboard. Recovery operations are
-deferred.
+Durable Object named `leaderboard-global` for the shared leaderboard.
 
 ## Requirements
 

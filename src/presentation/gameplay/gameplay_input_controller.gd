@@ -57,6 +57,7 @@ func sample_frame(input_router: InputRouter) -> RiderInputFrame:
 
 # Converts owner-only UI events into semantic screen commands. The screen performs the resulting
 # action, keeping this controller independent of pause menus, scene lifetime, and navigation.
+# gdlint: disable=max-returns
 func screen_command(
 	event: InputEvent, session: GameSession, input_router: InputRouter
 ) -> StringName:
@@ -67,6 +68,11 @@ func screen_command(
 		and (event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"action_a"))
 	):
 		return &"continue"
+	if session.session_phase == RoundState.SessionPhase.ROUND_RESULTS:
+		if event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"action_a"):
+			return &"new_round"
+		if event.is_action_pressed(&"controller_back") or event.is_action_pressed(&"action_b"):
+			return &"return_to_attract"
 	if (
 		_debug_restart_enabled
 		and session.session_phase == RoundState.SessionPhase.JUMP_ACTIVE
@@ -81,3 +87,4 @@ func screen_command(
 	):
 		return &"pause"
 	return &""
+# gdlint: enable=max-returns

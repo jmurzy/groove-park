@@ -29,7 +29,7 @@ func _ready() -> void:
 	backdrop.show_diagnostics = show_diagnostics
 	add_child(backdrop)
 	_menu = AttractMenuScene.new()
-	_menu.start_requested.connect(_open_player_select)
+	_menu.start_requested.connect(show_rider_select)
 	_menu.controls_requested.connect(_open_controls)
 	_menu.exit_requested.connect(exit_requested.emit)
 	add_child(_menu)
@@ -49,7 +49,7 @@ func handle_escape() -> bool:
 	return false
 
 
-func _open_player_select() -> void:
+func show_rider_select() -> void:
 	if _player_select or _controls_screen:
 		return
 	_menu.play_confirmation()
@@ -101,7 +101,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _player_select or _controls_screen:
 		return
 	if event.is_action_pressed(&"controller_start"):
-		_open_player_select()
+		show_rider_select()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"action_y"):
 		_open_controls()

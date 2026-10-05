@@ -12,6 +12,7 @@ func _init() -> void:
 	_test_result_requires_a_completed_active_run_and_records_once()
 	_test_non_crash_tallies_advance_through_three_jumps()
 	_test_crash_completes_the_round_once()
+	_test_game_over_enters_local_round_results_once()
 	_test_starting_and_bailing_rounds_reset_only_in_memory_round_data()
 	_test_session_notifications_follow_mutation()
 	if _failures.is_empty():
@@ -208,6 +209,48 @@ func _test_crash_completes_the_round_once() -> void:
 		"A crash must retain its recorded current-jump result."
 	)
 	session.free()
+
+
+func _test_game_over_enters_local_round_results_once() -> void:
+	for delta: float in [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0]:
+		var session := _active_session()
+		_record_completed_result(session, JumpOutcome.Value.CLEAN, 100)
+		session.complete_tally()
+		_record_completed_result(session, JumpOutcome.Value.SKETCHY, 50)
+		session.complete_tally()
+		_record_completed_result(session, JumpOutcome.Value.BAIL, 0)
+		session.complete_tally()
+		session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY - delta)
+		_expect(
+			session.session_phase == RoundState.SessionPhase.GAME_OVER,
+			"Game over must remain active until its authoritative delay expires."
+		)
+		session.advance(delta)
+		_expect(
+			session.session_phase == RoundState.SessionPhase.ROUND_RESULTS,
+			"GameSession must enter round results after its deterministic game-over delay."
+		)
+		_expect(
+			(
+				session.round_state().round_score() == 150
+				and session.round_state().jump_results().size() == 3
+			),
+			"Entering round results must preserve every immutable recorded result and total."
+		)
+		session.advance(GameSession.ROUND_RESULTS_AUTO_RETURN_TIMEOUT - delta)
+		_expect(
+			session.session_phase == RoundState.SessionPhase.ROUND_RESULTS,
+			"Round results must remain active until their authoritative timeout expires."
+		)
+		session.advance(delta)
+		_expect(
+			(
+				session.session_phase == RoundState.SessionPhase.ATTRACT
+				and session.round_state() == null
+			),
+			"GameSession must return to attract after the deterministic results timeout."
+		)
+		session.free()
 
 
 func _test_starting_and_bailing_rounds_reset_only_in_memory_round_data() -> void:

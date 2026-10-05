@@ -10,7 +10,7 @@ enum SessionPhase {
 	GAME_OVER,
 	QUALIFYING,
 	NAME_ENTRY,
-	RESULTS,
+	ROUND_RESULTS,
 }
 
 const MAX_JUMPS := 3
@@ -49,7 +49,7 @@ static func create(
 	for result in jump_results:
 		if result == null:
 			errors.append("RoundState results cannot contain null.")
-	if session_phase < SessionPhase.ATTRACT or session_phase > SessionPhase.RESULTS:
+	if session_phase < SessionPhase.ATTRACT or session_phase > SessionPhase.ROUND_RESULTS:
 		errors.append("RoundState requires a valid session phase.")
 	if not errors.is_empty():
 		return RecordValidationResult.failure(errors)
