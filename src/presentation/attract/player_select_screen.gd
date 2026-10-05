@@ -8,16 +8,15 @@ signal cancelled
 const DESIGN_WIDTH := 1920.0
 const SKIER_SHEET := preload("res://artwork/marquee/skiier_sprite.png")
 const SNOWBOARDER_SHEET := preload("res://artwork/marquee/snowboarder_sprite.png")
-const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CARD_SIZE := Vector2(560, 385)
 const SNOWBOARDER_POSITION := Vector2(375, 545)
 const SKIER_POSITION := Vector2(985, 545)
 
 var selected_rider_kind: StringName = RiderKind.SNOWBOARDER
 var input_router: InputRouter
+var audio_manager: AudioManager
 var _cards: Array[Button] = []
 var _riders: Array[RiderPreview] = []
-var _switch_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -27,9 +26,6 @@ func _ready() -> void:
 	_build_title()
 	_build_cards()
 	_build_hint()
-	_switch_sound = AudioStreamPlayer.new()
-	_switch_sound.stream = SWITCH_SOUND
-	add_child(_switch_sound)
 	_select(RiderKind.SNOWBOARDER)
 
 
@@ -145,7 +141,7 @@ func _select(rider_kind: StringName) -> void:
 	if _cards.size() == 2:
 		_cards[_rider_index(rider_kind)].call_deferred("grab_focus")
 	if selection_changed:
-		_switch_sound.play()
+		audio_manager.play_menu_switch()
 
 
 func _confirm(rider_kind: StringName) -> void:

@@ -1,4 +1,4 @@
-## Owns application-level background music and confirmation playback.
+## Owns application-level music and sound-effect playback.
 class_name AudioManager
 extends Node
 
@@ -6,6 +6,10 @@ const BACKGROUND_MUSIC := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SCORE_TICK_SOUND := preload("res://assets/audio/score_tick.ogg")
+const MENU_SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
+const CABINET_SWITCH_SOUND := preload("res://assets/audio/switch24.ogg")
+const JOYSTICK_SOUND := preload("res://assets/audio/switch38.ogg")
+const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 const HELICOPTER_HOVER_SOUND := preload(
 	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
 )
@@ -20,6 +24,10 @@ var _helicopter_hover: AudioStreamPlayer
 var _background_music: AudioStreamPlayer
 var _gameplay_music: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
+var _menu_switch_sound: AudioStreamPlayer
+var _cabinet_switch_sound: AudioStreamPlayer
+var _joystick_sound: AudioStreamPlayer
+var _back_sound: AudioStreamPlayer
 var _score_tick_players: Array[AudioStreamPlayer] = []
 var _next_score_tick_player := 0
 
@@ -28,6 +36,7 @@ func configure() -> void:
 	_build_background_music()
 	_build_gameplay_music()
 	_build_confirmation_sound()
+	_build_interface_sounds()
 	_build_score_tick_players()
 	_build_helicopter_hover()
 
@@ -52,9 +61,22 @@ func _build_gameplay_music() -> void:
 
 
 func _build_confirmation_sound() -> void:
-	_confirmation_sound = AudioStreamPlayer.new()
-	_confirmation_sound.stream = CONFIRMATION_SOUND
-	add_child(_confirmation_sound)
+	_confirmation_sound = _build_player("ConfirmationSound", CONFIRMATION_SOUND)
+
+
+func _build_interface_sounds() -> void:
+	_menu_switch_sound = _build_player("MenuSwitchSound", MENU_SWITCH_SOUND)
+	_cabinet_switch_sound = _build_player("CabinetSwitchSound", CABINET_SWITCH_SOUND)
+	_joystick_sound = _build_player("JoystickSound", JOYSTICK_SOUND)
+	_back_sound = _build_player("BackSound", BACK_SOUND)
+
+
+func _build_player(player_name: StringName, stream: AudioStream) -> AudioStreamPlayer:
+	var player := AudioStreamPlayer.new()
+	player.name = player_name
+	player.stream = stream
+	add_child(player)
+	return player
 
 
 func _build_score_tick_players() -> void:
@@ -103,6 +125,22 @@ func play_confirmation() -> void:
 	_confirmation_sound.play()
 
 
+func play_menu_switch() -> void:
+	_menu_switch_sound.play()
+
+
+func play_cabinet_switch() -> void:
+	_cabinet_switch_sound.play()
+
+
+func play_joystick() -> void:
+	_joystick_sound.play()
+
+
+func play_back() -> void:
+	_back_sound.play()
+
+
 func play_score_tick() -> void:
 	if _score_tick_players.is_empty():
 		return
@@ -133,6 +171,10 @@ func shutdown() -> void:
 	_stop_and_release(_background_music)
 	_stop_and_release(_gameplay_music)
 	_stop_and_release(_confirmation_sound)
+	_stop_and_release(_menu_switch_sound)
+	_stop_and_release(_cabinet_switch_sound)
+	_stop_and_release(_joystick_sound)
+	_stop_and_release(_back_sound)
 	for score_tick_player in _score_tick_players:
 		_stop_and_release(score_tick_player)
 

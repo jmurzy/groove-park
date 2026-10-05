@@ -54,7 +54,7 @@ func _ready() -> void:
 		designer_mode
 	)
 	_pause_flow = PauseFlowControllerScene.new()
-	_pause_flow.setup(self, game_session, _ui_layer)
+	_pause_flow.setup(self, game_session, _ui_layer, audio_manager)
 	_pause_flow.abort_requested.connect(_confirm_return_to_title)
 	audio_manager.play_gameplay_music()
 

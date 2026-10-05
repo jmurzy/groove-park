@@ -17,14 +17,13 @@ const APPROACH_BORDER := Color("238bd4")
 const AIR_BORDER := Color("b000d4")
 const SELECTED_BORDER := Color("fff16a")
 const INACTIVE_BORDER := Color("238bd4")
-const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 
+var audio_manager: AudioManager
 var _controls_view: CabinetControlsView
 var _demo: RiderDemoPanel
 var _approach_card: Panel
 var _air_card: Panel
 var _selected_card: int = InfoCard.APPROACH
-var _switch_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -32,9 +31,6 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_switch_sound = AudioStreamPlayer.new()
-	_switch_sound.stream = SWITCH_SOUND
-	add_child(_switch_sound)
 	_build_shade()
 	_build_panel()
 	_update_card_selection()
@@ -73,6 +69,7 @@ func _build_panel() -> void:
 	cabinet_label.size = Vector2(cabinet_frame.size.x - 26, 28)
 	cabinet_frame.add_child(cabinet_label)
 	_controls_view = CabinetControlsView.new()
+	_controls_view.audio_manager = audio_manager
 	cabinet_frame.add_child(_controls_view)
 	_approach_card = _add_control_card(
 		panel,
@@ -160,8 +157,7 @@ func _select_card(card_index: int) -> void:
 		return
 	_selected_card = clamped_index
 	_update_card_selection()
-	if is_instance_valid(_switch_sound):
-		_switch_sound.play()
+	audio_manager.play_menu_switch()
 
 
 func _update_card_selection() -> void:

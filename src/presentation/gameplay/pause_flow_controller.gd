@@ -6,24 +6,22 @@ signal abort_requested
 
 const PauseMenuScene := preload("res://src/presentation/gameplay/pause_menu.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
-const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 
 var _game_session: GameSession
 var _owner: Node
 var _ui_layer: CanvasLayer
 var _pause_menu: PauseMenu
 var _controls_screen: HowToPlayScreen
-var _back_sound: AudioStreamPlayer
+var _audio_manager: AudioManager
 
 
-func setup(owner: Node, game_session: GameSession, ui_layer: CanvasLayer) -> void:
+func setup(
+	owner: Node, game_session: GameSession, ui_layer: CanvasLayer, audio_manager: AudioManager
+) -> void:
 	_owner = owner
 	_game_session = game_session
 	_ui_layer = ui_layer
-	_back_sound = AudioStreamPlayer.new()
-	_back_sound.name = "BackSound"
-	_back_sound.stream = BACK_SOUND
-	owner.add_child(_back_sound)
+	_audio_manager = audio_manager
 
 
 func is_open() -> bool:
@@ -36,6 +34,7 @@ func request_open(tree: SceneTree) -> void:
 	_game_session.set_paused(true)
 	tree.paused = true
 	_pause_menu = PauseMenuScene.new()
+	_pause_menu.audio_manager = _audio_manager
 	_pause_menu.resume_requested.connect(close)
 	_pause_menu.controls_requested.connect(_open_controls)
 	_pause_menu.abort_requested.connect(abort_requested.emit)
@@ -67,6 +66,7 @@ func _open_controls() -> void:
 	# traversal, so remove them from GUI input while the controls overlay is active.
 	_pause_menu.hide()
 	_controls_screen = HowToPlayScreenScene.new()
+	_controls_screen.audio_manager = _audio_manager
 	_controls_screen.closed.connect(_close_controls)
 	_ui_layer.add_child(_controls_screen)
 
@@ -76,8 +76,7 @@ func _close_controls() -> void:
 		return
 	_controls_screen.queue_free()
 	_controls_screen = null
-	if is_instance_valid(_back_sound):
-		_back_sound.play()
+	_audio_manager.play_back()
 	if is_instance_valid(_pause_menu):
 		_pause_menu.show()
 		_pause_menu.focus_controls_button()

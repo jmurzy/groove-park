@@ -6,12 +6,8 @@ signal start_requested
 signal controls_requested
 signal exit_requested
 
-const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
-const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
-
+var audio_manager: AudioManager
 var _has_focus := false
-var _confirmation_sound: AudioStreamPlayer
-var _switch_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -29,13 +25,11 @@ func _ready() -> void:
 	start.focus_neighbor_bottom = start.get_path_to(exit)
 	exit.focus_neighbor_top = exit.get_path_to(start)
 	exit.focus_neighbor_bottom = NodePath(".")
-	_confirmation_sound = _add_sound("ConfirmationSound", CONFIRMATION_SOUND)
-	_switch_sound = _add_sound("SwitchSound", SWITCH_SOUND)
 	start.call_deferred("grab_focus")
 
 
 func play_confirmation() -> void:
-	_confirmation_sound.play()
+	audio_manager.play_confirmation()
 
 
 func focus_default() -> void:
@@ -59,15 +53,7 @@ func _build_button(
 	return button
 
 
-func _add_sound(sound_name: StringName, stream: AudioStream) -> AudioStreamPlayer:
-	var player := AudioStreamPlayer.new()
-	player.name = sound_name
-	player.stream = stream
-	add_child(player)
-	return player
-
-
 func _on_button_focused() -> void:
 	if _has_focus:
-		_switch_sound.play()
+		audio_manager.play_menu_switch()
 	_has_focus = true

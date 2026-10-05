@@ -1,5 +1,5 @@
 ## Pause/exit dialog: "ABORT THIS RUN?" with KEEP PLAYING / HOW TO PLAY /
-## ABORT RUN. Owns its panel styling, focus wiring, and switch/confirm SFX.
+## ABORT RUN. Owns its panel styling and focus wiring.
 ## Emits intent signals; PauseFlowController pauses the tree, frees this control
 ## on close, and hosts the HowToPlay overlay + return-to-title flow.
 class_name PauseMenu
@@ -9,14 +9,10 @@ signal resume_requested
 signal controls_requested
 signal abort_requested
 
-const SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
-const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
-
+var audio_manager: AudioManager
 var _return_button: ArcadeMenuButton
 var _keep_playing_button: ArcadeMenuButton
 var _controls_button: ArcadeMenuButton
-var _switch_sound: AudioStreamPlayer
-var _confirmation_sound: AudioStreamPlayer
 var _has_menu_focus := false
 
 
@@ -25,7 +21,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_dialog()
-	_confirmation_sound.play()
+	audio_manager.play_confirmation()
 	_keep_playing_button.call_deferred("grab_focus")
 
 
@@ -57,7 +53,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		or event.is_action_pressed(&"controller_back")
 		or event.is_action_pressed(&"cabinet_exit")
 	):
-		_play_confirmation()
+		audio_manager.play_confirmation()
 		resume_requested.emit()
 		get_viewport().set_input_as_handled()
 
@@ -85,12 +81,6 @@ func _build_dialog() -> void:
 	warning.size = Vector2(panel.size.x, 38)
 	panel.add_child(warning)
 
-	_switch_sound = AudioStreamPlayer.new()
-	_switch_sound.stream = SWITCH_SOUND
-	add_child(_switch_sound)
-	_confirmation_sound = AudioStreamPlayer.new()
-	_confirmation_sound.stream = CONFIRMATION_SOUND
-	add_child(_confirmation_sound)
 	_keep_playing_button = _build_button("KEEP PLAYING", Vector2(460, 248))
 	_keep_playing_button.pressed.connect(_on_keep_playing_pressed)
 	panel.add_child(_keep_playing_button)
@@ -124,8 +114,8 @@ func _wire_button_focus() -> void:
 
 
 func _on_button_focused() -> void:
-	if _has_menu_focus and is_instance_valid(_switch_sound):
-		_switch_sound.play()
+	if _has_menu_focus:
+		audio_manager.play_menu_switch()
 	_has_menu_focus = true
 
 
@@ -148,19 +138,14 @@ func _confirm_focused() -> void:
 
 
 func _on_keep_playing_pressed() -> void:
-	_play_confirmation()
+	audio_manager.play_confirmation()
 	resume_requested.emit()
 
 
 func _on_controls_pressed() -> void:
-	_play_confirmation()
+	audio_manager.play_confirmation()
 	controls_requested.emit()
 
 
 func _on_abort_pressed() -> void:
 	abort_requested.emit()
-
-
-func _play_confirmation() -> void:
-	if is_instance_valid(_confirmation_sound):
-		_confirmation_sound.play()

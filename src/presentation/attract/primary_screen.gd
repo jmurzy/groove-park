@@ -8,16 +8,15 @@ signal exit_requested
 const AttractBackdropScene := preload("res://src/presentation/attract/attract_backdrop.gd")
 const AttractMenuScene := preload("res://src/presentation/attract/attract_menu.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
-const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 
 @export var screen_index: int = 0
 var show_diagnostics := false
 var liftie_state_service: LiftieStateService
 var input_router: InputRouter
+var audio_manager: AudioManager
 var _menu: AttractMenu
 var _player_select: PlayerSelectScreen
 var _controls_screen: HowToPlayScreen
-var _back_sound: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -29,14 +28,11 @@ func _ready() -> void:
 	backdrop.show_diagnostics = show_diagnostics
 	add_child(backdrop)
 	_menu = AttractMenuScene.new()
+	_menu.audio_manager = audio_manager
 	_menu.start_requested.connect(show_rider_select)
 	_menu.controls_requested.connect(_open_controls)
 	_menu.exit_requested.connect(exit_requested.emit)
 	add_child(_menu)
-	_back_sound = AudioStreamPlayer.new()
-	_back_sound.name = "BackSound"
-	_back_sound.stream = BACK_SOUND
-	add_child(_back_sound)
 
 
 func handle_escape() -> bool:
@@ -56,6 +52,7 @@ func show_rider_select() -> void:
 	_menu.hide()
 	_player_select = PlayerSelectScreen.new()
 	_player_select.input_router = input_router
+	_player_select.audio_manager = audio_manager
 	_player_select.confirmed.connect(_on_player_select_confirmed)
 	_player_select.cancelled.connect(_close_player_select)
 	add_child(_player_select)
@@ -77,6 +74,7 @@ func _open_controls() -> void:
 		return
 	_menu.play_confirmation()
 	_controls_screen = HowToPlayScreenScene.new()
+	_controls_screen.audio_manager = audio_manager
 	_controls_screen.closed.connect(_close_controls)
 	add_child(_controls_screen)
 
@@ -86,7 +84,7 @@ func _close_controls() -> void:
 		return
 	_controls_screen.queue_free()
 	_controls_screen = null
-	_back_sound.play()
+	audio_manager.play_back()
 	_menu.focus_controls()
 
 

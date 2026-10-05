@@ -124,6 +124,7 @@ func _show_attract() -> void:
 	_primary_view.screen_index = _primary_screen_index
 	_primary_view.liftie_state_service = _liftie_state_service
 	_primary_view.input_router = _input_router
+	_primary_view.audio_manager = _audio_manager
 	_primary_view.show_diagnostics = _options.show_diagnostics
 	_primary_view.start_game_requested.connect(_start_game)
 	_primary_view.exit_requested.connect(quit_requested.emit)
