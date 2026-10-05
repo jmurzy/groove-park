@@ -21,6 +21,7 @@ func _init() -> void:
 
 func _run_tests() -> void:
 	_test_terminal_phase_signals_and_timeout_cleanup()
+	_test_non_crash_game_over_skips_rescue()
 	await _test_results_start_opens_a_new_rider_select_flow()
 	_test_results_back_returns_to_attract()
 	if _failures.is_empty():
@@ -36,14 +37,23 @@ func _test_terminal_phase_signals_and_timeout_cleanup() -> void:
 	var fixture := _gameplay_fixture()
 	_complete_crash(fixture.session)
 	_expect(
-		fixture.flow._gameplay_screen._game_over_screen != null,
-		"A GAME_OVER phase signal must present the game-over screen."
+		fixture.session.session_phase == RoundState.SessionPhase.CRASH_RESCUE,
+		"A crash rescue phase must start the rescue presentation exactly once."
+	)
+	_expect(
+		fixture.flow._gameplay_screen._game_over_screen == null,
+		"The game-over screen must wait until rescue presentation completes."
 	)
 	var run_phase := fixture.session.run_manager.rider_state.run.run_phase
 	fixture.flow._gameplay_screen._physics_process(1.0)
 	_expect(
 		fixture.session.run_manager.rider_state.run.run_phase == run_phase,
 		"Gameplay physics must remain inactive during game over."
+	)
+	_complete_rescue(fixture.session)
+	_expect(
+		fixture.flow._gameplay_screen._game_over_screen != null,
+		"Completing rescue must present the game-over screen."
 	)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	_expect(
@@ -64,6 +74,7 @@ func _test_terminal_phase_signals_and_timeout_cleanup() -> void:
 func _test_results_start_opens_a_new_rider_select_flow() -> void:
 	var fixture := _gameplay_fixture()
 	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	fixture.flow._gameplay_screen._unhandled_input(_button_event(JOY_BUTTON_START))
 	await process_frame
@@ -79,9 +90,24 @@ func _test_results_start_opens_a_new_rider_select_flow() -> void:
 	_free_fixture(fixture)
 
 
+func _test_non_crash_game_over_skips_rescue() -> void:
+	var fixture := _gameplay_fixture()
+	_complete_non_crash_round(fixture.session)
+	_expect(
+		fixture.session.session_phase == RoundState.SessionPhase.GAME_OVER,
+		"A non-crash terminal outcome must never start the rescue sequence."
+	)
+	_expect(
+		fixture.flow._gameplay_screen._game_over_screen != null,
+		"A completed non-crash round must present game over without rescue."
+	)
+	_free_fixture(fixture)
+
+
 func _test_results_back_returns_to_attract() -> void:
 	var fixture := _gameplay_fixture()
 	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	fixture.flow._gameplay_screen._unhandled_input(_button_event(JOY_BUTTON_BACK))
 	_expect(
@@ -124,6 +150,19 @@ func _complete_crash(session: GameSession) -> void:
 	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CRASH
 	session.run_manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
 	session.step_run(RiderInputFrame.new(), 0.0)
+
+
+func _complete_non_crash_round(session: GameSession) -> void:
+	for _jump_number in range(RoundState.MAX_JUMPS):
+		session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CLEAN
+		session.run_manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+		session.step_run(RiderInputFrame.new(), 0.0)
+		session.complete_tally()
+
+
+func _complete_rescue(session: GameSession) -> void:
+	session.advance(GameSession.CRASH_RESCUE_MINIMUM_DURATION)
+	session.request_skip_crash_rescue()
 
 
 func _button_event(button: JoyButton) -> InputEventJoypadButton:

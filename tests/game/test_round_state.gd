@@ -7,6 +7,7 @@ var _failures := PackedStringArray()
 func _init() -> void:
 	_test_new_round_defaults()
 	_test_round_score_is_derived_from_immutable_results()
+	_test_crash_end_status()
 	_test_exposed_results_cannot_mutate_the_round()
 	_test_invalid_round_data_is_rejected()
 	_test_invalid_jump_result_is_rejected()
@@ -39,6 +40,24 @@ func _test_round_score_is_derived_from_immutable_results() -> void:
 	_expect(created.is_valid, "A round with valid jump results must be created.")
 	var round: RoundState = created.value
 	_expect(round.round_score() == 325, "Round score must equal the recorded result total.")
+
+
+func _test_crash_end_status() -> void:
+	var empty_round: RoundState = RoundState.create(RiderKind.SKIER).value
+	_expect(not empty_round.ended_in_crash(), "An empty round must not report a crash ending.")
+	var crash := _jump_result(JumpOutcome.Value.CRASH, 0)
+	var round: RoundState = (
+		RoundState
+		. create(RiderKind.SKIER, 2, [_jump_result(JumpOutcome.Value.CLEAN, 50), crash])
+		. value
+	)
+	_expect(round.ended_in_crash(), "A round's crash status must come from its final result.")
+	var clean_round: RoundState = (
+		RoundState.create(RiderKind.SKIER, 1, [_jump_result(JumpOutcome.Value.CLEAN, 50)]).value
+	)
+	_expect(
+		not clean_round.ended_in_crash(), "A non-crash final result must not report a crash ending."
+	)
 
 
 func _test_exposed_results_cannot_mutate_the_round() -> void:

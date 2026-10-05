@@ -6,7 +6,6 @@ signal return_to_title_requested
 signal new_round_requested
 
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
-const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
 const GameplayRunPresenterScene := preload(
 	"res://src/presentation/gameplay/gameplay_run_presenter.gd"
 )
@@ -25,7 +24,6 @@ var _run_presenter: GameplayRunPresenter
 var _pause_flow: PauseFlowController
 var _rider_tuning: RiderTuning
 var _ui_layer: CanvasLayer
-var _gameplay_music: AudioStreamPlayer
 var _game_over_screen: GameOverScreen
 var _round_results_screen: RoundResultsScreen
 
@@ -58,7 +56,7 @@ func _ready() -> void:
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer)
 	_pause_flow.abort_requested.connect(_confirm_return_to_title)
-	_build_music()
+	audio_manager.play_gameplay_music()
 
 
 func _process(delta: float) -> void:
@@ -68,11 +66,12 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _pause_flow.is_open():
+	if _pause_flow.is_open() or game_session.is_paused:
 		return
 	if (
 		game_session.session_phase
 		in [
+			RoundState.SessionPhase.CRASH_RESCUE,
 			RoundState.SessionPhase.GAME_OVER,
 			RoundState.SessionPhase.QUALIFYING,
 			RoundState.SessionPhase.NAME_ENTRY,
@@ -99,7 +98,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _pause_flow.accepts_screen_input():
 		return
 	match _run_presenter.input.screen_command(event, game_session, input_router):
-		&"continue":
+		&"skip_crash_rescue":
+			game_session.request_skip_crash_rescue()
+			get_viewport().set_input_as_handled()
+		&"advance_jump_tally":
 			_run_presenter.continue_tally()
 			get_viewport().set_input_as_handled()
 		&"new_round":
@@ -128,9 +130,22 @@ func _confirm_return_to_title() -> void:
 func show_game_over() -> void:
 	if _game_over_screen or game_session.round_state() == null:
 		return
+	_run_presenter.finish_crash_rescue()
 	_game_over_screen = GameOverScreenScene.new()
 	_game_over_screen.show_round(game_session.round_state())
 	_ui_layer.add_child(_game_over_screen)
+
+
+func start_crash_rescue() -> void:
+	if _game_over_screen or game_session.session_phase != RoundState.SessionPhase.CRASH_RESCUE:
+		return
+	_run_presenter.start_crash_rescue()
+
+
+func _exit_tree() -> void:
+	if audio_manager:
+		audio_manager.stop_helicopter_hover()
+		audio_manager.stop_gameplay_music()
 
 
 func show_round_results() -> void:
@@ -158,13 +173,3 @@ func _build_ui_layer() -> void:
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_ui_layer.add_child(frame)
-
-
-func _build_music() -> void:
-	var music_stream: AudioStreamMP3 = GAMEPLAY_MUSIC.duplicate()
-	music_stream.loop = true
-	_gameplay_music = AudioStreamPlayer.new()
-	_gameplay_music.name = "GameplayMusic"
-	_gameplay_music.stream = music_stream
-	add_child(_gameplay_music)
-	_gameplay_music.play()

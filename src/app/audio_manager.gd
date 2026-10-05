@@ -3,11 +3,22 @@ class_name AudioManager
 extends Node
 
 const BACKGROUND_MUSIC := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
+const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SCORE_TICK_SOUND := preload("res://assets/audio/score_tick.ogg")
+const HELICOPTER_HOVER_SOUND := preload(
+	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
+)
 const SCORE_TICK_AUDIO_STREAM_COUNT := 5
 
+# 0 dB is unity gain (100% amplitude); -6 dB is approximately 50% amplitude.
+const HELICOPTER_HOVER_ENTRY_VOLUME_DB := -6.0
+const HELICOPTER_HOVER_LANDING_VOLUME_DB := 0.0
+const GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB := -12.0
+
+var _helicopter_hover: AudioStreamPlayer
 var _background_music: AudioStreamPlayer
+var _gameplay_music: AudioStreamPlayer
 var _confirmation_sound: AudioStreamPlayer
 var _score_tick_players: Array[AudioStreamPlayer] = []
 var _next_score_tick_player := 0
@@ -15,8 +26,10 @@ var _next_score_tick_player := 0
 
 func configure() -> void:
 	_build_background_music()
+	_build_gameplay_music()
 	_build_confirmation_sound()
 	_build_score_tick_players()
+	_build_helicopter_hover()
 
 
 func _build_background_music() -> void:
@@ -27,6 +40,15 @@ func _build_background_music() -> void:
 	_background_music.name = "BackgroundMusic"
 	_background_music.stream = looping_background_music
 	add_child(_background_music)
+
+
+func _build_gameplay_music() -> void:
+	var looping_gameplay_music := GAMEPLAY_MUSIC.duplicate() as AudioStreamMP3
+	looping_gameplay_music.loop = true
+	_gameplay_music = AudioStreamPlayer.new()
+	_gameplay_music.name = "GameplayMusic"
+	_gameplay_music.stream = looping_gameplay_music
+	add_child(_gameplay_music)
 
 
 func _build_confirmation_sound() -> void:
@@ -44,12 +66,37 @@ func _build_score_tick_players() -> void:
 		_score_tick_players.append(score_tick_player)
 
 
+func _build_helicopter_hover() -> void:
+	var looping_hover := HELICOPTER_HOVER_SOUND.duplicate() as AudioStreamMP3
+	looping_hover.loop = true
+	_helicopter_hover = AudioStreamPlayer.new()
+	_helicopter_hover.name = "HelicopterHover"
+	_helicopter_hover.stream = looping_hover
+	_helicopter_hover.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
+	add_child(_helicopter_hover)
+
+
 func play_background_music() -> void:
 	_background_music.play()
 
 
 func stop_background_music() -> void:
 	_background_music.stop()
+
+
+func play_gameplay_music() -> void:
+	_gameplay_music.volume_db = 0.0
+	_gameplay_music.play()
+
+
+func duck_gameplay_music_for_rescue() -> void:
+	_gameplay_music.create_tween().tween_property(
+		_gameplay_music, "volume_db", GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB, 0.2
+	)
+
+
+func stop_gameplay_music() -> void:
+	_gameplay_music.stop()
 
 
 func play_confirmation() -> void:
@@ -64,8 +111,27 @@ func play_score_tick() -> void:
 	player.play()
 
 
+func start_helicopter_hover() -> void:
+	_helicopter_hover.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
+	_helicopter_hover.play()
+
+
+func set_helicopter_hover_progress(progress: float) -> void:
+	_helicopter_hover.volume_db = lerpf(
+		HELICOPTER_HOVER_ENTRY_VOLUME_DB,
+		HELICOPTER_HOVER_LANDING_VOLUME_DB,
+		clampf(progress, 0.0, 1.0)
+	)
+
+
+func stop_helicopter_hover() -> void:
+	_helicopter_hover.stop()
+
+
 func shutdown() -> void:
+	_stop_and_release(_helicopter_hover)
 	_stop_and_release(_background_music)
+	_stop_and_release(_gameplay_music)
 	_stop_and_release(_confirmation_sound)
 	for score_tick_player in _score_tick_players:
 		_stop_and_release(score_tick_player)

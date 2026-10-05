@@ -70,6 +70,10 @@ func primary_rider_screen_bounds() -> Rect2:
 	return _rider.screen_bounds()
 
 
+func crash_site_position(run_manager: RiderRunManager) -> Vector2:
+	return _projection.project_rider(run_manager.rider_state)
+
+
 func _build_world() -> void:
 	var background := Sprite2D.new()
 	background.name = "CourseBackground"

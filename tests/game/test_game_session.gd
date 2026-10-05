@@ -12,6 +12,7 @@ func _init() -> void:
 	_test_result_requires_a_completed_active_run_and_records_once()
 	_test_non_crash_tallies_advance_through_three_jumps()
 	_test_crash_completes_the_round_once()
+	_test_crash_rescue_timeout_enters_game_over_once()
 	_test_game_over_enters_local_round_results_once()
 	_test_starting_and_bailing_rounds_reset_only_in_memory_round_data()
 	_test_session_notifications_follow_mutation()
@@ -53,8 +54,8 @@ func _test_completed_simulation_records_each_outcome_once() -> void:
 		)
 		if outcome == JumpOutcome.Value.CRASH:
 			_expect(
-				session.session_phase == RoundState.SessionPhase.GAME_OVER,
-				"A crash must enter game over without a new run."
+				session.session_phase == RoundState.SessionPhase.CRASH_RESCUE,
+				"A crash must enter rescue without a new run."
 			)
 		else:
 			_expect(
@@ -200,8 +201,8 @@ func _test_crash_completes_the_round_once() -> void:
 		"A completed crash must record."
 	)
 	_expect(
-		session.session_phase == RoundState.SessionPhase.GAME_OVER,
-		"A crash must enter game over without a tally."
+		session.session_phase == RoundState.SessionPhase.CRASH_RESCUE,
+		"A crash must enter rescue without a tally."
 	)
 	_expect(not session.complete_tally(), "A crash must prevent later jumps from starting.")
 	_expect(
@@ -209,6 +210,47 @@ func _test_crash_completes_the_round_once() -> void:
 		"A crash must retain its recorded current-jump result."
 	)
 	session.free()
+
+
+func _test_crash_rescue_timeout_enters_game_over_once() -> void:
+	var session := _active_session()
+	_record_completed_result(session, JumpOutcome.Value.CRASH, 0)
+	session.advance(GameSession.CRASH_RESCUE_MINIMUM_DURATION - 0.01)
+	_expect(
+		session.session_phase == RoundState.SessionPhase.CRASH_RESCUE,
+		"Rescue must remain active before its minimum duration."
+	)
+	_expect(
+		not session.request_skip_crash_rescue(),
+		"Rescue cannot be skipped before its minimum duration."
+	)
+	session.advance(0.01)
+	_expect(
+		session.request_skip_crash_rescue(),
+		"Rescue must enter game over after its minimum duration."
+	)
+	_expect(
+		session.session_phase == RoundState.SessionPhase.GAME_OVER,
+		"Rescue completion must enter game over exactly once."
+	)
+	_expect(
+		not session.request_skip_crash_rescue(), "A completed rescue cannot enter game over twice."
+	)
+	session.free()
+
+	var timed_session := _active_session()
+	_record_completed_result(timed_session, JumpOutcome.Value.CRASH, 0)
+	timed_session.advance(GameSession.CRASH_RESCUE_AUTO_ADVANCE_TIMEOUT - 0.01)
+	_expect(
+		timed_session.session_phase == RoundState.SessionPhase.CRASH_RESCUE,
+		"Rescue must remain active until its authoritative timeout."
+	)
+	timed_session.advance(0.01)
+	_expect(
+		timed_session.session_phase == RoundState.SessionPhase.GAME_OVER,
+		"Rescue timeout must enter game over without presentation callbacks."
+	)
+	timed_session.free()
 
 
 func _test_game_over_enters_local_round_results_once() -> void:
@@ -308,7 +350,7 @@ func _test_session_notifications_follow_mutation() -> void:
 				RoundState.SessionPhase.JUMP_ACTIVE,
 				RoundState.SessionPhase.JUMP_TALLY,
 				RoundState.SessionPhase.JUMP_ACTIVE,
-				RoundState.SessionPhase.GAME_OVER,
+				RoundState.SessionPhase.CRASH_RESCUE,
 			]
 		),
 		"Phase notifications must emit once after each accepted transition."

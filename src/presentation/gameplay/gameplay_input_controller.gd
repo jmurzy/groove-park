@@ -64,10 +64,15 @@ func screen_command(
 	if not input_router.owns_event(event):
 		return &""
 	if (
+		session.session_phase == RoundState.SessionPhase.CRASH_RESCUE
+		and (event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"action_a"))
+	):
+		return &"skip_crash_rescue"
+	if (
 		session.session_phase == RoundState.SessionPhase.JUMP_TALLY
 		and (event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"action_a"))
 	):
-		return &"continue"
+		return &"advance_jump_tally"
 	if session.session_phase == RoundState.SessionPhase.ROUND_RESULTS:
 		if event.is_action_pressed(&"controller_start") or event.is_action_pressed(&"action_a"):
 			return &"new_round"

@@ -16,6 +16,7 @@ var _failures := PackedStringArray()
 func _init() -> void:
 	_test_hud_displays_round_score_and_jump()
 	_test_tally_start_continues_and_active_start_pauses()
+	_test_rescue_start_requests_session_skip()
 	_test_r_key_requires_terrain_debug_mode()
 	_test_release_deadline_warning_visibility()
 	if _failures.is_empty():
@@ -57,7 +58,7 @@ func _test_tally_start_continues_and_active_start_pauses() -> void:
 	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CLEAN
 	session.step_run(RiderInputFrame.new(), 0.0)
 	_expect(
-		controller.screen_command(start_event, session, input_router) == &"continue",
+		controller.screen_command(start_event, session, input_router) == &"advance_jump_tally",
 		"Start must continue a completed jump tally."
 	)
 	var unowned_start_event := _button_event(JOY_BUTTON_START)
@@ -90,6 +91,30 @@ func _test_r_key_requires_terrain_debug_mode() -> void:
 	_expect(
 		controller.screen_command(restart_event, session, input_router) == &"restart",
 		"R must restart an active run when terrain debug mode is enabled."
+	)
+	session.free()
+
+
+func _test_rescue_start_requests_session_skip() -> void:
+	var controller := GameplayInputControllerScene.new()
+	var session := GameSession.new()
+	var input_router := _claimed_gamepad_router()
+	session.start_game(RiderKind.SKIER)
+	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CRASH
+	session.run_manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+	session.step_run(RiderInputFrame.new(), 0.0)
+	_expect(
+		(
+			controller.screen_command(_button_event(JOY_BUTTON_START), session, input_router)
+			== &"skip_crash_rescue"
+		),
+		"Owned Start must request a crash-rescue skip command."
+	)
+	var unowned_start := _button_event(JOY_BUTTON_START)
+	unowned_start.device = 2
+	_expect(
+		controller.screen_command(unowned_start, session, input_router).is_empty(),
+		"An unowned controller must not request a crash-rescue skip command."
 	)
 	session.free()
 

@@ -7,6 +7,7 @@ enum SessionPhase {
 	RIDER_SELECT,
 	JUMP_ACTIVE,
 	JUMP_TALLY,
+	CRASH_RESCUE,
 	GAME_OVER,
 	QUALIFYING,
 	NAME_ENTRY,
@@ -68,6 +69,13 @@ func current_jump_number() -> int:
 
 func jump_results() -> Array[JumpResult]:
 	return _jump_results.duplicate()
+
+
+func ended_in_crash() -> bool:
+	if _jump_results.is_empty():
+		return false
+	var final_result: JumpResult = _jump_results[_jump_results.size() - 1]
+	return final_result.outcome() == JumpOutcome.Value.CRASH
 
 
 func round_score() -> int:

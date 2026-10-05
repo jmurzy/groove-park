@@ -109,7 +109,9 @@ func _start_new_round() -> void:
 func _on_session_phase_changed(phase: int) -> void:
 	if _gameplay_screen == null:
 		return
-	if phase == RoundState.SessionPhase.GAME_OVER:
+	if phase == RoundState.SessionPhase.CRASH_RESCUE:
+		_gameplay_screen.start_crash_rescue()
+	elif phase == RoundState.SessionPhase.GAME_OVER:
 		_gameplay_screen.show_game_over()
 	elif phase == RoundState.SessionPhase.ROUND_RESULTS:
 		_gameplay_screen.show_round_results()
