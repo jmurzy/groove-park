@@ -6,7 +6,7 @@ signal crash_rescue_started
 signal crash_rescue_progress_changed(progress: float)
 
 const AIR_RESCUE_SPRITESHEET := preload("res://artwork/gameplay/air_rescue.png")
-const TOBOGGAN_SPRITESHEET := preload("res://artwork/marquee/toboggan_sprite.png")
+const TOBOGGAN_SPRITESHEET := preload("res://artwork/gameplay/toboggan_sprite.png")
 
 const MINIMUM_DISPLAY_DURATION := GameSession.CRASH_RESCUE_MINIMUM_DURATION
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmg334ebactsy"
-path="res://.godot/imported/toboggan_sprite.png-8ac7125be285cf93a82a4df5a405632c.ctex"
+uid="uid://ddvjv5c11he5m"
+path="res://.godot/imported/toboggan_sprite.png-60893ea1b7f04d21a82c2f2e3e700377.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://artwork/marquee/toboggan_sprite.png"
-dest_files=["res://.godot/imported/toboggan_sprite.png-8ac7125be285cf93a82a4df5a405632c.ctex"]
+source_file="res://artwork/gameplay/toboggan_sprite.png"
+dest_files=["res://.godot/imported/toboggan_sprite.png-60893ea1b7f04d21a82c2f2e3e700377.ctex"]
 
 [params]
 
