@@ -11,13 +11,16 @@ const COUNT_UP_DURATION := 1.2
 const AUTO_COMPLETE_TIME := 10.0
 const ACCELERATED_RATE := 6.0
 const SCORE_TICK_INTERVAL := 0.1
+const JUMP_SCORE_FORMAT := "%+d"
 
 var _panel: Panel
 var _outcome_label: Label
 var _trick_label: Label
 var _rows_label: Label
 var _multiplier_label: Label
+var _jump_score_title_label: Label
 var _jump_total_label: Label
+var _round_score_title_label: Label
 var _round_total_label: Label
 var _completion_label: Label
 var _footer_label: Label
@@ -47,8 +50,20 @@ func build(ui_layer: CanvasLayer) -> void:
 		Vector2(90, 168), Vector2(840, 242), 20, Color("68efff"), HORIZONTAL_ALIGNMENT_LEFT
 	)
 	_multiplier_label = _add_label(Vector2(0, 430), Vector2(1020, 42), 22, Color("e8f7ff"))
-	_jump_total_label = _add_label(Vector2(0, 492), Vector2(1020, 48), 30, Color("fff16a"))
-	_round_total_label = _add_label(Vector2(0, 548), Vector2(1020, 48), 30, Color("42eaff"))
+	_jump_score_title_label = _add_label(
+		Vector2(250, 492), Vector2(360, 48), 30, Color("fff16a"), HORIZONTAL_ALIGNMENT_LEFT
+	)
+	_jump_score_title_label.text = "JUMP SCORE"
+	_jump_total_label = _add_label(
+		Vector2(650, 492), Vector2(220, 48), 30, Color("fff16a"), HORIZONTAL_ALIGNMENT_LEFT
+	)
+	_round_score_title_label = _add_label(
+		Vector2(250, 548), Vector2(360, 48), 30, Color("42eaff"), HORIZONTAL_ALIGNMENT_LEFT
+	)
+	_round_score_title_label.text = "ROUND SCORE"
+	_round_total_label = _add_label(
+		Vector2(650, 548), Vector2(220, 48), 30, Color("42eaff"), HORIZONTAL_ALIGNMENT_LEFT
+	)
 	_completion_label = _add_label(Vector2(0, 616), Vector2(1020, 40), 22, Color("fff7cf"))
 	_footer_label = _add_label(Vector2(0, 668), Vector2(1020, 40), 18, Color("e8f7ff"))
 
@@ -109,8 +124,8 @@ func _show_initial_tally() -> void:
 		_multiplier_label.text = (
 			"LANDING x%.1f" % (float(_result.score().landing_multiplier_milli()) / 1000.0)
 		)
-		_jump_total_label.text = "JUMP SCORE +0"
-		_round_total_label.text = "ROUND SCORE %5d" % _previous_round_score
+		_jump_total_label.text = JUMP_SCORE_FORMAT % 0
+		_round_total_label.text = " %d" % _previous_round_score
 		_completion_label.hide()
 		_footer_label.text = "TALLYING..."
 
@@ -141,11 +156,11 @@ func _update_labels() -> void:
 
 func _update_score_labels() -> void:
 	var revealed := _elapsed >= COUNT_UP_START
-	_jump_total_label.text = "JUMP SCORE +%5d" % displayed_jump_score()
-	_round_total_label.text = "ROUND SCORE %5d" % displayed_round_score()
+	_jump_total_label.text = JUMP_SCORE_FORMAT % displayed_jump_score()
+	_round_total_label.text = " %d" % displayed_round_score()
 	if not revealed:
-		_jump_total_label.text = "JUMP SCORE"
-		_round_total_label.text = "ROUND SCORE %5d" % _previous_round_score
+		_jump_total_label.text = ""
+		_round_total_label.text = " %d" % _previous_round_score
 
 
 func _update_completion_label() -> void:
