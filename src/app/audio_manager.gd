@@ -10,6 +10,7 @@ const MENU_SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CABINET_SWITCH_SOUND := preload("res://assets/audio/switch24.ogg")
 const JOYSTICK_SOUND := preload("res://assets/audio/switch38.ogg")
 const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
+const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/koiroylers-keyboard-press-351952.mp3")
 const HELICOPTER_HOVER_SOUND := preload(
 	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
 )
@@ -28,6 +29,7 @@ var _menu_switch_sound: AudioStreamPlayer
 var _cabinet_switch_sound: AudioStreamPlayer
 var _joystick_sound: AudioStreamPlayer
 var _back_sound: AudioStreamPlayer
+var _keyboard_selection_sound: AudioStreamPlayer
 var _score_tick_players: Array[AudioStreamPlayer] = []
 var _next_score_tick_player := 0
 
@@ -69,6 +71,7 @@ func _build_interface_sounds() -> void:
 	_cabinet_switch_sound = _build_player("CabinetSwitchSound", CABINET_SWITCH_SOUND)
 	_joystick_sound = _build_player("JoystickSound", JOYSTICK_SOUND)
 	_back_sound = _build_player("BackSound", BACK_SOUND)
+	_keyboard_selection_sound = _build_player("KeyboardSelectionSound", KEYBOARD_SELECTION_SOUND)
 
 
 func _build_player(player_name: StringName, stream: AudioStream) -> AudioStreamPlayer:
@@ -141,6 +144,10 @@ func play_back() -> void:
 	_back_sound.play()
 
 
+func play_keyboard_selection() -> void:
+	_keyboard_selection_sound.play()
+
+
 func play_score_tick() -> void:
 	if _score_tick_players.is_empty():
 		return
@@ -175,6 +182,7 @@ func shutdown() -> void:
 	_stop_and_release(_cabinet_switch_sound)
 	_stop_and_release(_joystick_sound)
 	_stop_and_release(_back_sound)
+	_stop_and_release(_keyboard_selection_sound)
 	for score_tick_player in _score_tick_players:
 		_stop_and_release(score_tick_player)
 

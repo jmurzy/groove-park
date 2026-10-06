@@ -21,7 +21,7 @@ func _init() -> void:
 
 func _test_result_rows_preserve_round_data() -> void:
 	var screen := RoundResultsScreenScene.new()
-	screen.show_round(_round_state())
+	screen.show_round(_round_state(), Leaderboard.new())
 	_expect(
 		(
 			screen.result_rows()
@@ -34,7 +34,7 @@ func _test_result_rows_preserve_round_data() -> void:
 
 func _test_crash_round_displays_its_single_result() -> void:
 	var screen := RoundResultsScreenScene.new()
-	screen.show_round(_round_state([_result(JumpOutcome.Value.CRASH, 0)]))
+	screen.show_round(_round_state([_result(JumpOutcome.Value.CRASH, 0)]), Leaderboard.new())
 	_expect(
 		screen.result_rows() == PackedStringArray(["JUMP 1    CRASH          +0"]),
 		"Crash-ended rounds must display their one recorded result."
@@ -53,7 +53,8 @@ func _test_completed_round_displays_all_three_results() -> void:
 					_result(JumpOutcome.Value.SKETCHY, 50),
 					_result(JumpOutcome.Value.BAIL, 0),
 				]
-			)
+			),
+			Leaderboard.new()
 		)
 	)
 	_expect(

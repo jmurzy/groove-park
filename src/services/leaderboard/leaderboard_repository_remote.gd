@@ -79,7 +79,7 @@ func _resolve_submission(
 	)
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
-	if response.get("accepted") != true or not response.get("rank") is int:
+	if response.get("accepted") != true or not response.get("rank") is float:
 		request.error_code = "MALFORMED_RESPONSE"
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
@@ -90,7 +90,7 @@ func _resolve_submission(
 		return
 	var submission_result := LeaderboardSubmissionResult.new()
 	submission_result.top_entries = entries
-	submission_result.rank = response.rank
+	submission_result.rank = int(response.rank)
 	request.result = submission_result
 	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
@@ -108,6 +108,7 @@ func _request_json(
 	path: String,
 	payload: Dictionary = {}
 ) -> Dictionary:
+	request.endpoint = path
 	var http_request := HTTPRequest.new()
 	http_request.timeout = REQUEST_TIMEOUT_SECONDS
 	add_child(http_request)

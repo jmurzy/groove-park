@@ -4,6 +4,7 @@ extends Control
 
 signal return_to_title_requested
 signal new_round_requested
+signal player_name_submission_requested(player_name: String)
 
 const FRAME_OVERLAY := preload("res://artwork/gameplay/frame_overlay.png")
 const GameplayRunPresenterScene := preload(
@@ -14,6 +15,9 @@ const PauseFlowControllerScene := preload(
 )
 const GameOverScreenScene := preload("res://src/presentation/results/game_over_screen.gd")
 const RoundResultsScreenScene := preload("res://src/presentation/results/round_results_screen.gd")
+const PlayerNameEntryScreenScene := preload(
+	"res://src/presentation/results/player_name_entry_screen.gd"
+)
 
 var game_session: GameSession
 var input_router: InputRouter
@@ -26,6 +30,7 @@ var _rider_tuning: RiderTuning
 var _ui_layer: CanvasLayer
 var _game_over_screen: GameOverScreen
 var _round_results_screen: RoundResultsScreen
+var _player_name_entry_screen: PlayerNameEntryScreen
 
 
 func _ready() -> void:
@@ -63,6 +68,8 @@ func _process(delta: float) -> void:
 	if _pause_flow.is_open():
 		return
 	_run_presenter.update(delta)
+	if _player_name_entry_screen:
+		_player_name_entry_screen.advance(delta)
 
 
 func _physics_process(delta: float) -> void:
@@ -136,6 +143,11 @@ func show_game_over() -> void:
 	_ui_layer.add_child(_game_over_screen)
 
 
+func show_qualification_pending() -> void:
+	if _game_over_screen:
+		_game_over_screen.set_leaderboard_message("CHECKING LEADERBOARD")
+
+
 func start_crash_rescue() -> void:
 	if _game_over_screen or game_session.session_phase != RoundState.SessionPhase.CRASH_RESCUE:
 		return
@@ -154,9 +166,32 @@ func show_round_results() -> void:
 	if _game_over_screen:
 		_game_over_screen.queue_free()
 		_game_over_screen = null
+	if _player_name_entry_screen:
+		_player_name_entry_screen.queue_free()
+		_player_name_entry_screen = null
 	_round_results_screen = RoundResultsScreenScene.new()
-	_round_results_screen.show_round(game_session.round_state())
+	_round_results_screen.show_round(game_session.round_state(), game_session.leaderboard())
 	_ui_layer.add_child(_round_results_screen)
+
+
+func show_name_entry() -> void:
+	if _player_name_entry_screen:
+		return
+	_player_name_entry_screen = PlayerNameEntryScreenScene.new()
+	_player_name_entry_screen.input_router = input_router
+	_player_name_entry_screen.audio_manager = audio_manager
+	_player_name_entry_screen.confirmed.connect(_on_player_name_confirmed)
+	_player_name_entry_screen.skipped.connect(game_session.name_entry_skipped)
+	_ui_layer.add_child(_player_name_entry_screen)
+
+
+func set_name_submitting() -> void:
+	if _player_name_entry_screen:
+		_player_name_entry_screen.set_submitting()
+
+
+func _on_player_name_confirmed(player_name: String) -> void:
+	player_name_submission_requested.emit(player_name)
 
 
 func _build_ui_layer() -> void:

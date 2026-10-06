@@ -3,10 +3,17 @@ class_name GameOverScreen
 extends Control
 
 var _round_state: RoundState
+var _leaderboard_message := "PREPARING ROUND RESULTS"
 
 
 func show_round(round_state: RoundState) -> void:
 	_round_state = round_state
+	if is_inside_tree():
+		_build()
+
+
+func set_leaderboard_message(message: String) -> void:
+	_leaderboard_message = message
 	if is_inside_tree():
 		_build()
 
@@ -35,9 +42,7 @@ func _build() -> void:
 		30,
 		Color("42eaff")
 	)
-	_add_label(
-		panel, "PREPARING ROUND RESULTS", Vector2(0, 292), Vector2(900, 40), 18, Color("e8f7ff")
-	)
+	_add_label(panel, _leaderboard_message, Vector2(0, 292), Vector2(900, 40), 18, Color("e8f7ff"))
 
 
 func _add_label(

@@ -62,9 +62,12 @@ func accepts_screen_input() -> bool:
 func _open_controls() -> void:
 	if _controls_screen:
 		return
-	# The focused pause-menu buttons consume ui_left/ui_right for their own focus
-	# traversal, so remove them from GUI input while the controls overlay is active.
-	_pause_menu.hide()
+	# Process mode does not release focused GUI buttons, which consume directional
+	# input ahead of How to Play overlay.
+	_pause_menu.get_viewport().gui_release_focus()
+	# This prevents the pause menu's _unhandled_input() from receiving actions
+	# that How To Play does not consume.
+	_pause_menu.process_mode = Node.PROCESS_MODE_DISABLED
 	_controls_screen = HowToPlayScreenScene.new()
 	_controls_screen.audio_manager = _audio_manager
 	_controls_screen.closed.connect(_close_controls)
@@ -78,5 +81,6 @@ func _close_controls() -> void:
 	_controls_screen = null
 	_audio_manager.play_back()
 	if is_instance_valid(_pause_menu):
+		_pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 		_pause_menu.show()
 		_pause_menu.focus_controls_button()

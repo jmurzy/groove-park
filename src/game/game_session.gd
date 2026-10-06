@@ -11,7 +11,7 @@ const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
 
 const GAME_OVER_AUTO_ADVANCE_DELAY := 3.0
-const ROUND_RESULTS_AUTO_RETURN_TIMEOUT := 20.0
+const ROUND_RESULTS_AUTO_RETURN_TIMEOUT := 60.0
 const CRASH_RESCUE_AUTO_ADVANCE_TIMEOUT := 6.5
 const CRASH_RESCUE_MINIMUM_DURATION := 5.0
 
@@ -20,6 +20,7 @@ var rider_kind: StringName = RiderKind.SNOWBOARDER
 var round_id := ""
 var run_manager: RiderRunManager
 var is_paused := false
+var _leaderboard := Leaderboard.new()
 var _round_state: RoundState
 var _course: ParkCourse = PARK_COURSE_RESOURCE.duplicate()
 var _tuning: RiderTuning = RIDER_TUNING_RESOURCE
@@ -36,6 +37,7 @@ func start_game(selected_rider_kind: StringName) -> void:
 	round_id = Id.generate_id()
 	run_manager = null
 	is_paused = false
+	_leaderboard = Leaderboard.new()
 	var created := RoundState.create(rider_kind, 1, [], RoundState.SessionPhase.JUMP_ACTIVE)
 	if not created.is_valid:
 		push_error("Unable to start a round: %s" % "; ".join(created.errors))
@@ -78,7 +80,7 @@ func advance(delta: float) -> void:
 	elif session_phase == RoundState.SessionPhase.GAME_OVER:
 		_game_over_elapsed += elapsed
 		if _game_over_elapsed >= GAME_OVER_AUTO_ADVANCE_DELAY:
-			_enter_round_results()
+			_begin_qualification()
 	elif session_phase == RoundState.SessionPhase.ROUND_RESULTS:
 		_round_results_elapsed += elapsed
 		if _round_results_elapsed >= ROUND_RESULTS_AUTO_RETURN_TIMEOUT:
@@ -90,6 +92,7 @@ func return_to_attract() -> void:
 	run_manager = null
 	_round_state = null
 	round_id = ""
+	_leaderboard = Leaderboard.new()
 	_set_session_phase(RoundState.SessionPhase.ATTRACT)
 
 
@@ -103,6 +106,10 @@ func course() -> ParkCourse:
 
 func tuning() -> RiderTuning:
 	return _tuning
+
+
+func leaderboard() -> Leaderboard:
+	return _leaderboard
 
 
 func record_active_jump_result(jump_result: JumpResult) -> bool:
@@ -161,17 +168,60 @@ func request_skip_crash_rescue() -> bool:
 	return _finish_crash_rescue()
 
 
-func _enter_round_results() -> bool:
-	if _round_state == null or session_phase != RoundState.SessionPhase.GAME_OVER:
+func _begin_qualification() -> bool:
+	if session_phase != RoundState.SessionPhase.GAME_OVER:
+		return false
+	return _replace_post_round_phase(RoundState.SessionPhase.QUALIFYING)
+
+
+func qualification_available(qualification: LeaderboardQualification) -> bool:
+	if qualification == null or session_phase != RoundState.SessionPhase.QUALIFYING:
+		return false
+	_leaderboard = Leaderboard.available(qualification)
+	var next_phase := (
+		RoundState.SessionPhase.NAME_ENTRY
+		if qualification.qualified
+		else RoundState.SessionPhase.ROUND_RESULTS
+	)
+	return _replace_post_round_phase(next_phase)
+
+
+func qualification_unavailable() -> bool:
+	if session_phase != RoundState.SessionPhase.QUALIFYING:
+		return false
+	_leaderboard = Leaderboard.offline()
+	return _replace_post_round_phase(RoundState.SessionPhase.ROUND_RESULTS)
+
+
+func submission_succeeded(submission_result: LeaderboardSubmissionResult) -> bool:
+	if submission_result == null or session_phase != RoundState.SessionPhase.NAME_ENTRY:
+		return false
+	_leaderboard = _leaderboard.with_submission(submission_result)
+	return _replace_post_round_phase(RoundState.SessionPhase.ROUND_RESULTS)
+
+
+func submission_failed() -> bool:
+	if session_phase != RoundState.SessionPhase.NAME_ENTRY:
+		return false
+	_leaderboard = _leaderboard.with_submission_failure()
+	return _replace_post_round_phase(RoundState.SessionPhase.ROUND_RESULTS)
+
+
+func name_entry_skipped() -> bool:
+	if session_phase != RoundState.SessionPhase.NAME_ENTRY:
+		return false
+	_leaderboard = _leaderboard.with_skipped()
+	return _replace_post_round_phase(RoundState.SessionPhase.ROUND_RESULTS)
+
+
+func _replace_post_round_phase(next_phase: int) -> bool:
+	if _round_state == null:
 		return false
 	var created := RoundState.create(
-		rider_kind,
-		_round_state.current_jump_number(),
-		_round_state.jump_results(),
-		RoundState.SessionPhase.ROUND_RESULTS
+		rider_kind, _round_state.current_jump_number(), _round_state.jump_results(), next_phase
 	)
 	if not created.is_valid:
-		push_error("Unable to enter round results: %s" % "; ".join(created.errors))
+		push_error("Unable to change post-round phase: %s" % "; ".join(created.errors))
 		return false
 	_replace_round_state(created.value)
 	return true

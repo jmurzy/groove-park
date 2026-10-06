@@ -7,11 +7,14 @@ signal quit_requested
 const PrimaryScreenScene := preload("res://src/presentation/attract/primary_screen.gd")
 const GameplayScreenScene := preload("res://src/presentation/gameplay/gameplay_screen.gd")
 const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
+const PostRoundFlowControllerScene := preload("res://src/app/post_round_flow_controller.gd")
 
 var _game_session: GameSession
 var _input_router: InputRouter
 var _audio_manager: AudioManager
 var _liftie_state_service: LiftieStateService
+var _leaderboard_repository: LeaderboardRepository
+var _post_round_flow: PostRoundFlowController
 var _primary_screen_index := 0
 var _options: DevOptions
 var _primary_view: PrimaryScreen
@@ -24,15 +27,24 @@ func setup(
 	input_router: InputRouter,
 	audio_manager: AudioManager,
 	liftie_state_service: LiftieStateService,
+	leaderboard_repository: LeaderboardRepository,
 	primary_screen_index: int,
 	options: DevOptions
 ) -> void:
+	assert(
+		leaderboard_repository != null, "ScreenFlowController requires a leaderboard repository."
+	)
 	_game_session = game_session
 	_input_router = input_router
 	_audio_manager = audio_manager
 	_liftie_state_service = liftie_state_service
+	_leaderboard_repository = leaderboard_repository
 	_primary_screen_index = primary_screen_index
 	_options = options
+	_post_round_flow = PostRoundFlowControllerScene.new()
+	_post_round_flow.setup(_game_session, _leaderboard_repository)
+	_post_round_flow.submission_started.connect(_on_submission_started)
+	add_child(_post_round_flow)
 	_game_session.phase_changed.connect(_on_session_phase_changed)
 	_show_attract()
 
@@ -75,6 +87,7 @@ func _show_gameplay(rider_kind: StringName, transition: CrtTransition) -> void:
 	_gameplay_screen.designer_mode = _options.designer_mode
 	_gameplay_screen.return_to_title_requested.connect(_return_to_attract)
 	_gameplay_screen.new_round_requested.connect(_start_new_round)
+	_gameplay_screen.player_name_submission_requested.connect(_post_round_flow.submit_player_name)
 	add_child(_gameplay_screen)
 	move_child(_gameplay_screen, transition.get_index())
 	_audio_manager.stop_background_music()
@@ -89,6 +102,7 @@ func _return_to_attract() -> void:
 	if _gameplay_screen == null:
 		return
 	get_tree().paused = false
+	_post_round_flow.cancel()
 	_gameplay_screen.set_process(false)
 	_gameplay_screen.set_physics_process(false)
 	_gameplay_screen.queue_free()
@@ -113,6 +127,11 @@ func _on_session_phase_changed(phase: int) -> void:
 		_gameplay_screen.start_crash_rescue()
 	elif phase == RoundState.SessionPhase.GAME_OVER:
 		_gameplay_screen.show_game_over()
+	elif phase == RoundState.SessionPhase.QUALIFYING:
+		_gameplay_screen.show_qualification_pending()
+		_post_round_flow.check_qualification()
+	elif phase == RoundState.SessionPhase.NAME_ENTRY:
+		_gameplay_screen.show_name_entry()
 	elif phase == RoundState.SessionPhase.ROUND_RESULTS:
 		_gameplay_screen.show_round_results()
 	elif phase == RoundState.SessionPhase.ATTRACT:
@@ -129,3 +148,8 @@ func _show_attract() -> void:
 	_primary_view.start_game_requested.connect(_start_game)
 	_primary_view.exit_requested.connect(quit_requested.emit)
 	add_child(_primary_view)
+
+
+func _on_submission_started() -> void:
+	if _gameplay_screen:
+		_gameplay_screen.set_name_submitting()

@@ -120,7 +120,7 @@ func _test_top_entries_parse_typed_values() -> void:
 							"roundId": "018f3d8e-6b1c-7ef9-8cf6-252ff3d07123",
 							"playerName": "PLAYER",
 							"riderKind": "skier",
-							"totalScore": 420,
+							"totalScore": 420.0,
 							"platform": "ags",
 							"createdAt": "2026-10-04T12:00:00+00:00",
 						},
@@ -133,6 +133,15 @@ func _test_top_entries_parse_typed_values() -> void:
 			and entries[0].platform == &"ags"
 		),
 		"Valid API entries must parse into typed leaderboard entries."
+	)
+	var qualification := LeaderboardQualification.from_api({"qualified": true, "rank": 3.0})
+	_expect(
+		qualification != null and qualification.rank == 3,
+		"Qualification ranks must normalize JSON floats to integers."
+	)
+	_expect(
+		LeaderboardQualification.from_api({"qualified": true, "rank": "3"}) == null,
+		"Qualification ranks must reject non-float API values."
 	)
 
 

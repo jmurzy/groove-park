@@ -21,6 +21,7 @@ class Request:
 	}
 
 	var operation: Operation
+	var endpoint := ""
 	var status := Status.PENDING
 	var result: Variant
 	var error_code := ""
@@ -33,7 +34,26 @@ class Request:
 		if status != Status.PENDING:
 			return
 		status = next_status
+		_log_completion()
 		completed.emit(self)
+
+	func _log_completion() -> void:
+		var operation_name := "GET" if operation == Operation.GET else "POST"
+		var target := (
+			"%s %s" % [operation_name, endpoint] if not endpoint.is_empty() else operation_name
+		)
+		match status:
+			Status.SUCCEEDED:
+				print("Leaderboard %s request succeeded: %s" % [target, result])
+			Status.FAILED:
+				print(
+					(
+						"Leaderboard %s request failed: %s."
+						% [target, error_code if not error_code.is_empty() else "UNKNOWN"]
+					)
+				)
+			Status.CANCELLED:
+				print("Leaderboard %s request cancelled." % target)
 
 
 var _submission_request: Request

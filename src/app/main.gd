@@ -63,6 +63,7 @@ func _ready() -> void:
 		_input_router,
 		_audio_manager,
 		_liftie_state_service,
+		_leaderboard_repository,
 		_window_coordinator.primary_screen_index(),
 		options
 	)

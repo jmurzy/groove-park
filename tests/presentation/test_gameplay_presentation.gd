@@ -9,8 +9,12 @@ const ReleaseDeadlineWarningScene := preload(
 )
 const RiderStateScene := preload("res://src/game/park/rider_state.gd")
 const GameplayHudScene := preload("res://src/presentation/gameplay/gameplay_hud.gd")
+const PlayerNameEntryScreenScene := preload(
+	"res://src/presentation/results/player_name_entry_screen.gd"
+)
 
 var _failures := PackedStringArray()
+var _name_entry_skip_count := 0
 
 
 func _init() -> void:
@@ -19,6 +23,7 @@ func _init() -> void:
 	_test_rescue_start_requests_session_skip()
 	_test_r_key_requires_terrain_debug_mode()
 	_test_release_deadline_warning_visibility()
+	_test_player_name_entry_keyboard()
 	if _failures.is_empty():
 		print("Gameplay presentation checks passed.")
 		quit(0)
@@ -164,6 +169,40 @@ func _test_release_deadline_warning_visibility() -> void:
 	warning.update_from_state(state)
 	_expect(not warning.visible, "The warning must hide after the deadline crossing.")
 	warning.free()
+
+
+func _test_player_name_entry_keyboard() -> void:
+	var screen := PlayerNameEntryScreenScene.new()
+	screen._ready()
+	_name_entry_skip_count = 0
+	screen.skipped.connect(_on_name_entry_skipped)
+	_expect(screen._name.is_empty(), "Name entry must start with an empty name.")
+	screen._keyboard._select()
+	screen._keyboard._move_vertical(1)
+	screen._keyboard._select()
+	_expect(screen._name == "QA", "Name entry must use the QWERTY selection.")
+	for _index in 20:
+		screen._keyboard._select()
+	_expect(
+		screen._name.length() == 12,
+		"Name entry must not exceed the leaderboard's 12-character limit."
+	)
+	screen._delete_selected()
+	_expect(screen._name.length() == 11, "Backspace must remove the final name character.")
+	screen._skip_name_entry()
+	_expect(_name_entry_skip_count == 1, "X skip must emit a name-entry skip request.")
+	screen.free()
+
+	var timeout_screen := PlayerNameEntryScreenScene.new()
+	timeout_screen._ready()
+	timeout_screen.skipped.connect(_on_name_entry_skipped)
+	timeout_screen.advance(120.0)
+	_expect(_name_entry_skip_count == 2, "An empty name-entry timeout must skip score submission.")
+	timeout_screen.free()
+
+
+func _on_name_entry_skipped() -> void:
+	_name_entry_skip_count += 1
 
 
 func _expect(condition: bool, message: String) -> void:

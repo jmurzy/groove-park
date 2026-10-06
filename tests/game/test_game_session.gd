@@ -13,7 +13,7 @@ func _init() -> void:
 	_test_non_crash_tallies_advance_through_three_jumps()
 	_test_crash_completes_the_round_once()
 	_test_crash_rescue_timeout_enters_game_over_once()
-	_test_game_over_enters_local_round_results_once()
+	_test_game_over_qualifies_before_local_results_once()
 	_test_starting_and_bailing_rounds_reset_only_in_memory_round_data()
 	_test_session_notifications_follow_mutation()
 	if _failures.is_empty():
@@ -253,7 +253,7 @@ func _test_crash_rescue_timeout_enters_game_over_once() -> void:
 	timed_session.free()
 
 
-func _test_game_over_enters_local_round_results_once() -> void:
+func _test_game_over_qualifies_before_local_results_once() -> void:
 	for delta: float in [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0]:
 		var session := _active_session()
 		_record_completed_result(session, JumpOutcome.Value.CLEAN, 100)
@@ -269,15 +269,19 @@ func _test_game_over_enters_local_round_results_once() -> void:
 		)
 		session.advance(delta)
 		_expect(
-			session.session_phase == RoundState.SessionPhase.ROUND_RESULTS,
-			"GameSession must enter round results after its deterministic game-over delay."
+			session.session_phase == RoundState.SessionPhase.QUALIFYING,
+			"GameSession must enter qualification after its deterministic game-over delay."
 		)
 		_expect(
 			(
 				session.round_state().round_score() == 150
 				and session.round_state().jump_results().size() == 3
 			),
-			"Entering round results must preserve every immutable recorded result and total."
+			"Entering qualification must preserve every immutable recorded result and total."
+		)
+		_expect(
+			session.qualification_unavailable(),
+			"Unavailable qualification must enter local round results."
 		)
 		session.advance(GameSession.ROUND_RESULTS_AUTO_RETURN_TIMEOUT - delta)
 		_expect(

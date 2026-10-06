@@ -13,6 +13,7 @@ class Fixture:
 	var input_router: InputRouter
 	var audio_manager: AudioManager
 	var flow: ScreenFlowController
+	var leaderboard_repository: FakeLeaderboardRepository
 
 
 func _init() -> void:
@@ -20,10 +21,13 @@ func _init() -> void:
 
 
 func _run_tests() -> void:
-	_test_terminal_phase_signals_and_timeout_cleanup()
+	await _test_terminal_phase_signals_and_timeout_cleanup()
 	_test_non_crash_game_over_skips_rescue()
+	await _test_synchronous_leaderboard_flow_replaces_screens()
+	await _test_offline_qualification_reaches_local_results()
+	_test_leaving_pending_qualification_cancels_request()
 	await _test_results_start_opens_a_new_rider_select_flow()
-	_test_results_back_returns_to_attract()
+	await _test_results_back_returns_to_attract()
 	if _failures.is_empty():
 		print("Screen-flow controller checks passed.")
 		quit(0)
@@ -56,6 +60,7 @@ func _test_terminal_phase_signals_and_timeout_cleanup() -> void:
 		"Completing rescue must present the game-over screen."
 	)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
 	_expect(
 		fixture.flow._gameplay_screen._round_results_screen != null,
 		"A ROUND_RESULTS phase signal must replace game over with round results."
@@ -76,6 +81,7 @@ func _test_results_start_opens_a_new_rider_select_flow() -> void:
 	_complete_crash(fixture.session)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
 	fixture.flow._gameplay_screen._unhandled_input(_button_event(JOY_BUTTON_START))
 	await process_frame
 	_expect(
@@ -104,11 +110,82 @@ func _test_non_crash_game_over_skips_rescue() -> void:
 	_free_fixture(fixture)
 
 
+func _test_synchronous_leaderboard_flow_replaces_screens() -> void:
+	var fixture := _gameplay_fixture(true)
+	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	_expect(
+		fixture.session.session_phase == RoundState.SessionPhase.QUALIFYING,
+		"A completed qualification response must wait for the minimum pending display duration."
+	)
+	await _await_qualification_minimum_duration()
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.NAME_ENTRY
+			and fixture.flow._gameplay_screen._player_name_entry_screen != null
+		),
+		"A synchronous qualifying response must replace game over with name entry."
+	)
+	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
+			and fixture.flow._gameplay_screen._round_results_screen != null
+			and fixture.session.leaderboard().status() == Leaderboard.Status.SUBMITTED
+		),
+		"A synchronous submission must replace name entry with submitted round results."
+	)
+	_free_fixture(fixture)
+
+
+func _test_offline_qualification_reaches_local_results() -> void:
+	var fixture := _gameplay_fixture(true)
+	fixture.leaderboard_repository.is_available = false
+	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
+			and fixture.session.leaderboard().status() == Leaderboard.Status.OFFLINE
+		),
+		"An unavailable qualification request must reach offline local results."
+	)
+	_free_fixture(fixture)
+
+
+func _test_leaving_pending_qualification_cancels_request() -> void:
+	var fixture := _gameplay_fixture(true)
+	fixture.leaderboard_repository.deferred = true
+	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	_expect(
+		fixture.session.session_phase == RoundState.SessionPhase.QUALIFYING,
+		"Deferred qualification must remain pending before navigation away."
+	)
+	var request := fixture.flow._post_round_flow._qualification_request
+	fixture.flow._return_to_attract()
+	_expect(
+		request.status == LeaderboardRepository.Request.Status.CANCELLED,
+		"Leaving a pending qualification must cancel its request."
+	)
+	fixture.leaderboard_repository.complete_deferred(request)
+	_expect(
+		fixture.session.session_phase == RoundState.SessionPhase.ATTRACT,
+		"A late cancelled qualification response must not change the new attract state."
+	)
+	_free_fixture(fixture)
+
+
 func _test_results_back_returns_to_attract() -> void:
 	var fixture := _gameplay_fixture()
 	_complete_crash(fixture.session)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
 	fixture.flow._gameplay_screen._unhandled_input(_button_event(JOY_BUTTON_BACK))
 	_expect(
 		fixture.flow._gameplay_screen == null and fixture.flow._primary_view != null,
@@ -118,7 +195,11 @@ func _test_results_back_returns_to_attract() -> void:
 	_free_fixture(fixture)
 
 
-func _gameplay_fixture() -> Fixture:
+func _await_qualification_minimum_duration() -> void:
+	await create_timer(PostRoundFlowController.QUALIFICATION_MINIMUM_DURATION + 0.05).timeout
+
+
+func _gameplay_fixture(with_leaderboard_service := false) -> Fixture:
 	var fixture := Fixture.new()
 	fixture.session = GameSession.new()
 	fixture.input_router = InputRouter.new()
@@ -126,6 +207,8 @@ func _gameplay_fixture() -> Fixture:
 	fixture.input_router.claim_from_rider_select(_button_event(JOY_BUTTON_A))
 	fixture.audio_manager = AudioManager.new()
 	fixture.audio_manager.configure()
+	fixture.leaderboard_repository = FakeLeaderboardRepository.new()
+	fixture.leaderboard_repository.is_available = with_leaderboard_service
 	fixture.flow = ScreenFlowControllerScene.new()
 	get_root().add_child(fixture.session)
 	get_root().add_child(fixture.input_router)
@@ -136,6 +219,7 @@ func _gameplay_fixture() -> Fixture:
 		fixture.input_router,
 		fixture.audio_manager,
 		LiftieStateService.new(),
+		fixture.leaderboard_repository,
 		0,
 		DevOptions.new()
 	)
@@ -178,6 +262,8 @@ func _free_fixture(fixture: Fixture) -> void:
 	fixture.audio_manager.free()
 	fixture.input_router.free()
 	fixture.session.free()
+	if fixture.leaderboard_repository:
+		fixture.leaderboard_repository.free()
 
 
 func _expect(condition: bool, message: String) -> void:

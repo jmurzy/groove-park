@@ -15,7 +15,7 @@ static func from_api(value: Dictionary) -> LeaderboardEntry:
 		not value.get("roundId") is String
 		or not value.get("playerName") is String
 		or not value.get("riderKind") is String
-		or not value.get("totalScore") is int
+		or not value.get("totalScore") is float
 		or not value.get("platform") is String
 		or not value.get("createdAt") is String
 	):
@@ -24,7 +24,7 @@ static func from_api(value: Dictionary) -> LeaderboardEntry:
 	entry.round_id = value.roundId
 	entry.player_name = value.playerName
 	entry.rider_kind = StringName(value.riderKind)
-	entry.total_score = value.totalScore
+	entry.total_score = int(value.totalScore)
 	entry.platform = StringName(value.platform)
 	entry.created_at = value.createdAt
 	return entry
