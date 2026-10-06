@@ -21,7 +21,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_dialog()
-	audio_manager.play_confirmation()
+	audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	_keep_playing_button.call_deferred("grab_focus")
 
 
@@ -53,7 +53,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		or event.is_action_pressed(&"controller_back")
 		or event.is_action_pressed(&"cabinet_exit")
 	):
-		audio_manager.play_confirmation()
+		audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 		resume_requested.emit()
 		get_viewport().set_input_as_handled()
 
@@ -115,7 +115,7 @@ func _wire_button_focus() -> void:
 
 func _on_button_focused() -> void:
 	if _has_menu_focus:
-		audio_manager.play_menu_switch()
+		audio_manager.play_event(AudioManager.Event.UI_MOVE)
 	_has_menu_focus = true
 
 
@@ -138,12 +138,12 @@ func _confirm_focused() -> void:
 
 
 func _on_keep_playing_pressed() -> void:
-	audio_manager.play_confirmation()
+	audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	resume_requested.emit()
 
 
 func _on_controls_pressed() -> void:
-	audio_manager.play_confirmation()
+	audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	controls_requested.emit()
 
 

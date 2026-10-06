@@ -13,7 +13,9 @@ var _submission_request: LeaderboardRepository.Request
 
 
 func setup(game_session: GameSession, leaderboard_repository: LeaderboardRepository) -> void:
-	assert(leaderboard_repository != null, "PostRoundFlowController requires a leaderboard repository.")
+	assert(
+		leaderboard_repository != null, "PostRoundFlowController requires a leaderboard repository."
+	)
 	_game_session = game_session
 	_leaderboard_repository = leaderboard_repository
 

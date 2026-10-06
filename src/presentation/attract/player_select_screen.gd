@@ -141,7 +141,7 @@ func _select(rider_kind: StringName) -> void:
 	if _cards.size() == 2:
 		_cards[_rider_index(rider_kind)].call_deferred("grab_focus")
 	if selection_changed:
-		audio_manager.play_menu_switch()
+		audio_manager.play_event(AudioManager.Event.UI_MOVE)
 
 
 func _confirm(rider_kind: StringName) -> void:

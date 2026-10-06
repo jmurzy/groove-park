@@ -79,7 +79,7 @@ func _close_controls() -> void:
 		return
 	_controls_screen.queue_free()
 	_controls_screen = null
-	_audio_manager.play_back()
+	_audio_manager.play_event(AudioManager.Event.UI_BACK)
 	if is_instance_valid(_pause_menu):
 		_pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 		_pause_menu.show()

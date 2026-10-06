@@ -120,9 +120,7 @@ func _leaderboard_status_text() -> String:
 	return ""
 
 
-func _add_leaderboard_overlay(
-	panel: Control, leaderboard_entries: Array[LeaderboardEntry]
-) -> void:
+func _add_leaderboard_overlay(panel: Control, leaderboard_entries: Array[LeaderboardEntry]) -> void:
 	if leaderboard_entries.is_empty():
 		return
 	var leaderboard_overlay := LeaderboardOverlay.new()

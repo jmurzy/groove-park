@@ -46,6 +46,7 @@ func setup(
 	_post_round_flow.submission_started.connect(_on_submission_started)
 	add_child(_post_round_flow)
 	_game_session.phase_changed.connect(_on_session_phase_changed)
+	_game_session.jump_started.connect(_on_jump_started)
 	_show_attract()
 
 
@@ -69,7 +70,7 @@ func _start_game(rider_kind: StringName) -> void:
 	if _transitioning or _primary_view == null:
 		return
 	_transitioning = true
-	_audio_manager.play_confirmation()
+	_audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	var transition := CrtTransitionScene.new()
 	transition.midpoint_reached.connect(_show_gameplay.bind(rider_kind, transition))
 	transition.finished.connect(_finish_transition.bind(transition))
@@ -107,7 +108,7 @@ func _return_to_attract() -> void:
 	_gameplay_screen.set_physics_process(false)
 	_gameplay_screen.queue_free()
 	_gameplay_screen = null
-	_audio_manager.play_confirmation()
+	_audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	_audio_manager.play_background_music()
 	_game_session.return_to_attract()
 	_input_router.release_owner()
@@ -126,16 +127,66 @@ func _on_session_phase_changed(phase: int) -> void:
 	if phase == RoundState.SessionPhase.CRASH_RESCUE:
 		_gameplay_screen.start_crash_rescue()
 	elif phase == RoundState.SessionPhase.GAME_OVER:
+		_audio_manager.duck_gameplay_sfx_for_post_round()
+		_audio_manager.play_event(AudioManager.Event.GAME_OVER)
 		_gameplay_screen.show_game_over()
 	elif phase == RoundState.SessionPhase.QUALIFYING:
 		_gameplay_screen.show_qualification_pending()
 		_post_round_flow.check_qualification()
 	elif phase == RoundState.SessionPhase.NAME_ENTRY:
+		_audio_manager.play_event(AudioManager.Event.HIGH_SCORE)
 		_gameplay_screen.show_name_entry()
 	elif phase == RoundState.SessionPhase.ROUND_RESULTS:
+		_audio_manager.play_event(AudioManager.Event.RESULTS_REVEAL)
 		_gameplay_screen.show_round_results()
 	elif phase == RoundState.SessionPhase.ATTRACT:
 		_return_to_attract()
+
+
+func _on_jump_started(_round_state: RoundState) -> void:
+	_connect_run_audio(_game_session.run_manager)
+	_audio_manager.play_event(AudioManager.Event.JUMP_START)
+
+
+func _connect_run_audio(run_manager: RiderRunManager) -> void:
+	run_manager.takeoff.connect(_audio_manager.play_event.bind(AudioManager.Event.TAKEOFF))
+	run_manager.compression_charged.connect(
+		_audio_manager.play_event.bind(AudioManager.Event.COMPRESSION_CHARGE)
+	)
+	run_manager.compression_released.connect(
+		_audio_manager.play_event.bind(AudioManager.Event.COMPRESSION_RELEASE)
+	)
+	run_manager.grab_started.connect(_audio_manager.play_event.bind(AudioManager.Event.GRAB_START))
+	run_manager.grab_released.connect(
+		_audio_manager.play_event.bind(AudioManager.Event.GRAB_RELEASE)
+	)
+	run_manager.half_rotation_completed.connect(
+		_audio_manager.play_event.bind(AudioManager.Event.HALF_ROTATION)
+	)
+	run_manager.full_rotation_completed.connect(
+		_audio_manager.play_event.bind(AudioManager.Event.FULL_ROTATION)
+	)
+	run_manager.release_deadline_crossed.connect(
+		_audio_manager.play_event.bind(AudioManager.Event.RELEASE_WARNING)
+	)
+	run_manager.carve_started.connect(_audio_manager.play_event.bind(AudioManager.Event.CARVE))
+	run_manager.brake_started.connect(_audio_manager.play_event.bind(AudioManager.Event.BRAKE))
+	run_manager.tuck_started.connect(_audio_manager.play_event.bind(AudioManager.Event.TUCK))
+	run_manager.outcome_resolved.connect(_on_run_outcome_resolved)
+
+
+func _on_run_outcome_resolved(outcome: int) -> void:
+	match outcome:
+		JumpOutcome.Value.CLEAN:
+			_audio_manager.play_event(AudioManager.Event.LAND_CLEAN)
+		JumpOutcome.Value.SKETCHY:
+			_audio_manager.play_event(AudioManager.Event.LAND_SKETCHY)
+		JumpOutcome.Value.BAIL:
+			_audio_manager.play_event(AudioManager.Event.BAIL)
+		JumpOutcome.Value.CRASH:
+			_audio_manager.play_event(AudioManager.Event.CRASH)
+		JumpOutcome.Value.LOW_MOMENTUM:
+			_audio_manager.play_event(AudioManager.Event.LOW_MOMENTUM)
 
 
 func _show_attract() -> void:

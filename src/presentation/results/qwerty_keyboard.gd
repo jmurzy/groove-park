@@ -132,7 +132,7 @@ func _move(direction: Vector2i) -> void:
 	elif direction.y:
 		_move_vertical(direction.y)
 	if audio_manager:
-		audio_manager.play_menu_switch()
+		audio_manager.play_event(AudioManager.Event.KEYBOARD_MOVE)
 
 
 func _key_center_x(row_index: int, column_index: int) -> float:

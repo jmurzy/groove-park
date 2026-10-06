@@ -61,7 +61,7 @@ func _ready() -> void:
 	_pause_flow = PauseFlowControllerScene.new()
 	_pause_flow.setup(self, game_session, _ui_layer, audio_manager)
 	_pause_flow.abort_requested.connect(_confirm_return_to_title)
-	audio_manager.play_gameplay_music()
+	audio_manager.play_gameplay_ambience()
 
 
 func _process(delta: float) -> void:
@@ -157,7 +157,7 @@ func start_crash_rescue() -> void:
 func _exit_tree() -> void:
 	if audio_manager:
 		audio_manager.stop_helicopter_hover()
-		audio_manager.stop_gameplay_music()
+		audio_manager.stop_gameplay_ambience()
 
 
 func show_round_results() -> void:

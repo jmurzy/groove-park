@@ -28,10 +28,6 @@ func _ready() -> void:
 	start.call_deferred("grab_focus")
 
 
-func play_confirmation() -> void:
-	audio_manager.play_confirmation()
-
-
 func focus_default() -> void:
 	get_node("StartGameButton").call_deferred("grab_focus")
 
@@ -55,5 +51,5 @@ func _build_button(
 
 func _on_button_focused() -> void:
 	if _has_focus:
-		audio_manager.play_menu_switch()
+		audio_manager.play_event(AudioManager.Event.UI_MOVE)
 	_has_focus = true

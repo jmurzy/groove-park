@@ -45,7 +45,7 @@ func _delete_selected() -> void:
 	_name = _name.left(_name.length() - 1)
 	_build()
 	if audio_manager:
-		audio_manager.play_keyboard_selection()
+		audio_manager.play_event(AudioManager.Event.KEYBOARD_INTERACTION)
 
 
 func _accept_character(character: String) -> void:
@@ -57,7 +57,7 @@ func _accept_character(character: String) -> void:
 	_name += normalized
 	_build()
 	if audio_manager:
-		audio_manager.play_keyboard_selection()
+		audio_manager.play_event(AudioManager.Event.KEYBOARD_INTERACTION)
 
 
 func set_submitting() -> void:
@@ -70,7 +70,7 @@ func _skip_name_entry() -> void:
 	if _submitting:
 		return
 	if audio_manager:
-		audio_manager.play_confirmation()
+		audio_manager.play_event(AudioManager.Event.NAME_SKIP)
 	_submitting = true
 	_status = "SKIPPING SCORE"
 	_build()
@@ -175,7 +175,7 @@ func _confirm() -> void:
 	if _submitting or _name.is_empty():
 		return
 	if audio_manager:
-		audio_manager.play_confirmation()
+		audio_manager.play_event(AudioManager.Event.NAME_CONFIRM)
 	set_submitting()
 	confirmed.emit(_name)
 

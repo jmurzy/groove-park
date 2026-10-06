@@ -157,7 +157,7 @@ func _select_card(card_index: int) -> void:
 		return
 	_selected_card = clamped_index
 	_update_card_selection()
-	audio_manager.play_menu_switch()
+	audio_manager.play_event(AudioManager.Event.UI_MOVE)
 
 
 func _update_card_selection() -> void:

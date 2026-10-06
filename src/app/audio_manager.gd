@@ -1,6 +1,42 @@
-## Owns application-level music and sound-effect playback.
+## Owns application-level semantic audio, music transitions, and owned looping sounds.
 class_name AudioManager
 extends Node
+
+enum Event {
+	UI_MOVE,
+	UI_BACK,
+	UI_CONFIRM,
+	CONTROL_BUTTON_PRESS,
+	JOYSTICK_MOVE,
+	ROUND_START,
+	JUMP_START,
+	CARVE,
+	BRAKE,
+	TUCK,
+	COMPRESSION_CHARGE,
+	COMPRESSION_RELEASE,
+	TAKEOFF,
+	GRAB_START,
+	GRAB_RELEASE,
+	HALF_ROTATION,
+	FULL_ROTATION,
+	RELEASE_WARNING,
+	LAND_CLEAN,
+	LAND_SKETCHY,
+	BAIL,
+	CRASH,
+	LOW_MOMENTUM,
+	SCORE_TICK,
+	SCORE_TOTAL,
+	NEXT_JUMP,
+	GAME_OVER,
+	HIGH_SCORE,
+	KEYBOARD_MOVE,
+	KEYBOARD_INTERACTION,
+	NAME_CONFIRM,
+	NAME_SKIP,
+	RESULTS_REVEAL,
+}
 
 const BACKGROUND_MUSIC := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
@@ -14,181 +50,281 @@ const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/koiroylers-keyboar
 const HELICOPTER_HOVER_SOUND := preload(
 	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
 )
-const SCORE_TICK_AUDIO_STREAM_COUNT := 5
 
-# 0 dB is unity gain (100% amplitude); -6 dB is approximately 50% amplitude.
+# Looping attract music.
+const MUSIC_BUS := &"Music"
+# Gameplay ambience, helicopter hover, and future continuous gameplay effects.
+const GAMEPLAY_SFX_BUS := &"GameplaySfx"
+# Menu, cabinet, keyboard, score-tick, and current gameplay-event one-shots.
+const UI_SFX_BUS := &"UiSfx"
+
+const UI_ONE_SHOT_AUDIO_STREAM_COUNT := 5
+# Category buses begin at unity gain. Source-level gain establishes the normal mix;
+# bus gain is reserved for category-wide controls such as post-round ducking.
+const MUSIC_BUS_VOLUME_DB := 0.0
+const GAMEPLAY_SFX_BUS_VOLUME_DB := 0.0
+const UI_SFX_BUS_VOLUME_DB := 0.0
+# -6 dB is approximately 50% amplitude.
+const MUSIC_VOLUME_DB := -6.0
+const MUSIC_FADE_DURATION := 0.25
+# A 75% amplitude reduction is approximately -12.04 dB.
+const POST_ROUND_GAMEPLAY_SFX_VOLUME_DB := -12.1
+const GAMEPLAY_SFX_FADE_DURATION := 0.2
+# -6 dB is approximately 50% amplitude.
 const HELICOPTER_HOVER_ENTRY_VOLUME_DB := -6.0
+# 0 dB is 100% amplitude.
 const HELICOPTER_HOVER_LANDING_VOLUME_DB := 0.0
-const GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB := -12.0
+# -20 dB is 10% amplitude.
+const GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB := -20.0
+# -30 dB is approximately 3% amplitude.
+const MUSIC_FADE_START_VOLUME_DB := -30.0
 
-var _helicopter_hover: AudioStreamPlayer
-var _background_music: AudioStreamPlayer
-var _gameplay_music: AudioStreamPlayer
-var _confirmation_sound: AudioStreamPlayer
-var _menu_switch_sound: AudioStreamPlayer
-var _cabinet_switch_sound: AudioStreamPlayer
-var _joystick_sound: AudioStreamPlayer
-var _back_sound: AudioStreamPlayer
-var _keyboard_selection_sound: AudioStreamPlayer
-var _score_tick_players: Array[AudioStreamPlayer] = []
-var _next_score_tick_player := 0
+var _helicopter_hover_player: AudioStreamPlayer
+var _background_music_player: AudioStreamPlayer
+var _gameplay_ambience_player: AudioStreamPlayer
+
+var _one_shot_pools: Dictionary = {}
+var _next_one_shot_player: Dictionary = {}
+
+var _music_fade: Tween
+var _gameplay_sfx_fade: Tween
 
 
 func configure() -> void:
-	_build_background_music()
-	_build_gameplay_music()
-	_build_confirmation_sound()
-	_build_interface_sounds()
-	_build_score_tick_players()
-	_build_helicopter_hover()
+	_ensure_bus(MUSIC_BUS, MUSIC_BUS_VOLUME_DB)
+	_ensure_bus(GAMEPLAY_SFX_BUS, GAMEPLAY_SFX_BUS_VOLUME_DB)
+	_ensure_bus(UI_SFX_BUS, UI_SFX_BUS_VOLUME_DB)
+
+	# MUSIC_BUS
+	_background_music_player = _build_looping_player(
+		MUSIC_BUS, &"BackgroundMusic", BACKGROUND_MUSIC
+	)
+
+	# GAMEPLAY_SFX_BUS
+	_gameplay_ambience_player = _build_looping_player(
+		GAMEPLAY_SFX_BUS, &"GameplayAmbience", GAMEPLAY_MUSIC
+	)
+	_helicopter_hover_player = _build_looping_player(
+		GAMEPLAY_SFX_BUS,
+		&"HelicopterHover",
+		HELICOPTER_HOVER_SOUND,
+		HELICOPTER_HOVER_ENTRY_VOLUME_DB
+	)
+
+	# UI_SFX_BUS
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"ConfirmationSound", CONFIRMATION_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"MenuSwitchSound", MENU_SWITCH_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"CabinetSwitchSound", CABINET_SWITCH_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"JoystickSound", JOYSTICK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(UI_SFX_BUS, &"BackSound", BACK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(
+		UI_SFX_BUS,
+		&"KeyboardSelectionSound",
+		KEYBOARD_SELECTION_SOUND,
+		UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"ScoreTickSound", SCORE_TICK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
 
 
-func _build_background_music() -> void:
-	# Playback configuration must not mutate the shared preloaded music resource.
-	var looping_background_music := BACKGROUND_MUSIC.duplicate() as AudioStreamMP3
-	looping_background_music.loop = true
-	_background_music = AudioStreamPlayer.new()
-	_background_music.name = "BackgroundMusic"
-	_background_music.stream = looping_background_music
-	add_child(_background_music)
+func _ensure_bus(bus_name: StringName, volume_db: float) -> void:
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		AudioServer.add_bus()
+		bus_index = AudioServer.bus_count - 1
+		AudioServer.set_bus_name(bus_index, bus_name)
+	AudioServer.set_bus_volume_db(bus_index, volume_db)
 
 
-func _build_gameplay_music() -> void:
-	var looping_gameplay_music := GAMEPLAY_MUSIC.duplicate() as AudioStreamMP3
-	looping_gameplay_music.loop = true
-	_gameplay_music = AudioStreamPlayer.new()
-	_gameplay_music.name = "GameplayMusic"
-	_gameplay_music.stream = looping_gameplay_music
-	add_child(_gameplay_music)
+func _build_one_shot_pool(
+	bus: StringName, pool_name: StringName, stream: AudioStream, audio_stream_count: int
+) -> void:
+	var players: Array[AudioStreamPlayer] = []
+	for player_index in audio_stream_count:
+		players.append(_build_player(bus, "%s%d" % [pool_name, player_index], stream))
+	_one_shot_pools[pool_name] = players
+	_next_one_shot_player[pool_name] = 0
 
 
-func _build_confirmation_sound() -> void:
-	_confirmation_sound = _build_player("ConfirmationSound", CONFIRMATION_SOUND)
+func _build_looping_player(
+	bus: StringName,
+	player_name: StringName,
+	stream: AudioStreamMP3,
+	# 0 dB is 100% amplitude.
+	initial_volume_db: float = 0.0
+) -> AudioStreamPlayer:
+	var looping_stream := stream.duplicate() as AudioStreamMP3
+	looping_stream.loop = true
+	var player := _build_player(bus, player_name, looping_stream)
+	player.volume_db = initial_volume_db
+	return player
 
 
-func _build_interface_sounds() -> void:
-	_menu_switch_sound = _build_player("MenuSwitchSound", MENU_SWITCH_SOUND)
-	_cabinet_switch_sound = _build_player("CabinetSwitchSound", CABINET_SWITCH_SOUND)
-	_joystick_sound = _build_player("JoystickSound", JOYSTICK_SOUND)
-	_back_sound = _build_player("BackSound", BACK_SOUND)
-	_keyboard_selection_sound = _build_player("KeyboardSelectionSound", KEYBOARD_SELECTION_SOUND)
-
-
-func _build_player(player_name: StringName, stream: AudioStream) -> AudioStreamPlayer:
+func _build_player(
+	bus: StringName, player_name: StringName, stream: AudioStream
+) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 	player.name = player_name
 	player.stream = stream
+	player.bus = bus
 	add_child(player)
 	return player
 
 
-func _build_score_tick_players() -> void:
-	for audio_stream_index in SCORE_TICK_AUDIO_STREAM_COUNT:
-		var score_tick_player := AudioStreamPlayer.new()
-		score_tick_player.name = "ScoreTick%d" % audio_stream_index
-		score_tick_player.stream = SCORE_TICK_SOUND
-		add_child(score_tick_player)
-		_score_tick_players.append(score_tick_player)
-
-
-func _build_helicopter_hover() -> void:
-	var looping_hover := HELICOPTER_HOVER_SOUND.duplicate() as AudioStreamMP3
-	looping_hover.loop = true
-	_helicopter_hover = AudioStreamPlayer.new()
-	_helicopter_hover.name = "HelicopterHover"
-	_helicopter_hover.stream = looping_hover
-	_helicopter_hover.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
-	add_child(_helicopter_hover)
+func play_event(event: int) -> void:
+	match event:
+		Event.UI_MOVE:
+			_play_one_shot(&"MenuSwitchSound")
+		Event.KEYBOARD_INTERACTION, Event.CONTROL_BUTTON_PRESS:
+			_play_one_shot(&"CabinetSwitchSound")
+		Event.KEYBOARD_MOVE:
+			_play_one_shot(&"KeyboardSelectionSound")
+		Event.UI_BACK, Event.NAME_SKIP:
+			_play_one_shot(&"BackSound")
+		Event.UI_CONFIRM, Event.NAME_CONFIRM, Event.ROUND_START:
+			_play_one_shot(&"ConfirmationSound")
+		Event.SCORE_TICK:
+			_play_one_shot(&"ScoreTickSound")
+		Event.NEXT_JUMP, Event.FULL_ROTATION:
+			_play_one_shot(&"CabinetSwitchSound")
+		Event.JOYSTICK_MOVE, Event.JUMP_START, Event.TAKEOFF, Event.LAND_CLEAN:
+			_play_one_shot(&"JoystickSound")
+		Event.CARVE, Event.TUCK, Event.COMPRESSION_CHARGE:
+			_play_one_shot(&"MenuSwitchSound")
+		Event.BRAKE, Event.COMPRESSION_RELEASE, Event.GRAB_START:
+			_play_one_shot(&"KeyboardSelectionSound")
+		Event.GRAB_RELEASE, Event.HALF_ROTATION:
+			_play_one_shot(&"CabinetSwitchSound")
+		Event.RELEASE_WARNING:
+			_play_one_shot(&"BackSound")
+		Event.CRASH, Event.BAIL:
+			_play_one_shot(&"BackSound")
+		Event.LAND_SKETCHY, Event.LOW_MOMENTUM:
+			_play_one_shot(&"KeyboardSelectionSound")
+		Event.HIGH_SCORE:
+			_play_one_shot(&"ConfirmationSound")
+		Event.RESULTS_REVEAL, Event.SCORE_TOTAL:
+			_play_one_shot(&"CabinetSwitchSound")
 
 
 func play_background_music() -> void:
-	_background_music.play()
+	_play_music(_background_music_player, _gameplay_ambience_player)
 
 
 func stop_background_music() -> void:
-	_background_music.stop()
+	_stop_music(_background_music_player)
 
 
-func play_gameplay_music() -> void:
-	_gameplay_music.volume_db = 0.0
-	_gameplay_music.play()
+func play_gameplay_ambience() -> void:
+	restore_gameplay_sfx_mix()
+	_play_music(_gameplay_ambience_player, _background_music_player)
 
 
-func duck_gameplay_music_for_rescue() -> void:
-	_gameplay_music.create_tween().tween_property(
-		_gameplay_music, "volume_db", GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB, 0.2
-	)
+func stop_gameplay_ambience() -> void:
+	_stop_music(_gameplay_ambience_player)
 
 
-func stop_gameplay_music() -> void:
-	_gameplay_music.stop()
-
-
-func play_confirmation() -> void:
-	_confirmation_sound.play()
-
-
-func play_menu_switch() -> void:
-	_menu_switch_sound.play()
-
-
-func play_cabinet_switch() -> void:
-	_cabinet_switch_sound.play()
-
-
-func play_joystick() -> void:
-	_joystick_sound.play()
-
-
-func play_back() -> void:
-	_back_sound.play()
-
-
-func play_keyboard_selection() -> void:
-	_keyboard_selection_sound.play()
-
-
-func play_score_tick() -> void:
-	if _score_tick_players.is_empty():
+func duck_gameplay_ambience_for_rescue() -> void:
+	if not _gameplay_ambience_player.playing:
 		return
-	var player := _score_tick_players[_next_score_tick_player]
-	_next_score_tick_player = (_next_score_tick_player + 1) % _score_tick_players.size()
-	player.play()
+	_fade_music_to(_gameplay_ambience_player, GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB, 0.2)
 
 
 func start_helicopter_hover() -> void:
-	_helicopter_hover.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
-	_helicopter_hover.play()
+	_helicopter_hover_player.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
+	if not _helicopter_hover_player.playing:
+		_helicopter_hover_player.play()
+
+
+func stop_helicopter_hover() -> void:
+	if _helicopter_hover_player:
+		_helicopter_hover_player.stop()
 
 
 func set_helicopter_hover_progress(progress: float) -> void:
-	_helicopter_hover.volume_db = lerpf(
+	_helicopter_hover_player.volume_db = lerpf(
 		HELICOPTER_HOVER_ENTRY_VOLUME_DB,
 		HELICOPTER_HOVER_LANDING_VOLUME_DB,
 		clampf(progress, 0.0, 1.0)
 	)
 
 
-func stop_helicopter_hover() -> void:
-	_helicopter_hover.stop()
+func _play_one_shot(pool_name: StringName) -> void:
+	if not _one_shot_pools.has(pool_name):
+		return
+	var players: Array[AudioStreamPlayer] = _one_shot_pools[pool_name]
+	var player_index: int = _next_one_shot_player[pool_name]
+	_next_one_shot_player[pool_name] = (player_index + 1) % players.size()
+	players[player_index].play()
+
+
+func _play_music(next_player: AudioStreamPlayer, previous_player: AudioStreamPlayer) -> void:
+	_stop_music(previous_player)
+	if next_player.playing:
+		return
+	if _music_fade and _music_fade.is_valid():
+		_music_fade.kill()
+	next_player.volume_db = MUSIC_FADE_START_VOLUME_DB
+	next_player.play()
+	_fade_music_to(next_player, MUSIC_VOLUME_DB, MUSIC_FADE_DURATION)
+
+
+func _fade_music_to(player: AudioStreamPlayer, volume_db: float, duration: float) -> void:
+	if _music_fade and _music_fade.is_valid():
+		_music_fade.kill()
+	_music_fade = create_tween()
+	_music_fade.tween_property(player, "volume_db", volume_db, duration)
+
+
+func duck_gameplay_sfx_for_post_round() -> void:
+	_fade_bus_to(GAMEPLAY_SFX_BUS, POST_ROUND_GAMEPLAY_SFX_VOLUME_DB)
+
+
+func restore_gameplay_sfx_mix() -> void:
+	if _gameplay_sfx_fade and _gameplay_sfx_fade.is_valid():
+		_gameplay_sfx_fade.kill()
+	_set_bus_volume(GAMEPLAY_SFX_BUS, GAMEPLAY_SFX_BUS_VOLUME_DB)
+
+
+func _fade_bus_to(bus_name: StringName, volume_db: float) -> void:
+	if _gameplay_sfx_fade and _gameplay_sfx_fade.is_valid():
+		_gameplay_sfx_fade.kill()
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		return
+	_gameplay_sfx_fade = create_tween()
+	_gameplay_sfx_fade.tween_method(
+		func(next_volume_db: float) -> void: _set_bus_volume(bus_name, next_volume_db),
+		AudioServer.get_bus_volume_db(bus_index),
+		volume_db,
+		GAMEPLAY_SFX_FADE_DURATION
+	)
+
+
+func _set_bus_volume(bus_name: StringName, volume_db: float) -> void:
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index >= 0:
+		AudioServer.set_bus_volume_db(bus_index, volume_db)
+
+
+func _stop_music(player: AudioStreamPlayer) -> void:
+	if player and player.playing:
+		player.stop()
 
 
 func shutdown() -> void:
-	_stop_and_release(_helicopter_hover)
-	_stop_and_release(_background_music)
-	_stop_and_release(_gameplay_music)
-	_stop_and_release(_confirmation_sound)
-	_stop_and_release(_menu_switch_sound)
-	_stop_and_release(_cabinet_switch_sound)
-	_stop_and_release(_joystick_sound)
-	_stop_and_release(_back_sound)
-	_stop_and_release(_keyboard_selection_sound)
-	for score_tick_player in _score_tick_players:
-		_stop_and_release(score_tick_player)
-
-
-func _stop_and_release(player: AudioStreamPlayer) -> void:
-	if not is_instance_valid(player):
-		return
-	player.stop()
-	player.stream = null
+	stop_helicopter_hover()
+	stop_gameplay_ambience()
+	stop_background_music()
+	for players: Array[AudioStreamPlayer] in _one_shot_pools.values():
+		for player in players:
+			player.stop()

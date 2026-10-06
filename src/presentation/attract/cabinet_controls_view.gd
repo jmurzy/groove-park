@@ -108,7 +108,7 @@ func _update_joystick() -> void:
 	_joystick.position = JOYSTICK_POSITION
 	var joystick_direction := Vector2(column - 1, row - 1)
 	if joystick_direction != Vector2.ZERO and joystick_direction != _joystick_direction:
-		audio_manager.play_joystick()
+		audio_manager.play_event(AudioManager.Event.JOYSTICK_MOVE)
 	_joystick_direction = joystick_direction
 
 
@@ -118,7 +118,7 @@ func _update_buttons() -> void:
 			Input.is_action_pressed(action)
 		)]
 		if Input.is_action_just_pressed(action):
-			audio_manager.play_cabinet_switch()
+			audio_manager.play_event(AudioManager.Event.CONTROL_BUTTON_PRESS)
 
 
 func _atlas_texture(

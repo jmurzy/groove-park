@@ -48,7 +48,7 @@ func handle_escape() -> bool:
 func show_rider_select() -> void:
 	if _player_select or _controls_screen:
 		return
-	_menu.play_confirmation()
+	audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	_menu.hide()
 	_player_select = PlayerSelectScreen.new()
 	_player_select.input_router = input_router
@@ -72,7 +72,7 @@ func _close_player_select() -> void:
 func _open_controls() -> void:
 	if _controls_screen or _player_select:
 		return
-	_menu.play_confirmation()
+	audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
 	_controls_screen = HowToPlayScreenScene.new()
 	_controls_screen.audio_manager = audio_manager
 	_controls_screen.closed.connect(_close_controls)
@@ -84,7 +84,7 @@ func _close_controls() -> void:
 		return
 	_controls_screen.queue_free()
 	_controls_screen = null
-	audio_manager.play_back()
+	audio_manager.play_event(AudioManager.Event.UI_BACK)
 	_menu.focus_controls()
 
 

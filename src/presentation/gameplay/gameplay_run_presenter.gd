@@ -51,7 +51,9 @@ func setup(
 	_hud.show_round_state(session.round_state())
 	_tally = ScoreTallyPresenterScene.new()
 	_tally.build(ui_layer)
-	_tally.score_tick_requested.connect(audio_manager.play_score_tick)
+	_tally.score_tick_requested.connect(
+		audio_manager.play_event.bind(AudioManager.Event.SCORE_TICK)
+	)
 	_world = ParkWorldPresenterScene.new()
 	owner.add_child(_world)
 	_world.setup(course, designer_mode, tuning, session.rider_kind)
@@ -115,7 +117,7 @@ func _on_jump_result_recorded(round_state: RoundState, _jump_result: JumpResult)
 
 
 func _on_crash_rescue_started() -> void:
-	_audio_manager.duck_gameplay_music_for_rescue()
+	_audio_manager.duck_gameplay_ambience_for_rescue()
 	_audio_manager.start_helicopter_hover()
 
 
