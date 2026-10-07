@@ -7,9 +7,14 @@ var _failures := PackedStringArray()
 
 
 func _init() -> void:
+	call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
 	_test_result_rows_preserve_round_data()
 	_test_crash_round_displays_its_single_result()
 	_test_completed_round_displays_all_three_results()
+	await _test_delayed_leaderboard_reveals_without_rebuilding_results()
 	if _failures.is_empty():
 		print("Local results-flow checks passed.")
 		quit(0)
@@ -71,6 +76,40 @@ func _test_completed_round_displays_all_three_results() -> void:
 		"Completed rounds must display all three recorded results in order."
 	)
 	screen.free()
+
+
+func _test_delayed_leaderboard_reveals_without_rebuilding_results() -> void:
+	var screen := RoundResultsScreenScene.new()
+	screen.show_round(_round_state(), Leaderboard.new())
+	get_root().add_child(screen)
+	await process_frame
+	var original_panel := screen._panel
+	_expect(
+		original_panel.position == RoundResultsScreen.CENTERED_PANEL_POSITION,
+		"Results must begin centered before leaderboard entries arrive."
+	)
+	screen.refresh_leaderboard(_leaderboard_with_entry())
+	_expect(
+		screen._panel == original_panel and screen._leaderboard_overlay != null,
+		"Delayed leaderboard entries must preserve the results panel and add an overlay."
+	)
+	await create_timer(RoundResultsScreen.LEADERBOARD_REVEAL_DURATION + 0.05).timeout
+	_expect(
+		(
+			screen._panel.position.is_equal_approx(RoundResultsScreen.LEADERBOARD_PANEL_POSITION)
+			and is_equal_approx(screen._leaderboard_overlay.modulate.a, 1.0)
+		),
+		"Results and leaderboard must finish in the compact layout after the reveal."
+	)
+	screen.free()
+
+
+func _leaderboard_with_entry() -> Leaderboard:
+	var entry := LeaderboardEntry.new()
+	entry.player_name = "RIDER"
+	entry.total_score = 100
+	var entries: Array[LeaderboardEntry] = [entry]
+	return Leaderboard.new(Leaderboard.Status.OK, null, null, entries)
 
 
 func _round_state(results: Array[JumpResult] = []) -> RoundState:

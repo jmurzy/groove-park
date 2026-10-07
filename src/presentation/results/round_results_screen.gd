@@ -2,9 +2,16 @@
 class_name RoundResultsScreen
 extends Control
 
+const CENTERED_PANEL_POSITION := Vector2(370, 135)
+const LEADERBOARD_PANEL_POSITION := Vector2(90, 135)
+const LEADERBOARD_REVEAL_DURATION := 0.35
+
 var _round_state: RoundState
 var _result_rows := PackedStringArray()
 var _leaderboard := Leaderboard.new()
+var _panel: Panel
+var _leaderboard_overlay: LeaderboardOverlay
+var _leaderboard_status: Label
 
 
 func show_round(round_state: RoundState, leaderboard: Leaderboard) -> void:
@@ -21,8 +28,21 @@ func result_rows() -> PackedStringArray:
 
 func refresh_leaderboard(leaderboard: Leaderboard) -> void:
 	_leaderboard = leaderboard
-	if is_inside_tree():
+	if not is_inside_tree():
+		return
+	if _panel == null:
 		_build()
+		return
+	_update_leaderboard_status()
+	var leaderboard_entries := _leaderboard.top_entries()
+	if leaderboard_entries.is_empty():
+		return
+	if _leaderboard_overlay:
+		_leaderboard_overlay.queue_free()
+		_add_leaderboard_overlay(_panel, leaderboard_entries)
+		return
+	_add_leaderboard_overlay(_panel, leaderboard_entries, true)
+	_animate_leaderboard_reveal()
 
 
 func _ready() -> void:
@@ -35,15 +55,22 @@ func _ready() -> void:
 func _build() -> void:
 	for child in get_children():
 		child.queue_free()
+	_panel = null
+	_leaderboard_overlay = null
+	_leaderboard_status = null
 	var leaderboard_entries := _leaderboard.top_entries()
-	var panel := Panel.new()
-	panel.position = Vector2(90, 135) if not leaderboard_entries.is_empty() else Vector2(370, 135)
-	panel.size = Vector2(1180, 810)
-	panel.add_theme_stylebox_override("panel", ArcadeTheme.dialog_panel_style())
-	add_child(panel)
-	_add_label(panel, "ROUND RESULTS", Vector2(0, 34), Vector2(1180, 64), 38, Color("fff16a"))
+	_panel = Panel.new()
+	_panel.position = (
+		LEADERBOARD_PANEL_POSITION
+		if not leaderboard_entries.is_empty()
+		else CENTERED_PANEL_POSITION
+	)
+	_panel.size = Vector2(1180, 810)
+	_panel.add_theme_stylebox_override("panel", ArcadeTheme.dialog_panel_style())
+	add_child(_panel)
+	_add_label(_panel, "ROUND RESULTS", Vector2(0, 34), Vector2(1180, 64), 38, Color("fff16a"))
 	_add_label(
-		panel,
+		_panel,
 		(
 			"%s  |  FINAL SCORE %d"
 			% [String(_round_state.rider_kind()).to_upper(), _round_state.round_score()]
@@ -53,13 +80,9 @@ func _build() -> void:
 		20,
 		Color("42eaff")
 	)
-	var leaderboard_status := _leaderboard_status_text()
-	if not leaderboard_status.is_empty():
-		_add_label(
-			panel, leaderboard_status, Vector2(0, 160), Vector2(1180, 30), 16, Color("fff7cf")
-		)
+	_update_leaderboard_status()
 	_add_label(
-		panel,
+		_panel,
 		"\n".join(_result_rows),
 		Vector2(160, 205),
 		Vector2(860, 300),
@@ -67,9 +90,9 @@ func _build() -> void:
 		Color("e8f7ff"),
 		HORIZONTAL_ALIGNMENT_LEFT
 	)
-	_add_leaderboard_overlay(panel, leaderboard_entries)
+	_add_leaderboard_overlay(_panel, leaderboard_entries)
 	_add_label(
-		panel,
+		_panel,
 		"PRESS START OR A FOR NEW ROUND",
 		Vector2(0, 625),
 		Vector2(1180, 36),
@@ -77,7 +100,7 @@ func _build() -> void:
 		Color("fff7cf")
 	)
 	_add_label(
-		panel,
+		_panel,
 		"PRESS BACK OR B FOR ATTRACT",
 		Vector2(0, 680),
 		Vector2(1180, 30),
@@ -94,12 +117,13 @@ func _add_label(
 	font_size: int,
 	color: Color,
 	alignment := HORIZONTAL_ALIGNMENT_CENTER
-) -> void:
+) -> Label:
 	var label := ArcadeTheme.make_label(text, font_size, color)
 	label.position = position_value
 	label.size = size_value
 	label.horizontal_alignment = alignment
 	parent.add_child(label)
+	return label
 
 
 func _rows_for(round_state: RoundState) -> PackedStringArray:
@@ -126,12 +150,39 @@ func _leaderboard_status_text() -> String:
 	return ""
 
 
-func _add_leaderboard_overlay(panel: Control, leaderboard_entries: Array[LeaderboardEntry]) -> void:
+func _update_leaderboard_status() -> void:
+	var status_text := _leaderboard_status_text()
+	if _leaderboard_status:
+		if status_text.is_empty():
+			_leaderboard_status.queue_free()
+			_leaderboard_status = null
+		else:
+			_leaderboard_status.text = status_text
+	elif not status_text.is_empty():
+		_leaderboard_status = _add_label(
+			_panel, status_text, Vector2(0, 160), Vector2(1180, 30), 16, Color("fff7cf")
+		)
+
+
+func _add_leaderboard_overlay(
+	panel: Control, leaderboard_entries: Array[LeaderboardEntry], reveal := false
+) -> void:
 	if leaderboard_entries.is_empty():
 		return
-	var leaderboard_overlay := LeaderboardOverlay.new()
-	leaderboard_overlay.position = Vector2(1060, 36)
-	leaderboard_overlay.show_entries(
+	_leaderboard_overlay = LeaderboardOverlay.new()
+	_leaderboard_overlay.position = Vector2(1060, 36)
+	_leaderboard_overlay.show_entries(
 		leaderboard_entries, _leaderboard.rank(), _round_state.rider_kind()
 	)
-	panel.add_child(leaderboard_overlay)
+	if reveal:
+		_leaderboard_overlay.modulate.a = 0.0
+	panel.add_child(_leaderboard_overlay)
+
+
+func _animate_leaderboard_reveal() -> void:
+	var tween := create_tween().set_parallel()
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(
+		_panel, "position", LEADERBOARD_PANEL_POSITION, LEADERBOARD_REVEAL_DURATION
+	)
+	tween.tween_property(_leaderboard_overlay, "modulate:a", 1.0, LEADERBOARD_REVEAL_DURATION)
