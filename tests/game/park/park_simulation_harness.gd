@@ -1105,6 +1105,114 @@ func _test_low_momentum_rider_ends_run() -> void:
 	)
 
 
+func _test_low_momentum_ignores_recoverable_acceleration() -> void:
+	var state := RiderStateScene.new()
+	state.kinematics.course_progress = 2950.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	_step_on(state, _approach_course(), Vector2.RIGHT, true)
+	_expect(
+		state.run.low_momentum_recoverable_acceleration > 0.0,
+		"Recoverable terrain must report positive best-case forward acceleration."
+	)
+	_expect(
+		not state.run.low_momentum_detector_armed,
+		"Recoverable acceleration must prevent low-momentum detection."
+	)
+	_expect(
+		state.run.jump_outcome == JumpOutcome.Value.NONE,
+		"A recoverable rider must not resolve low momentum."
+	)
+
+
+func _test_low_momentum_ignores_braking_and_release_on_recoverable_terrain() -> void:
+	var headings: Array[Vector2] = [Vector2.ZERO, Vector2.LEFT]
+	for heading: Vector2 in headings:
+		var state := RiderStateScene.new()
+		state.kinematics.course_progress = 2950.0
+		state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+		state.run.has_ground_intent = true
+		for _tick in 10:
+			_step_on(state, _approach_course(), heading)
+		_expect(
+			state.run.jump_outcome == JumpOutcome.Value.NONE,
+			"Releasing or braking on recoverable terrain must not resolve low momentum."
+		)
+
+
+func _test_low_momentum_progress_resets_detection_timer() -> void:
+	var roller := _low_momentum_roller()
+	var state := RiderStateScene.new()
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	_step_on(state, roller, Vector2.RIGHT)
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	_step_on(state, roller, Vector2.RIGHT)
+	var timer_before_progress := state.run.low_momentum_no_progress_time
+	state.kinematics.course_progress += _tuning.low_momentum_progress_epsilon + 1.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.run.has_ground_intent = true
+	_step_on(state, roller, Vector2.RIGHT)
+	_expect(
+		timer_before_progress > 0.0, "Low-momentum detection must begin timing without progress."
+	)
+	_expect(
+		is_zero_approx(state.run.low_momentum_no_progress_time),
+		"Forward progress must reset the low-momentum detection timer."
+	)
+	_expect(
+		state.run.jump_outcome == JumpOutcome.Value.NONE,
+		"Progress before the detection duration must prevent low-momentum resolution."
+	)
+
+
+func _test_low_momentum_waits_for_route_change_completion() -> void:
+	var roller := _low_momentum_roller()
+	var state := RiderStateScene.new()
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(300.0, 0.0)
+	state.kinematics.approach_path_position = 1.0
+	state.kinematics.approach_path_target = 2
+	state.run.has_ground_intent = true
+	for _tick in 5:
+		_step_on(state, roller, Vector2.RIGHT)
+	_expect(
+		state.kinematics.approach_path_position < float(state.kinematics.approach_path_target),
+		"The fixture must keep the route change in progress."
+	)
+	_expect(
+		not state.run.low_momentum_detector_armed,
+		"An in-progress route change must suppress low-momentum detection."
+	)
+	_expect(
+		state.run.jump_outcome == JumpOutcome.Value.NONE,
+		"A rider with a route change in progress must not resolve low momentum."
+	)
+
+
+func _test_low_momentum_ignores_grounded_route() -> void:
+	var roller := _low_momentum_roller()
+	var state := RiderStateScene.new()
+	state.kinematics.course_progress = 1000.0
+	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
+	state.kinematics.approach_path_position = 2.0
+	state.kinematics.approach_path_target = 2
+	state.run.has_ground_intent = true
+	for _tick in 10:
+		_step_on(state, roller, Vector2.RIGHT)
+	_expect(
+		not state.run.low_momentum_detector_armed,
+		"The grounded route must never arm the low-momentum detector."
+	)
+	_expect(
+		state.run.jump_outcome != JumpOutcome.Value.LOW_MOMENTUM,
+		"The grounded route must continue into its authored outcome without low momentum."
+	)
+
+
 func _test_low_momentum_stop_fallback() -> void:
 	var original_tuning := _tuning
 	_tuning = RiderTuningScene.new()
@@ -1159,10 +1267,7 @@ func _test_low_momentum_is_deterministic_across_fixed_deltas() -> void:
 
 
 func _simulate_low_momentum(delta: float) -> Dictionary:
-	var roller := _roller_course()
-	var flight_path := PackedVector2Array([Vector2(0, 400), Vector2(800, 600), Vector2(1050, 350)])
-	roller.routes[0].approach_path = flight_path
-	roller.routes[1].approach_path = flight_path
+	var roller := _low_momentum_roller()
 	var state := RiderStateScene.new()
 	state.kinematics.course_progress = 1000.0
 	state.kinematics.ground_velocity = Vector2(20.0, 0.0)
@@ -1180,6 +1285,14 @@ func _simulate_low_momentum(delta: float) -> Dictionary:
 		"completion_progress": state.kinematics.course_progress,
 		"start_progress": start_progress,
 	}
+
+
+func _low_momentum_roller() -> ParkCourse:
+	var roller := _roller_course()
+	var flight_path := PackedVector2Array([Vector2(0, 400), Vector2(800, 600), Vector2(1050, 350)])
+	roller.routes[0].approach_path = flight_path
+	roller.routes[1].approach_path = flight_path
+	return roller
 
 
 func _test_uphill_clears_with_momentum() -> void:
