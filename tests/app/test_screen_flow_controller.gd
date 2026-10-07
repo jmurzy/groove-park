@@ -131,6 +131,7 @@ func _test_synchronous_leaderboard_flow_replaces_screens() -> void:
 		"A synchronous qualifying response must replace game over with name entry."
 	)
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
+	await _await_repository_completions()
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -177,6 +178,7 @@ func _test_non_qualifying_round_displays_shared_leaderboard() -> void:
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	await _await_qualification_minimum_duration()
+	await _await_repository_completions()
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -208,6 +210,7 @@ func _test_submission_succeeds_when_board_fetch_fails() -> void:
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	await _await_qualification_minimum_duration()
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
+	await _await_repository_completions()
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -241,6 +244,7 @@ func _test_submission_reaches_results_before_leaderboard_fetch_completes() -> vo
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
 	var submission_request := fixture.flow._post_round_flow._submission_request
 	fixture.leaderboard_repository.complete_deferred(submission_request)
+	await process_frame
 	var top_entries_request := fixture.flow._post_round_flow._top_entries_request
 	_expect(
 		(
@@ -285,6 +289,7 @@ func _test_offline_qualification_reaches_local_results() -> void:
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	await _await_qualification_minimum_duration()
+	await _await_repository_completions()
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -336,6 +341,11 @@ func _test_results_back_returns_to_attract() -> void:
 
 func _await_qualification_minimum_duration() -> void:
 	await create_timer(PostRoundFlowController.QUALIFICATION_MINIMUM_DURATION + 0.05).timeout
+
+
+func _await_repository_completions() -> void:
+	await process_frame
+	await process_frame
 
 
 func _gameplay_fixture(with_leaderboard_service := false) -> Fixture:

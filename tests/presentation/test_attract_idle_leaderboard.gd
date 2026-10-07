@@ -36,6 +36,7 @@ func _test_idle_request_and_display() -> void:
 	_advance_idle(fixture.screen, IDLE_LEADERBOARD_DELAY - 0.01)
 	_expect(fixture.screen._menu.visible, "Idle leaderboard must wait the full idle interval.")
 	_advance_idle(fixture.screen, 0.01)
+	await process_frame
 	_expect(
 		not fixture.screen._menu.visible,
 		"A successful idle request must replace the attract menu with the shared leaderboard overlay."
@@ -55,6 +56,7 @@ func _test_attract_overlays_restart_the_interval() -> void:
 	_advance_idle(fixture.screen, IDLE_LEADERBOARD_DELAY - 0.01)
 	_expect(fixture.screen._menu.visible, "Closing controls must require a fresh full interval.")
 	_advance_idle(fixture.screen, 0.01)
+	await process_frame
 	_expect(not fixture.screen._menu.visible, "The fresh interval must permit a new idle flow.")
 	_free_fixture(fixture)
 
@@ -63,6 +65,7 @@ func _test_failed_and_cancelled_requests_do_not_show_an_overlay() -> void:
 	var failed_fixture := await _fixture()
 	failed_fixture.repository.are_top_entries_available = false
 	_advance_idle(failed_fixture.screen, IDLE_LEADERBOARD_DELAY)
+	await process_frame
 	_expect(
 		failed_fixture.screen._menu.visible,
 		"A failed idle request must leave the normal attract menu visible."
@@ -97,6 +100,7 @@ func _test_failed_and_cancelled_requests_do_not_show_an_overlay() -> void:
 func _test_dismissal_consumes_only_keys_and_buttons() -> void:
 	var fixture := await _fixture()
 	_advance_idle(fixture.screen, IDLE_LEADERBOARD_DELAY)
+	await process_frame
 	var motion := InputEventJoypadMotion.new()
 	motion.axis = JOY_AXIS_LEFT_X
 	motion.axis_value = 1.0

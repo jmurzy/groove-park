@@ -5,11 +5,15 @@ var _failures := PackedStringArray()
 
 
 func _init() -> void:
-	_test_available_operations_return_typed_values()
-	_test_unavailable_service_returns_typed_failure()
-	_test_submission_is_not_duplicated_while_in_flight()
-	_test_cancelled_operation_cannot_complete_late()
-	_test_cancelled_submission_does_not_mutate_board()
+	call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
+	await _test_available_operations_return_typed_values()
+	await _test_unavailable_service_returns_typed_failure()
+	await _test_submission_is_not_duplicated_while_in_flight()
+	await _test_cancelled_operation_cannot_complete_late()
+	await _test_cancelled_submission_does_not_mutate_board()
 	_test_installation_id_is_persisted()
 	if _failures.is_empty():
 		print("Leaderboard repository checks passed.")
@@ -32,6 +36,14 @@ func _test_available_operations_return_typed_values() -> void:
 	repository.entries.append(entry)
 	var entries_request := repository.get_top_entries()
 	var request := repository.check_qualification(250)
+	_expect(
+		(
+			entries_request.status == LeaderboardRepository.Request.Status.PENDING
+			and request.status == LeaderboardRepository.Request.Status.PENDING
+		),
+		"Repository operations must return pending handles before completing."
+	)
+	await process_frame
 	var qualification: LeaderboardQualification
 	if request.result is LeaderboardQualification:
 		qualification = request.result
@@ -68,6 +80,11 @@ func _test_unavailable_service_returns_typed_failure() -> void:
 	repository.is_available = false
 	var request := repository.get_top_entries()
 	_expect(
+		request.status == LeaderboardRepository.Request.Status.PENDING,
+		"Unavailable requests must return pending handles before failing."
+	)
+	await process_frame
+	_expect(
 		request.status != LeaderboardRepository.Request.Status.PENDING,
 		"Unavailable requests must finish exactly once."
 	)
@@ -94,6 +111,7 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	)
 	_expect(repository.entries.is_empty(), "An in-flight submission must not mutate the board.")
 	repository.complete_deferred(first_request)
+	await process_frame
 	var submission_result: LeaderboardSubmissionResult
 	if first_request.result is LeaderboardSubmissionResult:
 		submission_result = first_request.result
@@ -103,6 +121,7 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	)
 	repository.deferred = false
 	var retry_request := repository.submit_score(submission)
+	await process_frame
 	_expect(
 		retry_request.result is LeaderboardSubmissionResult and repository.entries.size() == 1,
 		"A repeated round ID must return the original submission without another entry."

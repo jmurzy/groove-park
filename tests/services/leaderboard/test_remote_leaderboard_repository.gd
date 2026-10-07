@@ -5,10 +5,14 @@ var _failures := PackedStringArray()
 
 
 func _init() -> void:
-	_test_service_unavailable_response_marks_request_unavailable()
-	_test_network_failures_mark_request_unavailable()
-	_test_http_failure_marks_request_failed()
-	_test_malformed_json_response_fails()
+	call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
+	await _test_service_unavailable_response_marks_request_unavailable()
+	await _test_network_failures_mark_request_unavailable()
+	await _test_http_failure_marks_request_failed()
+	await _test_malformed_json_response_fails()
 	_test_cancelled_request_ignores_late_response()
 	_test_top_entries_require_entry_dictionaries()
 	_test_top_entries_parse_typed_values()
@@ -25,6 +29,7 @@ func _test_service_unavailable_response_marks_request_unavailable() -> void:
 	var repository := RemoteLeaderboardRepository.new()
 	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 503, PackedByteArray())
+	await process_frame
 	_expect(
 		request.status == LeaderboardRepository.Request.Status.FAILED,
 		"A 503 response must fail its request."
@@ -46,6 +51,7 @@ func _test_network_failures_mark_request_unavailable() -> void:
 		var repository := RemoteLeaderboardRepository.new()
 		var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 		repository._decode_response(request, result, 0, PackedByteArray())
+		await process_frame
 		_expect(
 			request.status == LeaderboardRepository.Request.Status.FAILED,
 			"Network failures must fail their requests."
@@ -61,6 +67,7 @@ func _test_http_failure_marks_request_failed() -> void:
 	var repository := RemoteLeaderboardRepository.new()
 	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
 	repository._decode_response(request, HTTPRequest.RESULT_SUCCESS, 500, PackedByteArray())
+	await process_frame
 	_expect(
 		request.status == LeaderboardRepository.Request.Status.FAILED,
 		"A non-503 HTTP response must fail its request."
@@ -78,6 +85,7 @@ func _test_malformed_json_response_fails() -> void:
 	repository._decode_response(
 		request, HTTPRequest.RESULT_SUCCESS, 200, "not json".to_utf8_buffer()
 	)
+	await process_frame
 	_expect(
 		(
 			request.status == LeaderboardRepository.Request.Status.FAILED

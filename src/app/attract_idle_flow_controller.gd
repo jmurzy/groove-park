@@ -85,8 +85,6 @@ func _request_top_entries() -> void:
 	var request := _leaderboard_repository.get_top_entries()
 	_request = request
 	request.completed.connect(_on_top_entries_completed)
-	if request.status != LeaderboardRepository.Request.Status.PENDING:
-		_on_top_entries_completed(request)
 
 
 func _on_top_entries_completed(request: LeaderboardRepository.Request) -> void:

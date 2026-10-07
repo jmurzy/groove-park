@@ -26,8 +26,6 @@ func fetch_top_entries() -> void:
 		return
 	_top_entries_request = _leaderboard_repository.get_top_entries()
 	_top_entries_request.completed.connect(_on_top_entries_completed)
-	if _top_entries_request.status != LeaderboardRepository.Request.Status.PENDING:
-		_on_top_entries_completed(_top_entries_request)
 
 
 func check_qualification() -> void:
@@ -36,14 +34,9 @@ func check_qualification() -> void:
 	var request := _leaderboard_repository.check_qualification(
 		_game_session.round_state().round_score()
 	)
-	# Keep this request across await so stale completions cannot resolve a later round.
 	_qualification_request = request
 	var timer := get_tree().create_timer(QUALIFICATION_MINIMUM_DURATION)
-	# Synchronous requests emit completed before await_both can connect to the signal.
-	if request.status == LeaderboardRepository.Request.Status.PENDING:
-		await SignalUtils.await_both(get_tree(), request.completed, timer.timeout)
-	else:
-		await timer.timeout
+	await SignalUtils.await_both(get_tree(), request.completed, timer.timeout)
 	_on_qualification_completed(request)
 
 
@@ -60,20 +53,21 @@ func submit_player_name(player_name: String) -> void:
 	_submission_request = _leaderboard_repository.submit_score(submission)
 	submission_started.emit()
 	_submission_request.completed.connect(_on_submission_completed)
-	if _submission_request.status != LeaderboardRepository.Request.Status.PENDING:
-		_on_submission_completed(_submission_request)
 
 
 func cancel() -> void:
 	if _qualification_request:
-		_qualification_request.cancel()
+		var request := _qualification_request
 		_qualification_request = null
+		request.cancel()
 	if _submission_request:
-		_submission_request.cancel()
+		var request := _submission_request
 		_submission_request = null
+		request.cancel()
 	if _top_entries_request:
-		_top_entries_request.cancel()
+		var request := _top_entries_request
 		_top_entries_request = null
+		request.cancel()
 
 
 func _on_qualification_completed(request: LeaderboardRepository.Request) -> void:

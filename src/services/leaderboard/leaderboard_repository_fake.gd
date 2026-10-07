@@ -13,7 +13,7 @@ func get_top_entries() -> LeaderboardRepository.Request:
 	var request := _start_request(LeaderboardRepository.Request.Operation.GET)
 	if not are_top_entries_available:
 		request.error_code = "SERVICE_UNAVAILABLE"
-		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
+		_finish_later(request, LeaderboardRepository.Request.Status.FAILED)
 		return request
 	_complete(request, func() -> void: _resolve_top_entries(request))
 	return request
@@ -38,7 +38,7 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Re
 	_submission_request = request
 	if submission == null:
 		request.error_code = "INVALID_SUBMISSION"
-		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
+		_finish_later(request, LeaderboardRepository.Request.Status.FAILED)
 		return request
 	_complete(request, func() -> void: _accept_submission(request, submission))
 	return request
@@ -49,7 +49,7 @@ func complete_deferred(request: LeaderboardRepository.Request) -> void:
 		return
 	var operation: Callable = _deferred_operations[request]
 	_deferred_operations.erase(request)
-	_finish_completed(request, operation)
+	call_deferred("_finish_completed", request, operation)
 
 
 func _cancel_request(request: LeaderboardRepository.Request) -> void:
@@ -60,12 +60,18 @@ func _cancel_request(request: LeaderboardRepository.Request) -> void:
 func _complete(request: LeaderboardRepository.Request, operation: Callable) -> void:
 	if not is_available:
 		request.error_code = "SERVICE_UNAVAILABLE"
-		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
+		_finish_later(request, LeaderboardRepository.Request.Status.FAILED)
 		return
 	if deferred:
 		_deferred_operations[request] = operation
 		return
-	_finish_completed(request, operation)
+	call_deferred("_finish_completed", request, operation)
+
+
+func _finish_later(
+	request: LeaderboardRepository.Request, next_status: LeaderboardRepository.Request.Status
+) -> void:
+	call_deferred("_finish_request", request, next_status)
 
 
 func _finish_completed(request: LeaderboardRepository.Request, operation: Callable) -> void:
