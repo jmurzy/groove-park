@@ -2,5 +2,4 @@
 class_name LeaderboardSubmissionResult
 extends RefCounted
 
-var top_entries: Array[LeaderboardEntry] = []
 var rank: int

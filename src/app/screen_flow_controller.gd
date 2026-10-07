@@ -46,6 +46,7 @@ func setup(
 	_post_round_flow.submission_started.connect(_on_submission_started)
 	add_child(_post_round_flow)
 	_game_session.phase_changed.connect(_on_session_phase_changed)
+	_game_session.leaderboard_changed.connect(_on_leaderboard_changed)
 	_game_session.jump_started.connect(_on_jump_started)
 	_show_attract()
 
@@ -139,6 +140,7 @@ func _on_session_phase_changed(phase: int) -> void:
 	elif phase == RoundState.SessionPhase.ROUND_RESULTS:
 		_audio_manager.play_event(AudioManager.Event.RESULTS_REVEAL)
 		_gameplay_screen.show_round_results()
+		_post_round_flow.fetch_top_entries()
 	elif phase == RoundState.SessionPhase.ATTRACT:
 		_return_to_attract()
 
@@ -170,3 +172,8 @@ func _show_attract() -> void:
 func _on_submission_started() -> void:
 	if _gameplay_screen:
 		_gameplay_screen.set_name_submitting()
+
+
+func _on_leaderboard_changed(leaderboard: Leaderboard) -> void:
+	if _gameplay_screen:
+		_gameplay_screen.refresh_round_results(leaderboard)

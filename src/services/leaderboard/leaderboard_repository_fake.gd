@@ -4,13 +4,18 @@ extends LeaderboardRepository
 
 var entries: Array[LeaderboardEntry] = []
 var is_available := true
+var are_top_entries_available := true
 var deferred := false
 var _deferred_operations: Dictionary = {}
 
 
 func get_top_entries() -> LeaderboardRepository.Request:
 	var request := _start_request(LeaderboardRepository.Request.Operation.GET)
-	_complete(request, func() -> void: request.result = entries.duplicate())
+	if not are_top_entries_available:
+		request.error_code = "SERVICE_UNAVAILABLE"
+		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
+		return request
+	_complete(request, func() -> void: _resolve_top_entries(request))
 	return request
 
 
@@ -21,7 +26,6 @@ func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 		func() -> void:
 			var qualification := LeaderboardQualification.new()
 			qualification.qualified = entries.size() < 10 or total_score > entries[9].total_score
-			qualification.rank = entries.size() + 1 if qualification.qualified else null
 			request.result = qualification
 	)
 	return request
@@ -87,8 +91,13 @@ func _accept_submission(
 		entries.sort_custom(_is_higher_ranked)
 	var submission_result := LeaderboardSubmissionResult.new()
 	submission_result.rank = entries.find(entry) + 1
-	submission_result.top_entries.assign(entries.slice(0, 10))
 	request.result = submission_result
+
+
+func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
+	var top_entries_result := LeaderboardTopEntriesResult.new()
+	top_entries_result.entries = entries.duplicate()
+	request.result = top_entries_result
 
 
 func _entry_for_round(round_id: String) -> LeaderboardEntry:

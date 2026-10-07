@@ -32,9 +32,11 @@ schema change; never edit an applied one.
 
 ## Local API
 
-- `GET /api/leaderboard` returns the current top ten as `{ "topEntries": [...] }`.
+- `GET /api/leaderboard` returns the current top ten as `{ "topEntries": [...] }` and uses
+  `Cache-Control: no-store` so post-submission reads are fresh.
 - `POST /api/leaderboard/qualify` accepts `{ "totalScore": number }`.
-- `POST /api/leaderboard/submissions` accepts a validated immutable round submission.
+- `POST /api/leaderboard/submissions` accepts a validated immutable round submission and returns
+  `{ "accepted": true, "rank": number }`. Fetch the leaderboard separately for board entries.
 - `GET /api/liftie/resort/:resortName` proxies the matching Liftie resort with the
   `LIFTIE_USER_AGENT` Worker secret, normalizes its lift counts, and caches successful responses
   for 60 seconds. Resort names must be lowercase `a-z`, `0-9`, and `-`; upstream or parsing

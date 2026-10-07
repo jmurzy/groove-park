@@ -33,7 +33,9 @@ func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
 		request.error_code = "MALFORMED_RESPONSE"
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
-	request.result = entries
+	var top_entries_result := LeaderboardTopEntriesResult.new()
+	top_entries_result.entries = entries
+	request.result = top_entries_result
 	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)
 
 
@@ -83,13 +85,7 @@ func _resolve_submission(
 		request.error_code = "MALFORMED_RESPONSE"
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
 		return
-	var entries: Array[LeaderboardEntry] = []
-	if not LeaderboardEntry.entries_from_api(response.get("topEntries"), entries):
-		request.error_code = "MALFORMED_RESPONSE"
-		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
-		return
 	var submission_result := LeaderboardSubmissionResult.new()
-	submission_result.top_entries = entries
 	submission_result.rank = int(response.rank)
 	request.result = submission_result
 	_finish_request(request, LeaderboardRepository.Request.Status.SUCCEEDED)

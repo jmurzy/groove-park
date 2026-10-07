@@ -35,9 +35,9 @@ func _test_available_operations_return_typed_values() -> void:
 	var qualification: LeaderboardQualification
 	if request.result is LeaderboardQualification:
 		qualification = request.result
-	var top_entries: Array[LeaderboardEntry] = []
-	if entries_request.result is Array:
-		top_entries.assign(entries_request.result)
+	var top_entries_result: LeaderboardTopEntriesResult
+	if entries_request.result is LeaderboardTopEntriesResult:
+		top_entries_result = entries_request.result
 	_expect(
 		request.status != LeaderboardRepository.Request.Status.PENDING,
 		"Available fake qualification must complete."
@@ -55,10 +55,11 @@ func _test_available_operations_return_typed_values() -> void:
 		(
 			entries_request.status == LeaderboardRepository.Request.Status.SUCCEEDED
 			and entries_request.operation == LeaderboardRepository.Request.Operation.GET
-			and top_entries.size() == 1
-			and top_entries[0] == entry
+			and top_entries_result != null
+			and top_entries_result.entries.size() == 1
+			and top_entries_result.entries[0] == entry
 		),
-		"Top-entry requests must use GET and preserve typed leaderboard entries."
+		"Top-entry requests must use GET and return a typed leaderboard result."
 	)
 
 
@@ -97,12 +98,8 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 	if first_request.result is LeaderboardSubmissionResult:
 		submission_result = first_request.result
 	_expect(
-		(
-			submission_result != null
-			and submission_result.rank == 1
-			and submission_result.top_entries.size() == 1
-		),
-		"Accepted submissions must return their typed rank and top entries."
+		submission_result != null and submission_result.rank == 1,
+		"Accepted submissions must return their typed rank."
 	)
 	repository.deferred = false
 	var retry_request := repository.submit_score(submission)

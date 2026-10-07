@@ -10,6 +10,7 @@ var _game_session: GameSession
 var _leaderboard_repository: LeaderboardRepository
 var _qualification_request: LeaderboardRepository.Request
 var _submission_request: LeaderboardRepository.Request
+var _top_entries_request: LeaderboardRepository.Request
 
 
 func setup(game_session: GameSession, leaderboard_repository: LeaderboardRepository) -> void:
@@ -18,6 +19,15 @@ func setup(game_session: GameSession, leaderboard_repository: LeaderboardReposit
 	)
 	_game_session = game_session
 	_leaderboard_repository = leaderboard_repository
+
+
+func fetch_top_entries() -> void:
+	if _top_entries_request:
+		return
+	_top_entries_request = _leaderboard_repository.get_top_entries()
+	_top_entries_request.completed.connect(_on_top_entries_completed)
+	if _top_entries_request.status != LeaderboardRepository.Request.Status.PENDING:
+		_on_top_entries_completed(_top_entries_request)
 
 
 func check_qualification() -> void:
@@ -61,6 +71,9 @@ func cancel() -> void:
 	if _submission_request:
 		_submission_request.cancel()
 		_submission_request = null
+	if _top_entries_request:
+		_top_entries_request.cancel()
+		_top_entries_request = null
 
 
 func _on_qualification_completed(request: LeaderboardRepository.Request) -> void:
@@ -87,3 +100,16 @@ func _on_submission_completed(request: LeaderboardRepository.Request) -> void:
 		_game_session.submission_succeeded(request.result)
 	else:
 		_game_session.submission_failed()
+
+
+func _on_top_entries_completed(request: LeaderboardRepository.Request) -> void:
+	if request != _top_entries_request:
+		return
+	_top_entries_request = null
+	if (
+		request.status == LeaderboardRepository.Request.Status.SUCCEEDED
+		and request.result is LeaderboardTopEntriesResult
+	):
+		_game_session.top_entries_succeeded(request.result)
+	else:
+		_game_session.top_entries_failed()

@@ -53,6 +53,7 @@ describe("leaderboard API", () => {
 		expect(first.headers.get("X-Request-Id")).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
 		);
+		expect(first.headers.get("Cache-Control")).toBe("no-store");
 		expect(await first.json()).toMatchObject({ topEntries: [] });
 	});
 
@@ -131,19 +132,15 @@ describe("leaderboard API", () => {
 			headers: cabinetHeaders(),
 			body: JSON.stringify({ totalScore: 420 }),
 		});
-		expect(await qualification.json()).toEqual({ qualified: true, rank: 1 });
+		expect(await qualification.json()).toEqual({ qualified: true });
 
 		const first = await submit(submission);
 		expect(first.status).toBe(201);
-		expect(await first.json()).toMatchObject({
-			accepted: true,
-			rank: 1,
-			topEntries: [{ createdAt: expect.stringMatching(/^[\d-]+T[\d:]+\+00:00$/) }],
-		});
+		expect(await first.json()).toEqual({ accepted: true, rank: 1 });
 
 		const repeated = await submit(submission);
 		expect(repeated.status).toBe(201);
-		expect(await repeated.json()).toMatchObject({ accepted: true, rank: 1 });
+		expect(await repeated.json()).toEqual({ accepted: true, rank: 1 });
 
 		const board = await env.LEADERBOARD.getByName("leaderboard-global").getBoard();
 		expect(board.topEntries).toHaveLength(1);
@@ -154,10 +151,7 @@ describe("leaderboard API", () => {
 		await submit(submission);
 		const repeated = await submit({ ...submission, totalScore: 421 });
 		expect(repeated.status).toBe(201);
-		expect(await repeated.json()).toMatchObject({
-			accepted: true,
-			topEntries: [{ roundId: submission.roundId, totalScore: 420 }],
-		});
+		expect(await repeated.json()).toEqual({ accepted: true, rank: 1 });
 	});
 
 	it("accepts only ags or web platforms", async () => {
@@ -200,8 +194,8 @@ describe("leaderboard API", () => {
 			expect(response.status).toBe(201);
 		}
 
-		expect(await qualify(991)).toEqual({ qualified: false, rank: null });
-		expect(await qualify(992)).toEqual({ qualified: true, rank: null });
+		expect(await qualify(991)).toEqual({ qualified: false });
+		expect(await qualify(992)).toEqual({ qualified: true });
 
 	});
 
@@ -241,7 +235,7 @@ function cabinetHeaders(installationId = crypto.randomUUID(), ipAddress?: string
 	return headers;
 }
 
-async function qualify(totalScore: number): Promise<{ qualified: boolean; rank: number | null }> {
+async function qualify(totalScore: number): Promise<{ qualified: boolean }> {
 	const response = await SELF.fetch("https://example.test/api/leaderboard/qualify", {
 		method: "POST",
 		headers: { "Content-Type": "application/json", ...cabinetHeaders() },

@@ -19,7 +19,7 @@ function normalizePlayerName(value: unknown): string | null {
 export async function getLeaderboard(context: WorkerContext): Promise<Response> {
 	const leaderboard = context.env.LEADERBOARD.getByName(LEADERBOARD_OBJECT_NAME);
 	const snapshot = await leaderboard.getBoard();
-	return json(snapshot);
+	return json(snapshot, 200, { "Cache-Control": "no-store" });
 }
 
 export async function resetLeaderboard(context: WorkerContext): Promise<Response> {

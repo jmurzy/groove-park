@@ -31,7 +31,6 @@ export interface BoardSnapshot {
 export interface SubmissionResult {
 	accepted: true;
 	rank: number;
-	topEntries: LeaderboardEntry[];
 }
 
 export interface ScoreSubmission {
@@ -83,21 +82,14 @@ export class GlobalLeaderboard extends DurableObject<Env> {
 		return { topEntries: [] };
 	}
 
-	async checkQualification(totalScore: number): Promise<{ qualified: boolean; rank: number | null }> {
-		const count = this.ctx.storage.sql
-			.exec<{ count: number }>("SELECT COUNT(*) AS count FROM leaderboard_entries")
-			.one().count;
-		if (count < TOP_ENTRY_LIMIT) {
-			return { qualified: true, rank: count + 1 };
-		}
-
+	async checkQualification(totalScore: number): Promise<{ qualified: boolean }> {
 		const tenth = this.ctx.storage.sql
 			.exec<{ total_score: number }>(
 				"SELECT total_score FROM leaderboard_entries ORDER BY total_score DESC, created_at ASC, round_id ASC LIMIT 1 OFFSET ?",
 				TOP_ENTRY_LIMIT - 1,
 			)
-			.one().total_score;
-		return { qualified: totalScore > tenth, rank: null };
+			.toArray()[0];
+		return { qualified: tenth == null || totalScore > tenth.total_score };
 	}
 
 	async submit(submission: ScoreSubmission): Promise<SubmissionResult> {
@@ -176,7 +168,6 @@ export class GlobalLeaderboard extends DurableObject<Env> {
 		return {
 			accepted: true,
 			rank,
-			topEntries: this.topEntries(),
 		};
 	}
 

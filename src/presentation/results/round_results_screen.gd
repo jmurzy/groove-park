@@ -19,6 +19,12 @@ func result_rows() -> PackedStringArray:
 	return _result_rows.duplicate()
 
 
+func refresh_leaderboard(leaderboard: Leaderboard) -> void:
+	_leaderboard = leaderboard
+	if is_inside_tree():
+		_build()
+
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -29,7 +35,7 @@ func _ready() -> void:
 func _build() -> void:
 	for child in get_children():
 		child.queue_free()
-	var leaderboard_entries := _leaderboard.entries()
+	var leaderboard_entries := _leaderboard.top_entries()
 	var panel := Panel.new()
 	panel.position = Vector2(90, 135) if not leaderboard_entries.is_empty() else Vector2(370, 135)
 	panel.size = Vector2(1180, 810)
@@ -111,9 +117,9 @@ func _rows_for(round_state: RoundState) -> PackedStringArray:
 func _leaderboard_status_text() -> String:
 	if _leaderboard.status() == Leaderboard.Status.OFFLINE:
 		return "LEADERBOARD OFFLINE"
-	if _leaderboard.status() == Leaderboard.Status.SUBMISSION_FAILED:
-		return "SCORE NOT SUBMITTED"
-	if _leaderboard.status() == Leaderboard.Status.NAME_ENTRY_SKIPPED:
+	if not _leaderboard.is_qualified():
+		return "NOT ON LEADERBOARD"
+	if _leaderboard.is_qualified() and _leaderboard.rank() == null:
 		return "LEADERBOARD SKIPPED"
 	if _leaderboard.rank() is int:
 		return "GLOBAL RANK %d" % _leaderboard.rank()

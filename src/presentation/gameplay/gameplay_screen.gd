@@ -175,6 +175,11 @@ func show_round_results() -> void:
 	_ui_layer.add_child(_round_results_screen)
 
 
+func refresh_round_results(leaderboard: Leaderboard) -> void:
+	if _round_results_screen:
+		_round_results_screen.refresh_leaderboard(leaderboard)
+
+
 func show_name_entry() -> void:
 	if _player_name_entry_screen:
 		return

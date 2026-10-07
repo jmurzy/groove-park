@@ -6,6 +6,7 @@ signal phase_changed(phase: int)
 signal jump_started(round_state: RoundState)
 signal jump_result_recorded(round_state: RoundState, jump_result: JumpResult)
 signal round_completed(round_state: RoundState)
+signal leaderboard_changed(leaderboard: Leaderboard)
 
 const PARK_COURSE_RESOURCE := preload("res://src/game/park/park_course.tres")
 const RIDER_TUNING_RESOURCE := preload("res://src/game/park/rider_tuning.tres")
@@ -183,7 +184,7 @@ func _begin_qualification() -> bool:
 func qualification_available(qualification: LeaderboardQualification) -> bool:
 	if qualification == null or session_phase != RoundState.SessionPhase.QUALIFYING:
 		return false
-	_leaderboard = Leaderboard.available(qualification)
+	_leaderboard = _leaderboard.with_qualification(qualification)
 	var next_phase := (
 		RoundState.SessionPhase.NAME_ENTRY
 		if qualification.qualified
@@ -209,8 +210,24 @@ func submission_succeeded(submission_result: LeaderboardSubmissionResult) -> boo
 func submission_failed() -> bool:
 	if session_phase != RoundState.SessionPhase.NAME_ENTRY:
 		return false
-	_leaderboard = _leaderboard.with_submission_failure()
+	_leaderboard = Leaderboard.offline()
 	return _replace_post_round_phase(RoundState.SessionPhase.ROUND_RESULTS)
+
+
+func top_entries_succeeded(top_entries_result: LeaderboardTopEntriesResult) -> bool:
+	if top_entries_result == null or session_phase != RoundState.SessionPhase.ROUND_RESULTS:
+		return false
+	_leaderboard = _leaderboard.with_top_entries(top_entries_result.entries)
+	leaderboard_changed.emit(_leaderboard)
+	return true
+
+
+func top_entries_failed() -> bool:
+	if session_phase != RoundState.SessionPhase.ROUND_RESULTS:
+		return false
+	_leaderboard = Leaderboard.offline()
+	leaderboard_changed.emit(_leaderboard)
+	return true
 
 
 func name_entry_skipped() -> bool:

@@ -3,12 +3,8 @@ class_name Leaderboard
 extends RefCounted
 
 enum Status {
-	UNKNOWN,
-	AVAILABLE,
+	OK,
 	OFFLINE,
-	SUBMITTED,
-	SUBMISSION_FAILED,
-	NAME_ENTRY_SKIPPED,
 }
 
 var _status: Status
@@ -18,7 +14,7 @@ var _entries: Array[LeaderboardEntry]
 
 
 func _init(
-	next_status: Status = Status.UNKNOWN,
+	next_status: Status = Status.OK,
 	next_qualified: Variant = null,
 	next_rank: Variant = null,
 	next_entries: Array[LeaderboardEntry] = []
@@ -29,33 +25,31 @@ func _init(
 	_entries.assign(next_entries)
 
 
-static func available(qualification: LeaderboardQualification) -> Leaderboard:
-	return Leaderboard.new(Status.AVAILABLE, qualification.qualified, qualification.rank)
-
-
 static func offline() -> Leaderboard:
 	return Leaderboard.new(Status.OFFLINE)
 
 
+func with_qualification(qualification: LeaderboardQualification) -> Leaderboard:
+	return Leaderboard.new(Status.OK, qualification.qualified)
+
+
 func with_submission(submission_result: LeaderboardSubmissionResult) -> Leaderboard:
-	return Leaderboard.new(
-		Status.SUBMITTED, _qualified, submission_result.rank, submission_result.top_entries
-	)
+	return Leaderboard.new(Status.OK, _qualified, submission_result.rank)
 
 
-func with_submission_failure() -> Leaderboard:
-	return Leaderboard.new(Status.SUBMISSION_FAILED, _qualified, _rank, _entries)
+func with_top_entries(entries: Array[LeaderboardEntry]) -> Leaderboard:
+	return Leaderboard.new(Status.OK, _qualified, _rank, entries)
 
 
 func with_skipped() -> Leaderboard:
-	return Leaderboard.new(Status.NAME_ENTRY_SKIPPED, _qualified, _rank, _entries)
+	return Leaderboard.new(Status.OK, _qualified, _rank)
 
 
 func status() -> Status:
 	return _status
 
 
-func qualified() -> Variant:
+func is_qualified() -> Variant:
 	return _qualified
 
 
@@ -63,5 +57,5 @@ func rank() -> Variant:
 	return _rank
 
 
-func entries() -> Array[LeaderboardEntry]:
+func top_entries() -> Array[LeaderboardEntry]:
 	return _entries.duplicate()

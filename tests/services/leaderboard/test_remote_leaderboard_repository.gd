@@ -134,14 +134,14 @@ func _test_top_entries_parse_typed_values() -> void:
 		),
 		"Valid API entries must parse into typed leaderboard entries."
 	)
-	var qualification := LeaderboardQualification.from_api({"qualified": true, "rank": 3.0})
+	var qualification := LeaderboardQualification.from_api({"qualified": true})
 	_expect(
-		qualification != null and qualification.rank == 3,
-		"Qualification ranks must normalize JSON floats to integers."
+		qualification != null and qualification.qualified,
+		"Valid qualification responses must parse into typed results."
 	)
 	_expect(
-		LeaderboardQualification.from_api({"qualified": true, "rank": "3"}) == null,
-		"Qualification ranks must reject non-float API values."
+		LeaderboardQualification.from_api({"qualified": "true"}) == null,
+		"Qualification responses must reject non-boolean values."
 	)
 
 

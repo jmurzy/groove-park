@@ -24,6 +24,8 @@ func _run_tests() -> void:
 	await _test_terminal_phase_signals_and_timeout_cleanup()
 	_test_non_crash_game_over_skips_rescue()
 	await _test_synchronous_leaderboard_flow_replaces_screens()
+	await _test_submission_reaches_results_before_leaderboard_fetch_completes()
+	await _test_submission_succeeds_when_board_fetch_fails()
 	await _test_offline_qualification_reaches_local_results()
 	_test_leaving_pending_qualification_cancels_request()
 	await _test_results_start_opens_a_new_rider_select_flow()
@@ -132,10 +134,80 @@ func _test_synchronous_leaderboard_flow_replaces_screens() -> void:
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
 			and fixture.flow._gameplay_screen._round_results_screen != null
-			and fixture.session.leaderboard().status() == Leaderboard.Status.SUBMITTED
+			and fixture.session.leaderboard().status() == Leaderboard.Status.OK
+			and fixture.session.leaderboard().top_entries().size() == 1
+			and (
+				(
+					fixture
+					. flow
+					. _gameplay_screen
+					. _round_results_screen
+					. _leaderboard
+					. top_entries()
+					. size()
+				)
+				== 1
+			)
 		),
-		"A synchronous submission must replace name entry with submitted round results."
+		"Round results must fetch leaderboard entries independently of submission."
 	)
+	_free_fixture(fixture)
+
+
+func _test_submission_succeeds_when_board_fetch_fails() -> void:
+	var fixture := _gameplay_fixture(true)
+	fixture.leaderboard_repository.are_top_entries_available = false
+	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
+	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
+			and fixture.session.leaderboard().status() == Leaderboard.Status.OFFLINE
+			and (
+				fixture.flow._gameplay_screen._round_results_screen._leaderboard.status()
+				== Leaderboard.Status.OFFLINE
+			)
+			and (
+				fixture
+				. flow
+				. _gameplay_screen
+				. _round_results_screen
+				. _leaderboard
+				. top_entries()
+				. is_empty()
+			)
+		),
+		"A failed leaderboard fetch must mark the leaderboard offline."
+	)
+	_free_fixture(fixture)
+
+
+func _test_submission_reaches_results_before_leaderboard_fetch_completes() -> void:
+	var fixture := _gameplay_fixture(true)
+	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
+	fixture.leaderboard_repository.deferred = true
+	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
+	var submission_request := fixture.flow._post_round_flow._submission_request
+	fixture.leaderboard_repository.complete_deferred(submission_request)
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
+			and fixture.flow._gameplay_screen._round_results_screen != null
+			and fixture.flow._post_round_flow._top_entries_request != null
+			and (
+				fixture.flow._post_round_flow._top_entries_request.status
+				== LeaderboardRepository.Request.Status.PENDING
+			)
+		),
+		"An accepted submission must show results before its independent leaderboard fetch completes."
+	)
+	fixture.flow._return_to_attract()
 	_free_fixture(fixture)
 
 

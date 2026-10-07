@@ -35,12 +35,11 @@ func _test_qualification_branches() -> void:
 	)
 	var qualified := LeaderboardQualification.new()
 	qualified.qualified = true
-	qualified.rank = 3
 	_expect(session.qualification_available(qualified), "A valid qualification must be accepted.")
 	_expect(
 		(
 			session.session_phase == RoundState.SessionPhase.NAME_ENTRY
-			and session.leaderboard().qualified()
+			and session.leaderboard().is_qualified()
 		),
 		"A qualifying score must enter name entry."
 	)
@@ -67,7 +66,6 @@ func _test_submission_branches() -> void:
 	session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	var qualification := LeaderboardQualification.new()
 	qualification.qualified = true
-	qualification.rank = 1
 	session.qualification_available(qualification)
 	var accepted := LeaderboardSubmissionResult.new()
 	accepted.rank = 2
@@ -81,6 +79,19 @@ func _test_submission_branches() -> void:
 	)
 	session.free()
 
+	var failed_session := _completed_session()
+	failed_session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	failed_session.qualification_available(qualification)
+	_expect(failed_session.submission_failed(), "A failed submission must resolve once.")
+	_expect(
+		(
+			failed_session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
+			and failed_session.leaderboard().status() == Leaderboard.Status.OFFLINE
+		),
+		"A failed submission must mark the leaderboard offline."
+	)
+	failed_session.free()
+
 	var skipped_session := _completed_session()
 	skipped_session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	skipped_session.qualification_available(qualification)
@@ -88,7 +99,8 @@ func _test_submission_branches() -> void:
 	_expect(
 		(
 			skipped_session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
-			and skipped_session.leaderboard().status() == Leaderboard.Status.NAME_ENTRY_SKIPPED
+			and skipped_session.leaderboard().is_qualified()
+			and skipped_session.leaderboard().rank() == null
 		),
 		"Skipping name entry must show round results with a skipped leaderboard state."
 	)
