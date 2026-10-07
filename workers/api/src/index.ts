@@ -1,6 +1,6 @@
 import { Hono, type MiddlewareHandler } from "hono";
 
-import { getLeaderboard, qualifyLeaderboard, submitLeaderboard } from "./leaderboard/handlers";
+import { getLeaderboard, qualifyLeaderboard, resetLeaderboard, submitLeaderboard } from "./leaderboard/handlers";
 import { getResort } from "./liftie/handlers";
 import { error } from "./utils/http";
 import { observeRequest, type RequestVariables } from "./utils/observability";
@@ -36,6 +36,7 @@ app.use("*", limitRequest);
 app.get("/api/liftie/resort/:resortName", getResort);
 
 app.get("/api/leaderboard", getLeaderboard);
+app.get("/reset", resetLeaderboard);
 app.post("/api/leaderboard/qualify", qualifyLeaderboard);
 app.post("/api/leaderboard/submissions", submitLeaderboard);
 

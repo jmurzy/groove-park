@@ -56,6 +56,17 @@ describe("leaderboard API", () => {
 		expect(await first.json()).toMatchObject({ topEntries: [] });
 	});
 
+	it("clears the leaderboard", async () => {
+		await submit(submission);
+
+		const reset = await SELF.fetch("https://example.test/reset", { headers: cabinetHeaders() });
+		expect(reset.status).toBe(200);
+		expect(await reset.json()).toEqual({ topEntries: [] });
+
+		const board = await env.LEADERBOARD.getByName("leaderboard-global").getBoard();
+		expect(board.topEntries).toEqual([]);
+	});
+
 	it("requires an installation ID before processing a request", async () => {
 		const response = await SELF.fetch("https://example.test/api/leaderboard");
 		expect(response.status).toBe(400);

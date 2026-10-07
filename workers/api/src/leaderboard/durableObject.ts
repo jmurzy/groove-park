@@ -78,6 +78,11 @@ export class GlobalLeaderboard extends DurableObject<Env> {
 		};
 	}
 
+	async reset(): Promise<BoardSnapshot> {
+		this.ctx.storage.sql.exec("DELETE FROM leaderboard_entries");
+		return { topEntries: [] };
+	}
+
 	async checkQualification(totalScore: number): Promise<{ qualified: boolean; rank: number | null }> {
 		const count = this.ctx.storage.sql
 			.exec<{ count: number }>("SELECT COUNT(*) AS count FROM leaderboard_entries")

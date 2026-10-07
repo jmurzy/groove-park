@@ -22,6 +22,11 @@ export async function getLeaderboard(context: WorkerContext): Promise<Response> 
 	return json(snapshot);
 }
 
+export async function resetLeaderboard(context: WorkerContext): Promise<Response> {
+	const leaderboard = context.env.LEADERBOARD.getByName(LEADERBOARD_OBJECT_NAME);
+	return json(await leaderboard.reset());
+}
+
 export async function qualifyLeaderboard(context: WorkerContext): Promise<Response> {
 	const body = await requestJson(context.req.raw);
 	if (!body.ok) return body.response;
