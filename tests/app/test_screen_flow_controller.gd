@@ -24,6 +24,7 @@ func _run_tests() -> void:
 	await _test_terminal_phase_signals_and_timeout_cleanup()
 	_test_non_crash_game_over_skips_rescue()
 	await _test_synchronous_leaderboard_flow_replaces_screens()
+	await _test_non_qualifying_round_displays_shared_leaderboard()
 	await _test_submission_reaches_results_before_leaderboard_fetch_completes()
 	await _test_submission_succeeds_when_board_fetch_fails()
 	await _test_offline_qualification_reaches_local_results()
@@ -151,6 +152,51 @@ func _test_synchronous_leaderboard_flow_replaces_screens() -> void:
 		),
 		"Round results must fetch leaderboard entries independently of submission."
 	)
+	_expect(
+		(
+			(
+				fixture
+				. flow
+				. _gameplay_screen
+				. _round_results_screen
+				. _leaderboard_overlay
+				. _highlighted_rank
+			)
+			== fixture.session.leaderboard().rank()
+		),
+		"An accepted submission must highlight its server-returned rank in the fetched leaderboard."
+	)
+	_free_fixture(fixture)
+
+
+func _test_non_qualifying_round_displays_shared_leaderboard() -> void:
+	var fixture := _gameplay_fixture(true)
+	for rank in range(10):
+		fixture.leaderboard_repository.entries.append(_leaderboard_entry(rank + 1, 100 - rank))
+	_complete_crash(fixture.session)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_minimum_duration()
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
+			and fixture.session.leaderboard().is_qualified() == false
+			and fixture.flow._gameplay_screen._round_results_screen._leaderboard_overlay != null
+			and (
+				(
+					fixture
+					. flow
+					. _gameplay_screen
+					. _round_results_screen
+					. _leaderboard
+					. top_entries()
+					. size()
+				)
+				== 10
+			)
+		),
+		"A non-qualifying online round must display the independently fetched shared leaderboard."
+	)
 	_free_fixture(fixture)
 
 
@@ -195,6 +241,7 @@ func _test_submission_reaches_results_before_leaderboard_fetch_completes() -> vo
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
 	var submission_request := fixture.flow._post_round_flow._submission_request
 	fixture.leaderboard_repository.complete_deferred(submission_request)
+	var top_entries_request := fixture.flow._post_round_flow._top_entries_request
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -208,6 +255,26 @@ func _test_submission_reaches_results_before_leaderboard_fetch_completes() -> vo
 		"An accepted submission must show results before its independent leaderboard fetch completes."
 	)
 	fixture.flow._return_to_attract()
+	_expect(
+		submission_request.status == LeaderboardRepository.Request.Status.SUCCEEDED,
+		"Returning to attract must not cancel an already accepted submission."
+	)
+	_expect(
+		(
+			top_entries_request.status == LeaderboardRepository.Request.Status.CANCELLED
+			and fixture.flow._post_round_flow._top_entries_request == null
+		),
+		"Returning to attract must cancel and clear the pending leaderboard display request."
+	)
+	fixture.leaderboard_repository.complete_deferred(top_entries_request)
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ATTRACT
+			and fixture.flow._gameplay_screen == null
+			and fixture.flow._primary_view != null
+		),
+		"A late cancelled leaderboard response must not restore results or update the attract screen."
+	)
 	_free_fixture(fixture)
 
 
@@ -327,6 +394,17 @@ func _button_event(button: JoyButton) -> InputEventJoypadButton:
 	event.button_index = button
 	event.pressed = true
 	return event
+
+
+func _leaderboard_entry(rank: int, score: int) -> LeaderboardEntry:
+	var entry := LeaderboardEntry.new()
+	entry.round_id = "existing-round-%d" % rank
+	entry.player_name = "RIDER%d" % rank
+	entry.rider_kind = RiderKind.SKIER
+	entry.total_score = score
+	entry.platform = &"ags"
+	entry.created_at = "test-%02d" % rank
+	return entry
 
 
 func _free_fixture(fixture: Fixture) -> void:
