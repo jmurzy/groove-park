@@ -2,6 +2,8 @@
 class_name FakeLeaderboardRepository
 extends LeaderboardRepository
 
+const TOP_ENTRY_LIMIT := 10
+
 var entries: Array[LeaderboardEntry] = []
 var is_available := true
 var are_top_entries_available := true
@@ -102,7 +104,7 @@ func _accept_submission(
 
 func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
 	var top_entries_result := LeaderboardTopEntriesResult.new()
-	top_entries_result.entries = entries.duplicate()
+	top_entries_result.entries = entries.slice(0, TOP_ENTRY_LIMIT)
 	request.result = top_entries_result
 
 

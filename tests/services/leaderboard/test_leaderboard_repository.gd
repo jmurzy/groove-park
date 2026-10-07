@@ -14,6 +14,7 @@ func _run_tests() -> void:
 	await _test_submission_is_not_duplicated_while_in_flight()
 	await _test_cancelled_operation_cannot_complete_late()
 	await _test_cancelled_submission_does_not_mutate_board()
+	await _test_top_entries_are_limited_to_ten()
 	_test_installation_id_is_persisted()
 	if _failures.is_empty():
 		print("Leaderboard repository checks passed.")
@@ -163,6 +164,29 @@ func _test_cancelled_submission_does_not_mutate_board() -> void:
 			and repository.entries.is_empty()
 		),
 		"A cancelled submission must not mutate the board when its deferred completion arrives."
+	)
+
+
+func _test_top_entries_are_limited_to_ten() -> void:
+	var repository := FakeLeaderboardRepository.new()
+	for score in 11:
+		var entry := LeaderboardEntry.new()
+		entry.round_id = "round-%02d" % score
+		entry.player_name = "PLAYER"
+		entry.rider_kind = RiderKind.SKIER
+		entry.total_score = 10 - score
+		entry.platform = &"ags"
+		entry.created_at = "test"
+		repository.entries.append(entry)
+	var request := repository.get_top_entries()
+	await process_frame
+	var result: LeaderboardTopEntriesResult
+	if request.result is LeaderboardTopEntriesResult:
+		result = request.result
+	_expect(result != null and result.entries.size() == 10, "Top entries must be limited to ten.")
+	_expect(
+		result != null and result.entries[0].total_score == 10,
+		"Top entries must preserve leaderboard rank order."
 	)
 
 
