@@ -149,44 +149,10 @@ func _on_jump_started(_round_state: RoundState) -> void:
 
 
 func _connect_run_audio(run_manager: RiderRunManager) -> void:
-	run_manager.takeoff.connect(_audio_manager.play_event.bind(AudioManager.Event.TAKEOFF))
-	run_manager.compression_charged.connect(
-		_audio_manager.play_event.bind(AudioManager.Event.COMPRESSION_CHARGE)
-	)
-	run_manager.compression_released.connect(
-		_audio_manager.play_event.bind(AudioManager.Event.COMPRESSION_RELEASE)
-	)
-	run_manager.grab_started.connect(_audio_manager.play_event.bind(AudioManager.Event.GRAB_START))
-	run_manager.grab_released.connect(
-		_audio_manager.play_event.bind(AudioManager.Event.GRAB_RELEASE)
-	)
-	run_manager.half_rotation_completed.connect(
-		_audio_manager.play_event.bind(AudioManager.Event.HALF_ROTATION)
-	)
-	run_manager.full_rotation_completed.connect(
-		_audio_manager.play_event.bind(AudioManager.Event.FULL_ROTATION)
-	)
-	run_manager.release_deadline_crossed.connect(
-		_audio_manager.play_event.bind(AudioManager.Event.RELEASE_WARNING)
-	)
-	run_manager.carve_started.connect(_audio_manager.play_event.bind(AudioManager.Event.CARVE))
-	run_manager.brake_started.connect(_audio_manager.play_event.bind(AudioManager.Event.BRAKE))
-	run_manager.tuck_started.connect(_audio_manager.play_event.bind(AudioManager.Event.TUCK))
-	run_manager.outcome_resolved.connect(_on_run_outcome_resolved)
-
-
-func _on_run_outcome_resolved(outcome: int) -> void:
-	match outcome:
-		JumpOutcome.Value.CLEAN:
-			_audio_manager.play_event(AudioManager.Event.LAND_CLEAN)
-		JumpOutcome.Value.SKETCHY:
-			_audio_manager.play_event(AudioManager.Event.LAND_SKETCHY)
-		JumpOutcome.Value.BAIL:
-			_audio_manager.play_event(AudioManager.Event.BAIL)
-		JumpOutcome.Value.CRASH:
-			_audio_manager.play_event(AudioManager.Event.CRASH)
-		JumpOutcome.Value.LOW_MOMENTUM:
-			_audio_manager.play_event(AudioManager.Event.LOW_MOMENTUM)
+	run_manager.event_emitted.connect(_audio_manager.play_event)
+	run_manager.loop_event_started.connect(_audio_manager.play_loop_event)
+	run_manager.loop_event_updated.connect(_audio_manager.update_loop_event)
+	run_manager.loop_event_stopped.connect(_audio_manager.stop_loop_event)
 
 
 func _show_attract() -> void:

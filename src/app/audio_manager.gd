@@ -10,14 +10,7 @@ enum Event {
 	JOYSTICK_MOVE,
 	ROUND_START,
 	JUMP_START,
-	CARVE,
-	BRAKE,
-	TUCK,
-	COMPRESSION_CHARGE,
-	COMPRESSION_RELEASE,
 	TAKEOFF,
-	GRAB_START,
-	GRAB_RELEASE,
 	HALF_ROTATION,
 	FULL_ROTATION,
 	RELEASE_WARNING,
@@ -38,6 +31,14 @@ enum Event {
 	RESULTS_REVEAL,
 }
 
+enum LoopEvent {
+	CARVE,
+	BRAKE,
+	TUCK,
+	COMPRESSION,
+	GRAB,
+}
+
 const BACKGROUND_MUSIC := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
 const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
@@ -50,6 +51,8 @@ const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/koiroylers-keyboar
 const HELICOPTER_HOVER_SOUND := preload(
 	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
 )
+# Temporary loop source until dedicated gameplay loop assets are selected.
+const GAMEPLAY_ACTION_LOOP_SOUND := MENU_SWITCH_SOUND
 
 # Looping attract music.
 const MUSIC_BUS := &"Music"
@@ -59,6 +62,12 @@ const GAMEPLAY_SFX_BUS := &"GameplaySfx"
 const UI_SFX_BUS := &"UiSfx"
 
 const UI_ONE_SHOT_AUDIO_STREAM_COUNT := 5
+# Temporary switch-loop bounds: intensity interpolates from nearly silent/low pitch to an
+# audible/higher pitch. Calibrate replacement action-loop assets on cabinet speakers.
+const GAMEPLAY_ACTION_LOOP_MIN_VOLUME_DB := -30.0
+const GAMEPLAY_ACTION_LOOP_MAX_VOLUME_DB := -14.0
+const GAMEPLAY_ACTION_LOOP_MIN_PITCH_SCALE := 0.8
+const GAMEPLAY_ACTION_LOOP_MAX_PITCH_SCALE := 1.2
 # Category buses begin at unity gain. Source-level gain establishes the normal mix;
 # bus gain is reserved for category-wide controls such as post-round ducking.
 const MUSIC_BUS_VOLUME_DB := 0.0
@@ -79,9 +88,11 @@ const GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB := -20.0
 # -30 dB is approximately 3% amplitude.
 const MUSIC_FADE_START_VOLUME_DB := -30.0
 
-var _helicopter_hover_player: AudioStreamPlayer
 var _background_music_player: AudioStreamPlayer
+
+var _gameplay_helicopter_player: AudioStreamPlayer
 var _gameplay_ambience_player: AudioStreamPlayer
+var _gameplay_action_loop_players: Array[AudioStreamPlayer] = []
 
 var _one_shot_pools: Dictionary = {}
 var _next_one_shot_player: Dictionary = {}
@@ -104,12 +115,21 @@ func configure() -> void:
 	_gameplay_ambience_player = _build_looping_player(
 		GAMEPLAY_SFX_BUS, &"GameplayAmbience", GAMEPLAY_MUSIC
 	)
-	_helicopter_hover_player = _build_looping_player(
+	_gameplay_helicopter_player = _build_looping_player(
 		GAMEPLAY_SFX_BUS,
 		&"HelicopterHover",
 		HELICOPTER_HOVER_SOUND,
 		HELICOPTER_HOVER_ENTRY_VOLUME_DB
 	)
+	for loop: int in LoopEvent.values():
+		_gameplay_action_loop_players.append(
+			_build_looping_player(
+				GAMEPLAY_SFX_BUS,
+				&"GameplayLoop%d" % loop,
+				GAMEPLAY_ACTION_LOOP_SOUND,
+				GAMEPLAY_ACTION_LOOP_MIN_VOLUME_DB
+			)
+		)
 
 	# UI_SFX_BUS
 	_build_one_shot_pool(
@@ -158,12 +178,17 @@ func _build_one_shot_pool(
 func _build_looping_player(
 	bus: StringName,
 	player_name: StringName,
-	stream: AudioStreamMP3,
+	stream: AudioStream,
 	# 0 dB is 100% amplitude.
 	initial_volume_db: float = 0.0
 ) -> AudioStreamPlayer:
-	var looping_stream := stream.duplicate() as AudioStreamMP3
-	looping_stream.loop = true
+	var looping_stream := stream.duplicate()
+	if looping_stream is AudioStreamMP3:
+		(looping_stream as AudioStreamMP3).loop = true
+	elif looping_stream is AudioStreamOggVorbis:
+		(looping_stream as AudioStreamOggVorbis).loop = true
+	else:
+		push_error("Looping audio requires an MP3 or Ogg Vorbis stream.")
 	var player := _build_player(bus, player_name, looping_stream)
 	player.volume_db = initial_volume_db
 	return player
@@ -180,7 +205,7 @@ func _build_player(
 	return player
 
 
-func play_event(event: int) -> void:
+func play_event(event: Event) -> void:
 	match event:
 		Event.UI_MOVE:
 			_play_one_shot(&"MenuSwitchSound")
@@ -198,11 +223,7 @@ func play_event(event: int) -> void:
 			_play_one_shot(&"CabinetSwitchSound")
 		Event.JOYSTICK_MOVE, Event.JUMP_START, Event.TAKEOFF, Event.LAND_CLEAN:
 			_play_one_shot(&"JoystickSound")
-		Event.CARVE, Event.TUCK, Event.COMPRESSION_CHARGE:
-			_play_one_shot(&"MenuSwitchSound")
-		Event.BRAKE, Event.COMPRESSION_RELEASE, Event.GRAB_START:
-			_play_one_shot(&"KeyboardSelectionSound")
-		Event.GRAB_RELEASE, Event.HALF_ROTATION:
+		Event.HALF_ROTATION:
 			_play_one_shot(&"CabinetSwitchSound")
 		Event.RELEASE_WARNING:
 			_play_one_shot(&"BackSound")
@@ -214,6 +235,43 @@ func play_event(event: int) -> void:
 			_play_one_shot(&"ConfirmationSound")
 		Event.RESULTS_REVEAL, Event.SCORE_TOTAL:
 			_play_one_shot(&"CabinetSwitchSound")
+		# No game-over asset is available yet; retain the semantic event without playback.
+		Event.GAME_OVER:
+			pass
+
+
+func play_loop_event(loop_event: LoopEvent) -> void:
+	if loop_event < 0 or loop_event >= _gameplay_action_loop_players.size():
+		return
+	var player := _gameplay_action_loop_players[loop_event]
+	if not player.playing:
+		player.play()
+
+
+func update_loop_event(loop_event: LoopEvent, intensity: float) -> void:
+	if loop_event < 0 or loop_event >= _gameplay_action_loop_players.size():
+		return
+	var player := _gameplay_action_loop_players[loop_event]
+	var normalized_intensity := clampf(intensity, 0.0, 1.0)
+	player.volume_db = lerpf(
+		GAMEPLAY_ACTION_LOOP_MIN_VOLUME_DB, GAMEPLAY_ACTION_LOOP_MAX_VOLUME_DB, normalized_intensity
+	)
+	player.pitch_scale = lerpf(
+		GAMEPLAY_ACTION_LOOP_MIN_PITCH_SCALE,
+		GAMEPLAY_ACTION_LOOP_MAX_PITCH_SCALE,
+		normalized_intensity
+	)
+
+
+func stop_loop_event(loop_event: LoopEvent) -> void:
+	if loop_event < 0 or loop_event >= _gameplay_action_loop_players.size():
+		return
+	_gameplay_action_loop_players[loop_event].stop()
+
+
+func stop_loop_events() -> void:
+	for player in _gameplay_action_loop_players:
+		player.stop()
 
 
 func play_background_music() -> void:
@@ -240,18 +298,18 @@ func duck_gameplay_ambience_for_rescue() -> void:
 
 
 func start_helicopter_hover() -> void:
-	_helicopter_hover_player.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
-	if not _helicopter_hover_player.playing:
-		_helicopter_hover_player.play()
+	_gameplay_helicopter_player.volume_db = HELICOPTER_HOVER_ENTRY_VOLUME_DB
+	if not _gameplay_helicopter_player.playing:
+		_gameplay_helicopter_player.play()
 
 
 func stop_helicopter_hover() -> void:
-	if _helicopter_hover_player:
-		_helicopter_hover_player.stop()
+	if _gameplay_helicopter_player:
+		_gameplay_helicopter_player.stop()
 
 
 func set_helicopter_hover_progress(progress: float) -> void:
-	_helicopter_hover_player.volume_db = lerpf(
+	_gameplay_helicopter_player.volume_db = lerpf(
 		HELICOPTER_HOVER_ENTRY_VOLUME_DB,
 		HELICOPTER_HOVER_LANDING_VOLUME_DB,
 		clampf(progress, 0.0, 1.0)
@@ -322,9 +380,10 @@ func _stop_music(player: AudioStreamPlayer) -> void:
 
 
 func shutdown() -> void:
-	stop_helicopter_hover()
-	stop_gameplay_ambience()
 	stop_background_music()
+	stop_gameplay_ambience()
+	stop_helicopter_hover()
+	stop_loop_events()
 	for players: Array[AudioStreamPlayer] in _one_shot_pools.values():
 		for player in players:
 			player.stop()

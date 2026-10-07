@@ -157,6 +157,7 @@ func start_crash_rescue() -> void:
 func _exit_tree() -> void:
 	if audio_manager:
 		audio_manager.stop_helicopter_hover()
+		audio_manager.stop_loop_events()
 		audio_manager.stop_gameplay_ambience()
 
 

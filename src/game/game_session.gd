@@ -35,6 +35,8 @@ func start_game(selected_rider_kind: StringName) -> void:
 		return
 	rider_kind = selected_rider_kind
 	round_id = Id.generate_id()
+	if run_manager:
+		run_manager.suspend_loop_events()
 	run_manager = null
 	is_paused = false
 	_leaderboard = Leaderboard.new()
@@ -67,6 +69,8 @@ func set_paused(next_paused: bool) -> void:
 	if is_paused == next_paused:
 		return
 	is_paused = next_paused
+	if is_paused and run_manager:
+		run_manager.suspend_loop_events()
 
 
 func advance(delta: float) -> void:
@@ -89,6 +93,8 @@ func advance(delta: float) -> void:
 
 func return_to_attract() -> void:
 	is_paused = false
+	if run_manager:
+		run_manager.suspend_loop_events()
 	run_manager = null
 	_round_state = null
 	round_id = ""
@@ -279,6 +285,8 @@ func _finish_crash_rescue() -> bool:
 func _begin_current_jump() -> void:
 	if not _is_jump_active():
 		return
+	if run_manager:
+		run_manager.suspend_loop_events()
 	run_manager = RiderRunManager.new()
 	run_manager.setup(_course)
 	jump_started.emit(_round_state)
