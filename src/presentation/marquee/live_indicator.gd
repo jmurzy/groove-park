@@ -2,7 +2,6 @@
 class_name LiveIndicator
 extends Control
 
-const ARCADE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const BLINK_DURATION := 0.7
 
 var _elapsed := 0.0
@@ -37,7 +36,7 @@ func _ready() -> void:
 
 	var live_label := Label.new()
 	live_label.text = "LIVE"
-	live_label.add_theme_font_override("font", ARCADE_FONT)
+	live_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
 	live_label.add_theme_font_size_override("font_size", 24)
 	live_label.add_theme_color_override("font_color", Color("fff1f1"))
 	live_label.add_theme_color_override("font_outline_color", Color("641010"))
@@ -48,7 +47,7 @@ func _ready() -> void:
 	source_label.text = "MOUNTAIN OPS"
 	source_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	source_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	source_label.add_theme_font_override("font", ARCADE_FONT)
+	source_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
 	source_label.add_theme_font_size_override("font_size", 20)
 	source_label.add_theme_color_override("font_color", Color("d4efff"))
 	source_label.add_theme_color_override("font_outline_color", Color("07182d"))

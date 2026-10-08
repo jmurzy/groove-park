@@ -2,7 +2,6 @@
 class_name MarqueeTicker
 extends Control
 
-const MARQUEE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
 const SPEED := 85.0
 const TRACK_GAP := 72.0
 
@@ -49,7 +48,7 @@ func _build_lift_item(lift_name: String, status: String) -> HBoxContainer:
 	name_label.text = lift_name
 	name_label.custom_minimum_size = Vector2(620, 116)
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_override("font", MARQUEE_FONT)
+	name_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
 	name_label.add_theme_color_override("font_color", Color("f5fbff"))
 	name_label.add_theme_color_override("font_outline_color", Color("07182d"))
 	name_label.add_theme_constant_override("outline_size", 8)
@@ -59,7 +58,7 @@ func _build_lift_item(lift_name: String, status: String) -> HBoxContainer:
 	var leader_label := Label.new()
 	leader_label.text = "...."
 	leader_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	leader_label.add_theme_font_override("font", MARQUEE_FONT)
+	leader_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
 	leader_label.add_theme_color_override("font_color", Color("ffd166"))
 	leader_label.add_theme_color_override("font_outline_color", Color("07182d"))
 	leader_label.add_theme_constant_override("outline_size", 5)
@@ -69,7 +68,7 @@ func _build_lift_item(lift_name: String, status: String) -> HBoxContainer:
 	status_label.text = "  %s  " % status
 	status_label.custom_minimum_size = Vector2(0, 70)
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_override("font", MARQUEE_FONT)
+	status_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
 	status_label.add_theme_color_override("font_color", _status_text_color(status))
 	status_label.add_theme_font_size_override("font_size", 28)
 	status_label.add_theme_stylebox_override("normal", _status_style(status))

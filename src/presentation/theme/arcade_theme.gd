@@ -3,7 +3,9 @@
 class_name ArcadeTheme
 extends RefCounted
 
-const ARCADE_FONT := preload("res://assets/fonts/PressStart2P-Regular.ttf")
+const ARCADE_FONT := preload("res://assets/fonts/PressStart2P/PressStart2P-Regular.ttf")
+const AUDIOWIDE_FONT := preload("res://assets/fonts/Audiowide/Audiowide-Regular.ttf")
+const SYMBOL_FONT := preload("res://assets/fonts/NotoSansSymbols2/NotoSansSymbols2-Regular.ttf")
 
 
 static func make_label(text: String, font_size: int, color: Color) -> Label:

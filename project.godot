@@ -38,6 +38,10 @@ window/stretch/mode="canvas_items"
 
 run/main_run_args="-- --designer-mode"
 
+[gui]
+
+theme/custom_font="res://assets/fonts/Audiowide/Audiowide-Regular.ttf"
+
 [input]
 
 exit_escape={

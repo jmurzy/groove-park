@@ -81,7 +81,7 @@ func _build_header() -> void:
 	add_child(header)
 
 	var summary := _build_divided_line(
-		["14 OPEN", "2 HOLD", "1 CLOSED"], 34, Color("ffffff"), 52, 6, true
+		["14 OPEN", "2 HOLD", "1 CLOSED"], 32, Color("ffffff"), 52, 6, true
 	)
 	header.add_child(LiveIndicatorScene.new())
 	header.add_child(summary)
@@ -96,7 +96,7 @@ func _build_ticker() -> void:
 
 func _build_footer() -> void:
 	var footer := _build_divided_line(
-		["CONDITIONS CAN CHANGE", "OBSERVE ALL POSTED SIGNAGE"], 26, Color("d4efff"), 44, 4, true
+		["CONDITIONS CAN CHANGE", "OBSERVE ALL POSTED SIGNAGE"], 22, Color("d4efff"), 44, 6, true
 	)
 	footer.position = Vector2(58, 284)
 	footer.size = Vector2(1804, 44)
@@ -109,7 +109,7 @@ func _build_divided_line(
 	font_size: int,
 	text_color: Color,
 	line_height: int,
-	separator_offset: int,
+	separator_top_margin: int,
 	animate_separators: bool = false
 ) -> HBoxContainer:
 	var line := HBoxContainer.new()
@@ -121,13 +121,14 @@ func _build_divided_line(
 			separator_container.custom_minimum_size.y = line_height
 			separator_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			var separator_padding := MarginContainer.new()
-			separator_padding.add_theme_constant_override("margin_bottom", separator_offset * 2)
+			separator_padding.add_theme_constant_override("margin_top", separator_top_margin)
 			var separator := Label.new()
 			separator.text = "◆"
+			separator.add_theme_font_override("font", ArcadeTheme.SYMBOL_FONT)
 			separator.add_theme_color_override("font_color", Color("ffd166"))
 			separator.add_theme_color_override("font_outline_color", Color("07182d"))
 			separator.add_theme_constant_override("outline_size", 7)
-			separator.add_theme_font_size_override("font_size", roundi(font_size * 1.5))
+			separator.add_theme_font_size_override("font_size", roundi(font_size * 0.8))
 			_add_pixel_shadow(separator, 4)
 			if animate_separators:
 				_animated_separators.append(separator)
@@ -140,6 +141,7 @@ func _build_divided_line(
 		label_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var label := Label.new()
 		label.text = parts[index]
+		label.add_theme_font_override("font", ArcadeTheme.AUDIOWIDE_FONT)
 		label.add_theme_color_override("font_color", text_color)
 		label.add_theme_color_override("font_outline_color", Color("07182d"))
 		label.add_theme_constant_override("outline_size", 7)
@@ -178,6 +180,7 @@ func _build_diagnostics() -> Label:
 	var screen_size := DisplayServer.screen_get_size(screen_index)
 	diagnostics.text = "Godot screen %d  /  %d x %d" % [screen_index, screen_size.x, screen_size.y]
 	diagnostics.position = Vector2(1510, 326)
+	diagnostics.add_theme_font_override("font", ArcadeTheme.AUDIOWIDE_FONT)
 	diagnostics.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
 	diagnostics.add_theme_font_size_override("font_size", 14)
 	return diagnostics
