@@ -127,8 +127,6 @@
 		<script src="$GODOT_URL"></script>
 		<script>
 			const GODOT_CONFIG = $GODOT_CONFIG;
-			// This non-threaded export is hosted with cross-origin assets, so it cannot install a service worker.
-			GODOT_CONFIG.ensureCrossOriginIsolationHeaders = false;
 			const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
 			const engine = new Engine(GODOT_CONFIG);
 
