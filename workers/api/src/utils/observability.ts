@@ -1,13 +1,13 @@
 import type { Context } from "hono";
 import { routePath } from "hono/route";
 
-import type { WorkerEnv } from "../workerTypes";
+import type { ApiWorkerEnv } from "../../alchemy.run";
 
 export interface RequestVariables {
 	requestId: string;
 }
 
-type ObservedContext = Context<{ Bindings: WorkerEnv; Variables: RequestVariables }>;
+type ObservedContext = Context<{ Bindings: ApiWorkerEnv; Variables: RequestVariables }>;
 
 export function observeRequest(context: ObservedContext, durationMs: number): void {
 	const status = context.res.status;

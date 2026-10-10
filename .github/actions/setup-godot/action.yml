@@ -1,0 +1,53 @@
+name: Setup pinned Godot
+description: Download, verify, and install the pinned Godot editor with optional export templates.
+
+inputs:
+  release:
+    description: Godot release to install.
+    required: true
+  install-export-templates:
+    description: Whether to install the matching export templates.
+    required: false
+    default: "false"
+  template-version:
+    description: Godot export template directory version.
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Download and install pinned Godot editor
+      shell: bash
+      env:
+        GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
+        GODOT_EDITOR_SHA256: d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3
+        GODOT_RELEASE: ${{ inputs.release }}
+      run: |
+        curl --fail --location --retry 3 \
+          --output "$RUNNER_TEMP/godot.zip" \
+          "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+        printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$RUNNER_TEMP/godot.zip" | sha256sum --check
+        unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+        sudo install \
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" \
+          /usr/local/bin/godot
+        godot --version
+
+    - name: Download and install pinned Godot export templates
+      if: inputs.install-export-templates == 'true'
+      shell: bash
+      env:
+        GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
+        GODOT_RELEASE: ${{ inputs.release }}
+        GODOT_TEMPLATE_VERSION: ${{ inputs.template-version }}
+        GODOT_TEMPLATES_SHA256: 3fbe2c0e2dec9d537ab9ec97bcf8da91dcf23357fc51f67092dd068d839290a8
+      run: |
+        curl --fail --location --retry 3 \
+          --output "$RUNNER_TEMP/templates.tpz" \
+          "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+        printf '%s  %s\n' "$GODOT_TEMPLATES_SHA256" "$RUNNER_TEMP/templates.tpz" | sha256sum --check
+        unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/export-templates"
+        mkdir -p "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION"
+        cp -R \
+          "$RUNNER_TEMP/export-templates/templates/." \
+          "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION/"

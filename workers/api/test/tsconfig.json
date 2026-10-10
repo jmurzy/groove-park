@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["@cloudflare/vitest-plugin/types", "vitest/globals"]
+    "types": ["vitest/globals"]
   },
-  "include": ["./**/*.ts", "../workerConfiguration.d.ts"]
+  "include": ["./**/*.ts", "../alchemy.run.ts", "../src/**/*.ts"]
 }

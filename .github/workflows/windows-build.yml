@@ -1,91 +1,24 @@
 name: Windows build
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*"
-    paths-ignore:
-      - "workers/api/**"
-  pull_request:
-    paths-ignore:
-      - "workers/api/**"
-  workflow_dispatch:
-
-env:
-  GODOT_VERSION: 4.6.3
-  GODOT_RELEASE: 4.6.3-stable
-  GODOT_TEMPLATE_VERSION: 4.6.3.stable
+  workflow_run:
+    workflows:
+      - Checks
+    types:
+      - completed
 
 jobs:
-  checks:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-
-      - name: Install Just
-        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
-        with:
-          tool: just@1.58.0
-          fallback: none
-
-      - name: Install gdtoolkit
-        run: pipx install "gdtoolkit==4.*"
-
-      - name: Check formatting and lint
-        run: just lint-check
-
-      - name: Download pinned actionlint
-        env:
-          ACTIONLINT_VERSION: 1.7.12
-          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-        run: |
-          curl --fail --location --retry 3 \
-            --output "$RUNNER_TEMP/actionlint.tar.gz" \
-            "https://github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
-
-      - name: Check GitHub Actions workflows
-        run: |
-          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
-          sudo install "$RUNNER_TEMP/actionlint" /usr/local/bin/actionlint
-          just actionlint-check
-
-      - name: Download pinned Godot editor
-        env:
-          GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
-          GODOT_EDITOR_SHA256: d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3
-        run: |
-          curl --fail --location --retry 3 \
-            --output "$RUNNER_TEMP/godot.zip" \
-            "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
-          printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$RUNNER_TEMP/godot.zip" | sha256sum --check
-
-      - name: Install Godot
-        run: |
-          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
-          sudo install \
-            "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" \
-            /usr/local/bin/godot
-          godot --version
-
-      - name: Run checks
-        env:
-          GODOT_BIN: godot
-        run: just check
-
   build:
-    needs: checks
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
+      # Builds the exact commit that completed the successful Checks workflow.
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Install Just
         uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
@@ -93,38 +26,25 @@ jobs:
           tool: just@1.58.0
           fallback: none
 
-      - name: Download pinned Godot editor and export templates
-        env:
-          GODOT_BASE_URL: https://github.com/godotengine/godot-builds/releases/download
-          GODOT_EDITOR_SHA256: d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3
-          GODOT_TEMPLATES_SHA256: 3fbe2c0e2dec9d537ab9ec97bcf8da91dcf23357fc51f67092dd068d839290a8
-        run: |
-          curl --fail --location --retry 3 \
-            --output "$RUNNER_TEMP/godot.zip" \
-            "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
-          curl --fail --location --retry 3 \
-            --output "$RUNNER_TEMP/templates.tpz" \
-            "$GODOT_BASE_URL/$GODOT_RELEASE/Godot_v${GODOT_RELEASE}_export_templates.tpz"
-          printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$RUNNER_TEMP/godot.zip" | sha256sum --check
-          printf '%s  %s\n' "$GODOT_TEMPLATES_SHA256" "$RUNNER_TEMP/templates.tpz" | sha256sum --check
+      # Supplies bsdtar, which the packaging recipe uses for reproducible archives.
+      - name: Install bsdtar
+        run: sudo apt-get update && sudo apt-get install --yes libarchive-tools
 
-      - name: Install Godot and export templates
-        run: |
-          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
-          sudo install \
-            "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" \
-            /usr/local/bin/godot
-          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/export-templates"
-          mkdir -p "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION"
-          cp -R \
-            "$RUNNER_TEMP/export-templates/templates/." \
-            "$HOME/.local/share/godot/export_templates/$GODOT_TEMPLATE_VERSION/"
-          godot --version
+      # Sets up the verified editor and templates required for Windows exports.
+      - name: Set up Godot
+        uses: ./.github/actions/setup-godot
+        env:
+          GODOT_RELEASE: 4.6.3-stable
+          GODOT_TEMPLATE_VERSION: 4.6.3.stable
+        with:
+          release: ${{ env.GODOT_RELEASE }}
+          install-export-templates: "true"
+          template-version: ${{ env.GODOT_TEMPLATE_VERSION }}
 
       - name: Import, export, and package Windows release
         env:
           GODOT_BIN: godot
-        run: just package
+        run: just package-ags
 
       - name: Upload Windows package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -137,7 +57,9 @@ jobs:
           retention-days: 14
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -148,13 +70,15 @@ jobs:
         with:
           name: HEAVENLY-windows-x86_64
 
+      # Publishes the tagged build and replaces assets when the release already exists.
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
-          gh release upload "$GITHUB_REF_NAME" \
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" --generate-notes --title "$RELEASE_TAG"
+          gh release upload "$RELEASE_TAG" \
             HEAVENLY-windows-x86_64.zip \
             HEAVENLY-windows-x86_64.zip.sha256 \
             --clobber

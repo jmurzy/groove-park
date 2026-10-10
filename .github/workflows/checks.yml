@@ -1,0 +1,78 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths:
+      - ".github/workflows/**"
+      - ".godot-version"
+      - "assets/**"
+      - "images/**"
+      - "export_presets.cfg"
+      - "justfile"
+      - "project.godot"
+      - "src/**"
+      - "tests/**"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".godot-version"
+      - "assets/**"
+      - "images/**"
+      - "export_presets.cfg"
+      - "justfile"
+      - "project.godot"
+      - "src/**"
+      - "tests/**"
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      # Makes repository recipes and source files available to the runner.
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      # Provides the pinned task runner used for every project check.
+      - name: Install Just
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+        with:
+          tool: just@1.58.0
+          fallback: none
+
+      # Installs the exact workflow linter that `just check` invokes.
+      - name: Download and install pinned actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/actionlint.tar.gz" \
+            "https://github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          sudo install "$RUNNER_TEMP/actionlint" /usr/local/bin/actionlint
+
+      # Provides GDScript formatting and linting commands used by `just check`.
+      - name: Install gdtoolkit
+        run: pipx install "gdtoolkit==4.*"
+
+      # Provides the Godot CLI required to import, typecheck, and test the game.
+      - name: Set up Godot editor
+        uses: ./.github/actions/setup-godot
+        env:
+          GODOT_RELEASE: 4.6.3-stable
+        with:
+          release: ${{ env.GODOT_RELEASE }}
+
+      # Runs the repository's complete validation suite before any release work.
+      - name: Run checks
+        env:
+          GODOT_BIN: godot
+        run: just check

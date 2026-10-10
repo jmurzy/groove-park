@@ -1,17 +1,19 @@
 import { Hono, type MiddlewareHandler } from "hono";
+import { cors } from "hono/cors";
 
+import { getGame } from "./game/handlers";
 import { getLeaderboard, qualifyLeaderboard, resetLeaderboard, submitLeaderboard } from "./leaderboard/handlers";
 import { getResort } from "./liftie/handlers";
 import { error } from "./utils/http";
 import { observeRequest, type RequestVariables } from "./utils/observability";
 import { limitInstallationRequest, limitIpRequest } from "./utils/rateLimit";
-import type { WorkerEnv } from "./workerTypes";
+import type { ApiWorkerEnv } from "../alchemy.run";
 
 export { GlobalLeaderboard } from "./leaderboard/durableObject";
 
-const app = new Hono<{ Bindings: WorkerEnv; Variables: RequestVariables }>();
+const app = new Hono<{ Bindings: ApiWorkerEnv; Variables: RequestVariables }>();
 
-app.use("*", async (context, next) => {
+app.use("/api/*", async (context, next) => {
 	const startedAt = performance.now();
 	const requestId = crypto.randomUUID();
 	context.set("requestId", requestId);
@@ -21,7 +23,7 @@ app.use("*", async (context, next) => {
 });
 
 const limitRequest: MiddlewareHandler<{
-	Bindings: WorkerEnv;
+	Bindings: ApiWorkerEnv;
 	Variables: RequestVariables;
 }> = async (context, next) => {
 	const response =
@@ -31,12 +33,23 @@ const limitRequest: MiddlewareHandler<{
 	await next();
 };
 
-app.use("*", limitRequest);
+app.use("/api/*", (context, next) =>
+	cors({
+		origin: context.env.GAME_ORIGIN,
+		allowHeaders: ["Accept", "Content-Type", "X-Installation-Id"],
+		allowMethods: ["GET", "POST", "OPTIONS"],
+		exposeHeaders: ["X-Request-Id"],
+		maxAge: 86400,
+	})(context, next),
+);
+app.use("/api/*", limitRequest);
+
+app.get("/", getGame);
 
 app.get("/api/liftie/resort/:resortName", getResort);
 
 app.get("/api/leaderboard", getLeaderboard);
-app.get("/reset", resetLeaderboard);
+app.get("/api/reset", resetLeaderboard);
 app.post("/api/leaderboard/qualify", qualifyLeaderboard);
 app.post("/api/leaderboard/submissions", submitLeaderboard);
 

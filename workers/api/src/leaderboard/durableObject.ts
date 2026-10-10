@@ -1,5 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
+import type { ApiWorkerEnv } from "../../alchemy.run";
+
 export const TOP_ENTRY_LIMIT = 10;
 
 export type RiderKind = "skier" | "snowboarder";
@@ -65,8 +67,8 @@ ON leaderboard_entries(total_score DESC, created_at ASC, round_id ASC);
 	},
 ];
 
-export class GlobalLeaderboard extends DurableObject<Env> {
-	constructor(ctx: DurableObjectState, env: Env) {
+export class GlobalLeaderboard extends DurableObject<ApiWorkerEnv> {
+	constructor(ctx: DurableObjectState, env: ApiWorkerEnv) {
 		super(ctx, env);
 		ctx.blockConcurrencyWhile(() => this.initialize());
 	}
@@ -83,6 +85,7 @@ export class GlobalLeaderboard extends DurableObject<Env> {
 	}
 
 	async checkQualification(totalScore: number): Promise<{ qualified: boolean }> {
+		if (totalScore <= 0) return { qualified: false };
 		const tenth = this.ctx.storage.sql
 			.exec<{ total_score: number }>(
 				"SELECT total_score FROM leaderboard_entries ORDER BY total_score DESC, created_at ASC, round_id ASC LIMIT 1 OFFSET ?",
@@ -93,6 +96,7 @@ export class GlobalLeaderboard extends DurableObject<Env> {
 	}
 
 	async submit(submission: ScoreSubmission): Promise<SubmissionResult> {
+		if (submission.totalScore <= 0) throw new RangeError("Leaderboard scores must be positive");
 		const existing = this.ctx.storage.sql
 			.exec<LeaderboardEntryRow>("SELECT * FROM leaderboard_entries WHERE round_id = ?", submission.roundId)
 			.toArray()[0];

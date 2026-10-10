@@ -1,0 +1,117 @@
+name: Deploy web game
+
+on:
+  workflow_run:
+    workflows:
+      - Checks
+    types:
+      - completed
+
+concurrency:
+  # Serialize current.json updates so an older build cannot promote after a newer one.
+  group: web-deploy-grp
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    env:
+      # workflow_run's GITHUB_SHA can differ from the commit that completed Checks.
+      RELEASE: ${{ github.event.workflow_run.head_sha }}
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      # Deploys the exact commit that completed the successful Checks workflow.
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install Just
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+        with:
+          tool: just@1.58.0
+          fallback: none
+
+      # Sets up the verified editor and templates required for web exports.
+      - name: Set up Godot
+        uses: ./.github/actions/setup-godot
+        env:
+          GODOT_RELEASE: 4.6.3-stable
+          GODOT_TEMPLATE_VERSION: 4.6.3.stable
+        with:
+          release: ${{ env.GODOT_RELEASE }}
+          install-export-templates: "true"
+          template-version: ${{ env.GODOT_TEMPLATE_VERSION }}
+
+      # Provides the Node.js runtime and dependency cache needed by Wrangler.
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: workers/api/package-lock.json
+
+      # Installs the pinned project dependencies, including the Wrangler CLI.
+      - name: Install Wrangler
+        run: npm ci --prefix workers/api
+
+      - name: Export Web game
+        env:
+          GODOT_BIN: godot
+        run: just export-web
+
+      # Uploads the entry document without caching so clients resolve the current release.
+      - name: Upload release entry document
+        env:
+          R2_BUCKET: game-releases
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/index.html" \
+            --file build/web/index.html \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "no-cache, max-age=0, must-revalidate" \
+            --remote
+
+      # Uploads immutable assets under the commit SHA before promoting the release.
+      - name: Upload immutable release assets
+        env:
+          R2_BUCKET: game-releases
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          find build/web -type f ! -path 'build/web/index.html' -print0 | while IFS= read -r -d '' file; do
+            key="releases/${RELEASE}/${file#build/web/}"
+            case "$file" in
+              *.html) content_type="text/html; charset=utf-8" ;;
+              *.js) content_type="text/javascript; charset=utf-8" ;;
+              *.wasm) content_type="application/wasm" ;;
+              *.pck) content_type="application/octet-stream" ;;
+              *) content_type="$(file --brief --mime-type "$file")" ;;
+            esac
+            npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/$key" \
+              --file "$file" \
+              --content-type "$content_type" \
+              --cache-control "public, max-age=31536000, immutable" \
+              --remote
+          done
+
+      # Promotes this commit only after every immutable asset has uploaded.
+      - name: Publish release pointer
+        env:
+          R2_BUCKET: game-releases
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          printf '{"release":"%s"}\n' "$RELEASE" > "$RUNNER_TEMP/current.json"
+          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/current.json" \
+            --file "$RUNNER_TEMP/current.json" \
+            --content-type "application/json; charset=utf-8" \
+            --cache-control "no-store" \
+            --remote

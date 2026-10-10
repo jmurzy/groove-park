@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  check:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
@@ -23,6 +23,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
+      - name: Install Just
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+        with:
+          tool: just@1.58.0
+          fallback: none
+
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -31,13 +37,43 @@ jobs:
           cache-dependency-path: workers/api/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: just install
 
       - name: Check Worker
-        run: npm run typecheck && npm test
+        env:
+          LIFTIE_USER_AGENT: "Example/1.0 (+https://example.com; contact: ops@example.com)"
+        run: just check
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers/api
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Install Just
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+        with:
+          tool: just@1.58.0
+          fallback: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: workers/api/package-lock.json
+
+      - name: Install dependencies
+        run: just install
 
       - name: Deploy Worker
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npm run deploy
+          LIFTIE_USER_AGENT: ${{ secrets.LIFTIE_USER_AGENT }}
+        run: just deploy

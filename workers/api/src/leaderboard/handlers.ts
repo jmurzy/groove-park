@@ -9,6 +9,10 @@ function isScore(value: unknown): value is number {
 	return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= MAX_SCORE;
 }
 
+function isLeaderboardScore(value: unknown): value is number {
+	return isScore(value) && value > 0;
+}
+
 function normalizePlayerName(value: unknown): string | null {
 	if (typeof value !== "string") return null;
 	const playerName = value.normalize("NFC").trim();
@@ -59,7 +63,7 @@ function parseSubmission(value: Record<string, unknown>):
 		return { ok: false, code: "INVALID_ROUND_ID" };
 	}
 	if (value.riderKind !== "skier" && value.riderKind !== "snowboarder") return { ok: false, code: "INVALID_RIDER_KIND" };
-	if (!isScore(value.totalScore)) return { ok: false, code: "INVALID_TOTAL_SCORE" };
+	if (!isLeaderboardScore(value.totalScore)) return { ok: false, code: "INVALID_TOTAL_SCORE" };
 	if (value.platform !== "ags" && value.platform !== "web") return { ok: false, code: "INVALID_PLATFORM" };
 	return {
 		ok: true,

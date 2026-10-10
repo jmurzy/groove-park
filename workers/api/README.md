@@ -1,7 +1,41 @@
 # Heavenly API Worker
 
-The Heavenly API is a Cloudflare Worker that serves Liftie status and fronts one SQLite-backed
-Durable Object named `leaderboard-global` for the shared leaderboard.
+The Heavenly API is a Cloudflare Worker that serves the Web game's no-cache entry document, serves
+Liftie status, and fronts one SQLite-backed Durable Object named `leaderboard-global` for the shared
+leaderboard.
+
+## Web release hosting
+
+The Worker reads `current.json` from the `game-releases` R2 bucket and fetches the referenced
+`releases/<commit SHA>/index.html`. It injects a base URL for the R2 custom domain and public
+runtime settings as `window.HEAVENLY_CFG`, so game assets load directly from
+`assets.game.gunbarrelhaus.com` rather than through the Worker. The deployment workflow uploads a
+complete immutable release before updating `current.json`; never overwrite an existing release
+prefix.
+
+`alchemy.run.ts` adopts the `gunbarrelhaus.com` zone and manages the `game-releases` bucket, its
+`assets.game.gunbarrelhaus.com` custom domain, CORS, Worker domains, bindings, rate limits, and
+secrets. Its fixed resource names and adoption policy preserve an existing `game-server` Worker,
+`GlobalLeaderboard` Durable Object namespace, and `game-releases` bucket when present on the first
+deploy. It does not manage DNS records that are not explicitly declared in the stack. Review
+`npm run plan` before production deploys. The web deployment workflow continues to publish immutable
+R2 objects and update `current.json`. The API deployment workflow requires the `LIFTIE_USER_AGENT`
+GitHub Actions secret in addition to the Cloudflare credentials.
+
+## Production secrets
+
+Configure these as GitHub Actions secrets, restricted to the production repository or environment:
+
+- `CLOUDFLARE_ACCOUNT_ID`: the target Cloudflare account identifier. It is used only by deployment
+  workflows.
+- `CLOUDFLARE_API_TOKEN`: a token restricted to that account, with only the permissions required to
+  deploy the declared Worker resources and read/write `game-releases` R2 objects. Review `npm run plan`
+  when infrastructure changes and narrow the token scope accordingly.
+- `LIFTIE_USER_AGENT`: the sole Worker secret. It is supplied only to the API deployment workflow,
+  not Web release publishing.
+
+`GAME_ORIGIN`, `GAME_API_ORIGIN`, and `GAME_ASSET_ORIGIN` are public deployment configuration in
+`alchemy.run.ts`, not secrets.
 
 ## Requirements
 
@@ -17,15 +51,15 @@ npm run typecheck
 npm run dev
 ```
 
-The generated `workerConfiguration.d.ts` is intentionally untracked. Generate it with
-`npm run cf-typegen` whenever `wrangler.jsonc` changes.
+The tests deploy `alchemy.run.ts` to local workerd emulation, including the R2 bucket and
+SQLite-backed Durable Object. Wrangler remains installed only for the immutable R2 object uploads
+in the web release workflow.
 
-`TZ` is an IANA timezone name used to create explicit offset-bearing leaderboard timestamps. Set
-it in `.env` for local development and as a Cloudflare Worker secret for deployment.
+`TZ` is fixed to `UTC` for explicit offset-bearing leaderboard timestamps.
 
 ## Database migrations
 
-`wrangler.jsonc` declaratively exports the SQLite-backed `GlobalLeaderboard` Durable Object class.
+`alchemy.run.ts` declaratively exports the SQLite-backed `GlobalLeaderboard` Durable Object class.
 SQL table changes are versioned in `src/leaderboard/durableObject.ts` and recorded in
 `_sql_schema_migrations`. Add a new, strictly increasing migration entry for every persistent
 schema change; never edit an applied one.
@@ -66,8 +100,7 @@ For the initial deployment, copy `.env.example` to `.env`, replace its placehold
 upload the Worker and its required secrets together:
 
 ```sh
-npx wrangler deploy --secrets-file .env
+npm run deploy
 ```
 
-After the Worker exists, update an individual deployed secret with `npx wrangler secret put <KEY>`.
-The `.env` file is also used by local `wrangler dev`; it is ignored and must not be committed.
+The `.env` file is also used by local `alchemy dev`; it is ignored and must not be committed.

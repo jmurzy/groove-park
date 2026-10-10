@@ -3,3 +3,6 @@ node_modules/
 workerConfiguration.d.ts
 .env*
 !.env.example
+
+# Alchemy local CLI cache and deployment metadata.
+.alchemy/

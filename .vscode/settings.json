@@ -4,6 +4,8 @@
     "**/.godot": true,
     "**/*.gd.uid": true,
     "**/*.import": true,
+    "**/*.wrangler": true,
+    "**/.alchemy": true,
     "**/node_modules": true
   },
 
@@ -12,6 +14,8 @@
     "**/.git": true,
     "**/build": true,
     "**/.godot": true,
+    "**/*.wrangler": true,
+    "**/.alchemy": true,
     "**/node_modules": true
   },
 
