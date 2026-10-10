@@ -1,10 +1,20 @@
+import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Vitest";
 import { describe, expect } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 
-import Stack from "../alchemy.run";
+import { apiWorker } from "../alchemy.run";
 import { normalizeResortResponse, UNKNOWN_LIFTIE_STATE } from "../src/liftie/handlers";
+
+const localStack = Alchemy.Stack(
+	"game",
+	{ providers: Cloudflare.providers(), state: Alchemy.localState() },
+	Effect.gen(function* () {
+		const api = yield* apiWorker;
+		return { apiUrl: api.url };
+	}),
+);
 
 const { test: alchemyTest, beforeAll, beforeEach, deploy } = Test.make({
 	providers: Cloudflare.providers(),
@@ -12,7 +22,7 @@ const { test: alchemyTest, beforeAll, beforeEach, deploy } = Test.make({
 });
 const test = (name: string, make: () => Effect.Effect<void, any>) =>
 	alchemyTest(name, Effect.suspend(make).pipe(Effect.orDie));
-const stack = beforeAll(deploy(Stack));
+const stack = beforeAll(deploy(localStack));
 
 const submission = {
 	roundId: "018f3d8e-6b1c-7ef9-8cf6-252ff3d07123",
