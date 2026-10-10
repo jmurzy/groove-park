@@ -28,6 +28,6 @@ test:
 [doc("Run type checks and tests.")]
 check: typecheck test
 
-[doc("Deploy the Worker using the configured Wrangler credentials.")]
-deploy:
-    npm run deploy
+[doc("Deploy the Worker using the configured Cloudflare credentials. Extra arguments are forwarded to Alchemy.")]
+deploy *args:
+    npm run deploy -- {{ quote(args) }}
