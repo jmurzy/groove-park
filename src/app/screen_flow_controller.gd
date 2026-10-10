@@ -7,6 +7,7 @@ signal quit_requested
 const PrimaryScreenScene := preload("res://src/presentation/attract/primary_screen.gd")
 const GameplayScreenScene := preload("res://src/presentation/gameplay/gameplay_screen.gd")
 const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
+const GameArgsScene := preload("res://src/app/game_args.gd")
 const PostRoundFlowControllerScene := preload("res://src/app/post_round_flow_controller.gd")
 
 var _game_session: GameSession
@@ -15,8 +16,7 @@ var _audio_manager: AudioManager
 var _liftie_state_service: LiftieStateService
 var _leaderboard_repository: LeaderboardRepository
 var _post_round_flow: PostRoundFlowController
-var _primary_screen_index := 0
-var _options: DevOptions
+var _options: GameArgsScene.GameOptions
 var _primary_view: PrimaryScreen
 var _gameplay_screen: GameplayScreen
 var _transitioning := false
@@ -28,8 +28,7 @@ func setup(
 	audio_manager: AudioManager,
 	liftie_state_service: LiftieStateService,
 	leaderboard_repository: LeaderboardRepository,
-	primary_screen_index: int,
-	options: DevOptions
+	options: GameArgsScene.GameOptions
 ) -> void:
 	assert(
 		leaderboard_repository != null, "ScreenFlowController requires a leaderboard repository."
@@ -39,7 +38,6 @@ func setup(
 	_audio_manager = audio_manager
 	_liftie_state_service = liftie_state_service
 	_leaderboard_repository = leaderboard_repository
-	_primary_screen_index = primary_screen_index
 	_options = options
 	_post_round_flow = PostRoundFlowControllerScene.new()
 	_post_round_flow.setup(_game_session, _leaderboard_repository)
@@ -49,18 +47,6 @@ func setup(
 	_game_session.leaderboard_changed.connect(_on_leaderboard_changed)
 	_game_session.jump_started.connect(_on_jump_started)
 	_show_attract()
-
-
-func handle_exit_input() -> bool:
-	if _primary_view and _primary_view.handle_escape():
-		return true
-	if _gameplay_screen:
-		if _gameplay_screen.is_exit_confirmation_open():
-			_gameplay_screen.close_exit_confirmation()
-		else:
-			_gameplay_screen.request_exit_confirmation()
-		return true
-	return false
 
 
 func _process(delta: float) -> void:
@@ -159,12 +145,10 @@ func _connect_run_audio(run_manager: RiderRunManager) -> void:
 
 func _show_attract() -> void:
 	_primary_view = PrimaryScreenScene.new()
-	_primary_view.screen_index = _primary_screen_index
 	_primary_view.liftie_state_service = _liftie_state_service
 	_primary_view.input_router = _input_router
 	_primary_view.audio_manager = _audio_manager
 	_primary_view.leaderboard_repository = _leaderboard_repository
-	_primary_view.show_diagnostics = _options.show_diagnostics
 	_primary_view.start_game_requested.connect(_start_game)
 	_primary_view.exit_requested.connect(quit_requested.emit)
 	add_child(_primary_view)

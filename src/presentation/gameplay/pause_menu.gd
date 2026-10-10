@@ -18,6 +18,8 @@ var _has_menu_focus := false
 
 func _ready() -> void:
 	name = "ExitConfirmation"
+	# This menu must handle resume input after its flow pauses the scene tree.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_dialog()

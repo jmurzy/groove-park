@@ -3,6 +3,7 @@ extends SceneTree
 
 const ScreenFlowControllerScene := preload("res://src/app/screen_flow_controller.gd")
 const CrtTransitionScene := preload("res://src/presentation/effects/crt_transition.gd")
+const GameArgsScene := preload("res://src/app/game_args.gd")
 
 var _failures := PackedStringArray()
 
@@ -28,7 +29,8 @@ func _run_tests() -> void:
 	await _test_submission_reaches_results_before_leaderboard_fetch_completes()
 	await _test_submission_succeeds_when_board_fetch_fails()
 	await _test_offline_qualification_reaches_local_results()
-	_test_leaving_pending_qualification_cancels_request()
+	await _test_leaving_pending_qualification_cancels_request()
+	await _test_leaving_pending_submission_cancels_request()
 	await _test_results_start_opens_a_new_rider_select_flow()
 	await _test_results_back_returns_to_attract()
 	if _failures.is_empty():
@@ -63,7 +65,7 @@ func _test_terminal_phase_signals_and_timeout_cleanup() -> void:
 		"Completing rescue must present the game-over screen."
 	)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
+	await _await_qualification_completion(fixture)
 	_expect(
 		fixture.flow._gameplay_screen._round_results_screen != null,
 		"A ROUND_RESULTS phase signal must replace game over with round results."
@@ -84,7 +86,7 @@ func _test_results_start_opens_a_new_rider_select_flow() -> void:
 	_complete_crash(fixture.session)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
+	await _await_qualification_completion(fixture)
 	fixture.flow._gameplay_screen._unhandled_input(_button_event(JOY_BUTTON_START))
 	await process_frame
 	_expect(
@@ -115,14 +117,14 @@ func _test_non_crash_game_over_skips_rescue() -> void:
 
 func _test_synchronous_leaderboard_flow_replaces_screens() -> void:
 	var fixture := _gameplay_fixture(true)
-	_complete_crash(fixture.session)
+	_complete_crash(fixture.session, true)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
 	_expect(
 		fixture.session.session_phase == RoundState.SessionPhase.QUALIFYING,
 		"A completed qualification response must wait for the minimum pending display duration."
 	)
-	await _await_qualification_minimum_duration()
+	await _await_qualification_completion(fixture)
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.NAME_ENTRY
@@ -131,7 +133,7 @@ func _test_synchronous_leaderboard_flow_replaces_screens() -> void:
 		"A synchronous qualifying response must replace game over with name entry."
 	)
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
-	await _await_repository_completions()
+	await _await_repository_completions(fixture)
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -177,8 +179,8 @@ func _test_non_qualifying_round_displays_shared_leaderboard() -> void:
 	_complete_crash(fixture.session)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
-	await _await_repository_completions()
+	await _await_qualification_completion(fixture)
+	await _await_repository_completions(fixture)
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -205,12 +207,12 @@ func _test_non_qualifying_round_displays_shared_leaderboard() -> void:
 func _test_submission_succeeds_when_board_fetch_fails() -> void:
 	var fixture := _gameplay_fixture(true)
 	fixture.leaderboard_repository.are_top_entries_available = false
-	_complete_crash(fixture.session)
+	_complete_crash(fixture.session, true)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
+	await _await_qualification_completion(fixture)
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
-	await _await_repository_completions()
+	await _await_repository_completions(fixture)
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -236,10 +238,10 @@ func _test_submission_succeeds_when_board_fetch_fails() -> void:
 
 func _test_submission_reaches_results_before_leaderboard_fetch_completes() -> void:
 	var fixture := _gameplay_fixture(true)
-	_complete_crash(fixture.session)
+	_complete_crash(fixture.session, true)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
+	await _await_qualification_completion(fixture)
 	fixture.leaderboard_repository.deferred = true
 	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
 	var submission_request := fixture.flow._post_round_flow._submission_request
@@ -288,8 +290,8 @@ func _test_offline_qualification_reaches_local_results() -> void:
 	_complete_crash(fixture.session)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
-	await _await_repository_completions()
+	await _await_qualification_completion(fixture)
+	await _await_repository_completions(fixture)
 	_expect(
 		(
 			fixture.session.session_phase == RoundState.SessionPhase.ROUND_RESULTS
@@ -312,9 +314,13 @@ func _test_leaving_pending_qualification_cancels_request() -> void:
 	)
 	var request := fixture.flow._post_round_flow._qualification_request
 	fixture.flow._return_to_attract()
+	await process_frame
 	_expect(
-		request.status == LeaderboardRepository.Request.Status.CANCELLED,
-		"Leaving a pending qualification must cancel its request."
+		(
+			request.status == LeaderboardRepository.Request.Status.CANCELLED
+			and fixture.flow._post_round_flow._qualification_timer.is_stopped()
+		),
+		"Leaving qualification must cancel its request and stop its minimum-duration timer."
 	)
 	fixture.leaderboard_repository.complete_deferred(request)
 	_expect(
@@ -324,12 +330,40 @@ func _test_leaving_pending_qualification_cancels_request() -> void:
 	_free_fixture(fixture)
 
 
+func _test_leaving_pending_submission_cancels_request() -> void:
+	var fixture := _gameplay_fixture(true)
+	_complete_crash(fixture.session, true)
+	_complete_rescue(fixture.session)
+	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
+	await _await_qualification_completion(fixture)
+	await _await_repository_completions(fixture)
+	fixture.leaderboard_repository.deferred = true
+	fixture.flow._gameplay_screen.player_name_submission_requested.emit("PLAYER")
+	var request := fixture.flow._post_round_flow._submission_request
+	fixture.flow._return_to_attract()
+	_expect(
+		request.status == LeaderboardRepository.Request.Status.CANCELLED,
+		"Leaving a pending submission must cancel its request."
+	)
+	fixture.leaderboard_repository.complete_deferred(request)
+	await process_frame
+	_expect(
+		(
+			fixture.session.session_phase == RoundState.SessionPhase.ATTRACT
+			and fixture.flow._gameplay_screen == null
+			and fixture.leaderboard_repository.entries.is_empty()
+		),
+		"A late cancelled submission must not restore results or mutate the board."
+	)
+	_free_fixture(fixture)
+
+
 func _test_results_back_returns_to_attract() -> void:
 	var fixture := _gameplay_fixture()
 	_complete_crash(fixture.session)
 	_complete_rescue(fixture.session)
 	fixture.session.advance(GameSession.GAME_OVER_AUTO_ADVANCE_DELAY)
-	await _await_qualification_minimum_duration()
+	await _await_qualification_completion(fixture)
 	fixture.flow._gameplay_screen._unhandled_input(_button_event(JOY_BUTTON_BACK))
 	_expect(
 		fixture.flow._gameplay_screen == null and fixture.flow._primary_view != null,
@@ -339,12 +373,18 @@ func _test_results_back_returns_to_attract() -> void:
 	_free_fixture(fixture)
 
 
-func _await_qualification_minimum_duration() -> void:
-	await create_timer(PostRoundFlowController.QUALIFICATION_MINIMUM_DURATION + 0.05).timeout
+func _await_qualification_completion(fixture: Fixture) -> void:
+	while fixture.session.session_phase == RoundState.SessionPhase.QUALIFYING:
+		await process_frame
 
 
-func _await_repository_completions() -> void:
-	await process_frame
+func _await_repository_completions(fixture: Fixture) -> void:
+	while (
+		fixture.flow._post_round_flow._qualification_request
+		or fixture.flow._post_round_flow._submission_request
+		or fixture.flow._post_round_flow._top_entries_request
+	):
+		await process_frame
 	await process_frame
 
 
@@ -369,8 +409,7 @@ func _gameplay_fixture(with_leaderboard_service := false) -> Fixture:
 		fixture.audio_manager,
 		LiftieStateService.new(),
 		fixture.leaderboard_repository,
-		0,
-		DevOptions.new()
+		GameArgsScene.GameOptions.new()
 	)
 	var transition := CrtTransitionScene.new()
 	transition.process_mode = Node.PROCESS_MODE_DISABLED
@@ -379,7 +418,14 @@ func _gameplay_fixture(with_leaderboard_service := false) -> Fixture:
 	return fixture
 
 
-func _complete_crash(session: GameSession) -> void:
+func _complete_crash(session: GameSession, with_score := false) -> void:
+	if with_score:
+		var state := session.run_manager.rider_state
+		state.run.jump_outcome = JumpOutcome.Value.CLEAN
+		state.run.run_phase = RiderRunState.RunPhase.COMPLETE
+		state.jump.takeoff_velocity = Vector2(450.0, -100.0)
+		session.step_run(RiderInputFrame.new(), 0.0)
+		session.complete_tally()
 	session.run_manager.rider_state.run.jump_outcome = JumpOutcome.Value.CRASH
 	session.run_manager.rider_state.run.run_phase = RiderRunState.RunPhase.COMPLETE
 	session.step_run(RiderInputFrame.new(), 0.0)

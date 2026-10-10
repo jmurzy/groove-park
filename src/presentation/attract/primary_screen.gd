@@ -10,8 +10,6 @@ const AttractMenuScene := preload("res://src/presentation/attract/attract_menu.g
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const AttractIdleFlowControllerScene := preload("res://src/app/attract_idle_flow_controller.gd")
 
-@export var screen_index: int = 0
-var show_diagnostics := false
 var liftie_state_service: LiftieStateService
 var input_router: InputRouter
 var audio_manager: AudioManager
@@ -27,8 +25,6 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var backdrop := AttractBackdropScene.new()
-	backdrop.screen_index = screen_index
-	backdrop.show_diagnostics = show_diagnostics
 	add_child(backdrop)
 	_menu = AttractMenuScene.new()
 	_menu.audio_manager = audio_manager
@@ -43,16 +39,6 @@ func _ready() -> void:
 	_idle_flow.overlay_dismissed.connect(_restore_menu_after_idle)
 	add_child(_idle_flow)
 	_idle_flow.start_waiting()
-
-
-func handle_escape() -> bool:
-	if _controls_screen:
-		_close_controls()
-		return true
-	if _player_select:
-		_close_player_select()
-		return true
-	return false
 
 
 func show_rider_select() -> void:

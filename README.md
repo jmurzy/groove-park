@@ -2,11 +2,11 @@
 
 Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing game for the Polycade Sente arcade cabinet. Pick a route down the slope, manage speed, time the pop at the lip, perform a trick, and land cleanly for the best score.
 
-<img src="artwork/ags/game.gif">
+<img src="images/docs/game.gif">
 
 ## Marquee And Live Lift Status
 
-<img src="artwork/ags/marquee.gif">
+<img src="images/docs/marquee.gif">
 
 The digital marquee is a dedicated 1920x360 Godot window. It shows an animated skier and snowboarder, a scrolling lift-status ticker, an operations footer, snowfall, and a `LIVE MOUNTAIN OPS` treatment designed for the Sente's overhead display.
 
@@ -18,7 +18,7 @@ The `leaderboard_api.base_url` and `liftie_api.user_agent` settings are required
 
 ## Polycade AGS
 
-<img src="artwork/ags/sente_demo.png" align="left" width="280px">
+<img src="images/docs/sente_demo.png" align="left" width="280px">
 
 Polycade AGS is the cabinet's game-selection and launch environment. It discovers locally installed games, presents their artwork in the cabinet interface, launches the selected executable, and returns to the game selector when the game exits.
 
@@ -91,13 +91,25 @@ just version
 | `just import` | Import resources headlessly, as performed before export. |
 | `just test` | Run the headless park-rider simulation tests. |
 | `just check` | Run formatting, linting, type checks, simulation tests, and workflow linting. |
-| `just export` | Create a local 64-bit Windows build at `build/HEAVENLY/HEAVENLY.exe`. |
-| `just package` | Export, assemble the AGS payload, and create `HEAVENLY-windows-x86_64.zip` with a SHA-256 checksum. |
+| `just export-ags` | Create a local 64-bit Windows build at `build/ags/HEAVENLY.exe`. |
+| `just export-web` | Create the Web/Wasm release at `build/web/index.html`. |
+| `just package-ags` | Export, assemble the AGS payload, and create `HEAVENLY-windows-x86_64.zip` with a SHA-256 checksum. |
 
-The canonical cabinet package is the Windows x86_64 export. `just package` includes the game, `Install.ps1`, and Polycade artwork in the release archive. For cabinet installation and AGS directory requirements, see [WINDOWS-INSTALL.md](WINDOWS-INSTALL.md).
+The canonical cabinet package is the Windows x86_64 export. `just package-ags` includes the game, `Install.ps1`, and Polycade artwork in the release archive. For cabinet installation and AGS directory requirements, see [WINDOWS-INSTALL.md](WINDOWS-INSTALL.md).
 
 ### Standalone And Web Builds
 
 Godot can export the game as a standalone native application in addition to the AGS package. This repository currently defines and automates the 64-bit Windows desktop preset, which produces a standalone `HEAVENLY.exe` before it is assembled into the AGS installer payload.
 
-Godot can also export the game for the web. A Web preset produces an HTML/JavaScript loader with the Godot runtime compiled to WebAssembly (Wasm), allowing the game to be hosted on a web server and run in a compatible browser. A Web export preset and a `just` target are not yet checked into this repository, so this is a supported engine path rather than a maintained release target. A web deployment must also account for browser networking rules for the Liftie request, and, if threaded Web exports are enabled, serve the required cross-origin isolation headers.
+`just export-web` produces a non-threaded Godot Web/Wasm build in `build/web`. GitHub Actions
+uploads each release under its commit SHA in the `game-releases` R2 bucket. The game Worker serves a
+no-cache entry document at `game.gunbarrelhaus.com`; its injected release-specific base URL sends
+the Wasm, PCK, and JavaScript requests directly to R2's `assets.game.gunbarrelhaus.com` custom
+domain. The browser owns resizing and fullscreen; the game keeps its 1920x1080 presentation
+letterboxed, composes the cabinet marquee above the primary game view, and has no cabinet-exit
+action.
+
+Web is supported on desktop browsers with a keyboard or connected gamepad. Browser builds do not
+read `heavenly.cfg` or send Liftie requests directly. They persist a browser-scoped installation ID
+for leaderboard rate-limit grouping; other local browser settings remain browser-managed. The Web
+export is non-threaded, so it does not require cross-origin isolation headers.

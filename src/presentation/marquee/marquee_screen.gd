@@ -25,13 +25,21 @@ const SEPARATOR_COLORS: Array[Color] = [
 	Color("80ed99"),
 	Color("ff4d4d"),
 ]
-@export var screen_index: int = 0
-var show_diagnostics := false
 var liftie_state_service: LiftieStateService
 
 var _elapsed := 0.0
 var _animated_separators: Array[Label] = []
 var _logomark: AnimatedSprite2D
+var _session_phase := RoundState.SessionPhase.ATTRACT
+var _round_state: RoundState
+var _leaderboard: Leaderboard
+
+
+## Accepts gameplay state without making the marquee responsible for game flow.
+func set_session_context(phase: int, round_state: RoundState, leaderboard: Leaderboard) -> void:
+	_session_phase = phase
+	_round_state = round_state
+	_leaderboard = leaderboard
 
 
 func _ready() -> void:
@@ -46,8 +54,6 @@ func _ready() -> void:
 	# Keep snowfall behind the footer notice so its text stays readable.
 	add_child(SnowfallLayerScene.create(DESIGN_SIZE, 28, SNOW_SAFE_INSET))
 	_build_footer()
-	if show_diagnostics:
-		add_child(_build_diagnostics())
 	queue_redraw()
 
 
@@ -173,14 +179,3 @@ func _add_pixel_shadow(label: Label, offset: int) -> void:
 	label.add_theme_constant_override("shadow_offset_x", offset)
 	label.add_theme_constant_override("shadow_offset_y", offset)
 	label.add_theme_constant_override("shadow_outline_size", 2)
-
-
-func _build_diagnostics() -> Label:
-	var diagnostics := Label.new()
-	var screen_size := DisplayServer.screen_get_size(screen_index)
-	diagnostics.text = "Godot screen %d  /  %d x %d" % [screen_index, screen_size.x, screen_size.y]
-	diagnostics.position = Vector2(1510, 326)
-	diagnostics.add_theme_font_override("font", ArcadeTheme.AUDIOWIDE_FONT)
-	diagnostics.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
-	diagnostics.add_theme_font_size_override("font_size", 14)
-	return diagnostics

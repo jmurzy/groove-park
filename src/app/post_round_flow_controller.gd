@@ -11,6 +11,7 @@ var _leaderboard_repository: LeaderboardRepository
 var _qualification_request: LeaderboardRepository.Request
 var _submission_request: LeaderboardRepository.Request
 var _top_entries_request: LeaderboardRepository.Request
+var _qualification_timer := Timer.new()
 
 
 func setup(game_session: GameSession, leaderboard_repository: LeaderboardRepository) -> void:
@@ -19,6 +20,9 @@ func setup(game_session: GameSession, leaderboard_repository: LeaderboardReposit
 	)
 	_game_session = game_session
 	_leaderboard_repository = leaderboard_repository
+	_qualification_timer.one_shot = true
+	_qualification_timer.wait_time = QUALIFICATION_MINIMUM_DURATION
+	add_child(_qualification_timer)
 
 
 func fetch_top_entries() -> void:
@@ -35,8 +39,8 @@ func check_qualification() -> void:
 		_game_session.round_state().round_score()
 	)
 	_qualification_request = request
-	var timer := get_tree().create_timer(QUALIFICATION_MINIMUM_DURATION)
-	await SignalUtils.await_both(get_tree(), request.completed, timer.timeout)
+	_qualification_timer.start()
+	await SignalUtils.await_both(get_tree(), request.completed, _qualification_timer.timeout)
 	_on_qualification_completed(request)
 
 
@@ -60,6 +64,9 @@ func cancel() -> void:
 		var request := _qualification_request
 		_qualification_request = null
 		request.cancel()
+		_qualification_timer.stop()
+		# Unblock the qualification coroutine now instead of waiting for the minimum duration.
+		_qualification_timer.timeout.emit()
 	if _submission_request:
 		var request := _submission_request
 		_submission_request = null

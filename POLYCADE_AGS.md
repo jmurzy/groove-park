@@ -18,4 +18,4 @@ The three images should use the same Sente visual identity: consistent logo trea
 
 ## Packaging
 
-Place the final PNG files in `artwork/ags/export/` using the exact filenames and dimensions above. The `just package` recipe copies `header.png`, `hero.png`, and `marquee.png` from that directory into the distributable package at `dist/artwork/`.
+Place the final PNG files in `images/ags/` using the exact filenames and dimensions above. The `just package-ags` recipe adds `header.png`, `hero.png`, and `marquee.png` from that directory to the distributable package under `artwork/`.

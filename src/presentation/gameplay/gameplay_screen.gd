@@ -97,10 +97,6 @@ func is_exit_confirmation_open() -> bool:
 	return _pause_flow != null and _pause_flow.is_open()
 
 
-func close_exit_confirmation() -> void:
-	_pause_flow.close()
-
-
 func _unhandled_input(event: InputEvent) -> void:
 	if not _pause_flow.accepts_screen_input():
 		return

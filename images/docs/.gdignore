@@ -1,0 +1,4 @@
+# These files are consumed by README.md — never by Godot. This file tells the
+# Godot editor/importer to skip this subtree entirely, so no .import sidecars
+# are generated and nothing here is packed into the game .pck.
+# Godot runtime art lives in res://assets/ instead.

@@ -27,7 +27,13 @@ func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 		request,
 		func() -> void:
 			var qualification := LeaderboardQualification.new()
-			qualification.qualified = entries.size() < 10 or total_score > entries[9].total_score
+			qualification.qualified = (
+				total_score > 0
+				and (
+					entries.size() < TOP_ENTRY_LIMIT
+					or total_score > entries[TOP_ENTRY_LIMIT - 1].total_score
+				)
+			)
 			request.result = qualification
 	)
 	return request

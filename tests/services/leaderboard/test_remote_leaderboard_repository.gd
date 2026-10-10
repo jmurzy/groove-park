@@ -14,6 +14,7 @@ func _run_tests() -> void:
 	await _test_http_failure_marks_request_failed()
 	await _test_malformed_json_response_fails()
 	_test_cancelled_request_ignores_late_response()
+	await _test_cancelled_request_releases_owned_http_request()
 	_test_top_entries_require_entry_dictionaries()
 	_test_top_entries_parse_typed_values()
 	if _failures.is_empty():
@@ -104,6 +105,26 @@ func _test_cancelled_request_ignores_late_response() -> void:
 	_expect(
 		request.status == LeaderboardRepository.Request.Status.CANCELLED,
 		"A late response must not replace a cancelled request result."
+	)
+	repository.queue_free()
+
+
+func _test_cancelled_request_releases_owned_http_request() -> void:
+	var repository := RemoteLeaderboardRepository.new()
+	get_root().add_child(repository)
+	var request := repository._start_request(LeaderboardRepository.Request.Operation.GET)
+	var http_request := HTTPRequest.new()
+	repository.add_child(http_request)
+	repository._http_requests[request] = http_request
+	request.cancel()
+	_expect(
+		not repository._http_requests.has(request),
+		"Cancelling must immediately detach the owned HTTP request."
+	)
+	await process_frame
+	_expect(
+		not is_instance_valid(http_request),
+		"Cancelling must free the owned HTTP request without waiting for a callback."
 	)
 	repository.queue_free()
 

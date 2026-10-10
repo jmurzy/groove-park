@@ -10,6 +10,7 @@ func _init() -> void:
 
 func _run_tests() -> void:
 	await _test_available_operations_return_typed_values()
+	await _test_zero_score_does_not_qualify()
 	await _test_unavailable_service_returns_typed_failure()
 	await _test_submission_is_not_duplicated_while_in_flight()
 	await _test_cancelled_operation_cannot_complete_late()
@@ -92,6 +93,16 @@ func _test_unavailable_service_returns_typed_failure() -> void:
 	_expect(
 		request.status == LeaderboardRepository.Request.Status.FAILED,
 		"Unavailable services must return a failed request."
+	)
+
+
+func _test_zero_score_does_not_qualify() -> void:
+	var repository := FakeLeaderboardRepository.new()
+	var request := repository.check_qualification(0)
+	await process_frame
+	_expect(
+		request.result is LeaderboardQualification and not request.result.qualified,
+		"A zero score must not qualify on an incomplete leaderboard."
 	)
 
 

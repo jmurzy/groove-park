@@ -23,9 +23,10 @@ func get_top_entries() -> LeaderboardRepository.Request:
 
 
 func _resolve_top_entries(request: LeaderboardRepository.Request) -> void:
-	var response: Dictionary = await _request_json(
-		request, HTTPClient.METHOD_GET, "/api/leaderboard"
-	)
+	_request_json(request, HTTPClient.METHOD_GET, "/api/leaderboard", {}, _on_top_entries_response)
+
+
+func _on_top_entries_response(request: LeaderboardRepository.Request, response: Dictionary) -> void:
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	var entries: Array[LeaderboardEntry] = []
@@ -46,9 +47,18 @@ func check_qualification(total_score: int) -> LeaderboardRepository.Request:
 
 
 func _resolve_qualification(request: LeaderboardRepository.Request, total_score: int) -> void:
-	var response: Dictionary = await _request_json(
-		request, HTTPClient.METHOD_POST, "/api/leaderboard/qualify", {"totalScore": total_score}
+	_request_json(
+		request,
+		HTTPClient.METHOD_POST,
+		"/api/leaderboard/qualify",
+		{"totalScore": total_score},
+		_on_qualification_response
 	)
+
+
+func _on_qualification_response(
+	request: LeaderboardRepository.Request, response: Dictionary
+) -> void:
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	var qualification := LeaderboardQualification.from_api(response)
@@ -76,9 +86,16 @@ func submit_score(submission: LeaderboardSubmission) -> LeaderboardRepository.Re
 func _resolve_submission(
 	request: LeaderboardRepository.Request, submission: LeaderboardSubmission
 ) -> void:
-	var response: Dictionary = await _request_json(
-		request, HTTPClient.METHOD_POST, "/api/leaderboard/submissions", submission.to_api()
+	_request_json(
+		request,
+		HTTPClient.METHOD_POST,
+		"/api/leaderboard/submissions",
+		submission.to_api(),
+		_on_submission_response
 	)
+
+
+func _on_submission_response(request: LeaderboardRepository.Request, response: Dictionary) -> void:
 	if request.status != LeaderboardRepository.Request.Status.PENDING:
 		return
 	if response.get("accepted") != true or not response.get("rank") is float:
@@ -94,7 +111,9 @@ func _resolve_submission(
 func _cancel_request(request: LeaderboardRepository.Request) -> void:
 	var http_request: HTTPRequest = _http_requests.get(request)
 	if http_request:
+		_http_requests.erase(request)
 		http_request.cancel_request()
+		http_request.queue_free()
 	super._cancel_request(request)
 
 
@@ -102,8 +121,9 @@ func _request_json(
 	request: LeaderboardRepository.Request,
 	method: HTTPClient.Method,
 	path: String,
-	payload: Dictionary = {}
-) -> Dictionary:
+	payload: Dictionary,
+	on_response: Callable
+) -> void:
 	request.endpoint = path
 	var http_request := HTTPRequest.new()
 	http_request.timeout = REQUEST_TIMEOUT_SECONDS
@@ -122,13 +142,36 @@ func _request_json(
 		http_request.queue_free()
 		request.error_code = "REQUEST_START_FAILED"
 		_finish_request(request, LeaderboardRepository.Request.Status.FAILED)
-		return {}
-	var completed: Array = await http_request.request_completed
-	var is_active := _http_requests.erase(request)
+		return
+	http_request.request_completed.connect(
+		func(
+			request_result: int,
+			response_code: int,
+			_headers: PackedStringArray,
+			body: PackedByteArray
+		) -> void:
+			_on_http_request_completed(
+				request, http_request, on_response, request_result, response_code, body
+			),
+		CONNECT_ONE_SHOT
+	)
+
+
+func _on_http_request_completed(
+	request: LeaderboardRepository.Request,
+	http_request: HTTPRequest,
+	on_response: Callable,
+	request_result: int,
+	response_code: int,
+	body: PackedByteArray
+) -> void:
+	if _http_requests.get(request) != http_request:
+		return
+	_http_requests.erase(request)
 	http_request.queue_free()
-	if not is_active:
-		return {}
-	return _decode_response(request, completed[0], completed[1], PackedByteArray(completed[3]))
+	var response := _decode_response(request, request_result, response_code, body)
+	if request.status == LeaderboardRepository.Request.Status.PENDING:
+		on_response.call(request, response)
 
 
 func _decode_response(

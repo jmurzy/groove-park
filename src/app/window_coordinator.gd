@@ -4,79 +4,103 @@ extends Node
 
 signal close_requested
 
-const PRIMARY_SCREEN_WITH_MARQUEE := 1
-const MARQUEE_SCREEN := 0
-const PRIMARY_DESIGN_SIZE := Vector2i(1920, 1080)
-const MARQUEE_DESIGN_SIZE := Vector2i(1920, 360)
-const MarqueeScreenScene := preload("res://src/presentation/marquee/marquee_screen.gd")
+const GameArgsScene := preload("res://src/app/game_args.gd")
 
-var _primary_screen_index := 0
+const SCREEN_ONE := 1
+const SCREEN_ZERO := 0
+
+var _primary_subviewport: SubViewport
+var _marquee_subviewport: SubViewport
+var _marquee_window: Window
 
 
-func setup(
-	primary_window: Window, options: DevOptions, liftie_state_service: LiftieStateService
-) -> void:
-	primary_window.close_requested.connect(close_requested.emit)
+func _primary_screen_index_for() -> int:
 	var screen_count := DisplayServer.get_screen_count()
-	_primary_screen_index = PRIMARY_SCREEN_WITH_MARQUEE if screen_count >= 2 else 0
-	_configure_primary_window(primary_window, options)
-	if screen_count >= 2 or options.force_marquee:
-		_create_marquee(options, liftie_state_service, screen_count)
+	return SCREEN_ONE if screen_count >= 2 else SCREEN_ZERO
 
 
-func primary_screen_index() -> int:
-	return _primary_screen_index
+func _marquee_screen_index_for() -> int:
+	return SCREEN_ZERO
 
 
-func _configure_primary_window(primary_window: Window, options: DevOptions) -> void:
-	if options.primary_size.x > 0:
-		WindowManager.configure_dev_window(
-			primary_window,
-			_primary_screen_index,
-			PRIMARY_DESIGN_SIZE,
-			"HEAVENLY - PRIMARY",
-			options.primary_size,
-			Vector2i.ZERO
-		)
-		return
-	WindowManager.configure_cabinet_window(
-		primary_window, _primary_screen_index, PRIMARY_DESIGN_SIZE, "HEAVENLY - PRIMARY"
-	)
+func setup(options: GameArgsScene.GameOptions) -> void:
+	var primary_window := get_window()
+	primary_window.close_requested.connect(close_requested.emit)
+
+	if OS.has_feature("web"):
+		WindowManager.make_composite_window(primary_window, options.composite_size, "Marquee+Game")
+		_setup_composite_viewports(options)
+	else:
+		var primary_screen_index := _primary_screen_index_for()
+		if OS.is_debug_build():
+			(
+				WindowManager
+				. make_dev_window(
+					primary_window,
+					primary_screen_index,
+					options.primary_size,
+					"Game",
+				)
+			)
+		else:
+			WindowManager.make_fullscreen_window(
+				primary_window, primary_screen_index, options.primary_size, "Game"
+			)
+		var screen_count := DisplayServer.get_screen_count()
+		if screen_count >= 2:
+			_create_marquee_window(options)
 
 
-func _create_marquee(
-	options: DevOptions, liftie_state_service: LiftieStateService, screen_count: int
-) -> void:
-	var marquee := Window.new()
-	marquee.name = "MarqueeWindow"
-	marquee.transient = false
-	marquee.close_requested.connect(close_requested.emit)
-	add_child(marquee)
-	var marquee_screen := MARQUEE_SCREEN if screen_count >= 2 else _primary_screen_index
-	var marquee_size: Vector2i = (
-		options.marquee_size if options.marquee_size.x > 0 else MARQUEE_DESIGN_SIZE
-	)
-	var marquee_offset := Vector2i.ZERO
-	if options.primary_size.x > 0 or options.marquee_size.x > 0:
-		# Stack the dev marquee below the dev primary so both are visible on one screen.
-		var primary_height: int = options.primary_size.y if options.primary_size.x > 0 else 0
-		marquee_offset = Vector2i(0, primary_height + 28)
-	if marquee_size.x > 0:
-		WindowManager.configure_dev_window(
-			marquee,
-			marquee_screen,
-			MARQUEE_DESIGN_SIZE,
-			"HEAVENLY - MARQUEE",
-			marquee_size,
-			marquee_offset
+func primary_content_parent() -> Node:
+	if _primary_subviewport:
+		return _primary_subviewport
+	return get_parent()
+
+
+func marquee_content_parent() -> Node:
+	if _marquee_subviewport:
+		return _marquee_subviewport
+	return _marquee_window
+
+
+func _create_marquee_window(options: GameArgsScene.GameOptions) -> void:
+	_marquee_window = Window.new()
+	_marquee_window.name = "MarqueeWindow"
+	_marquee_window.transient = false
+	_marquee_window.close_requested.connect(close_requested.emit)
+	add_child(_marquee_window)
+
+	var marquee_screen_index := _marquee_screen_index_for()
+	if OS.is_debug_build():
+		WindowManager.make_dev_window(
+			_marquee_window, marquee_screen_index, options.marquee_size, "Marquee"
 		)
 	else:
-		WindowManager.configure_cabinet_window(
-			marquee, marquee_screen, MARQUEE_DESIGN_SIZE, "HEAVENLY - MARQUEE"
+		WindowManager.make_fullscreen_window(
+			_marquee_window, marquee_screen_index, options.marquee_size, "Marquee"
 		)
-	var marquee_view := MarqueeScreenScene.new()
-	marquee_view.screen_index = marquee_screen
-	marquee_view.liftie_state_service = liftie_state_service
-	marquee_view.show_diagnostics = options.show_diagnostics
-	marquee.add_child(marquee_view)
-	marquee.show()
+	_marquee_window.show()
+
+
+func _setup_composite_viewports(options: GameArgsScene.GameOptions) -> void:
+	var primary_container := SubViewportContainer.new()
+	primary_container.position = Vector2(0, options.marquee_size.y)
+	primary_container.size = options.primary_size
+	primary_container.stretch = true
+	add_child(primary_container)
+
+	_primary_subviewport = SubViewport.new()
+	_primary_subviewport.size = options.primary_size
+	_primary_subviewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	primary_container.add_child(_primary_subviewport)
+
+	var marquee_container := SubViewportContainer.new()
+	marquee_container.position = Vector2.ZERO
+	marquee_container.size = options.marquee_size
+	marquee_container.stretch = true
+	add_child(marquee_container)
+
+	_marquee_subviewport = SubViewport.new()
+	_marquee_subviewport.size = options.marquee_size
+	_marquee_subviewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	marquee_container.add_child(_marquee_subviewport)

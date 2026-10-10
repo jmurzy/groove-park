@@ -29,8 +29,6 @@ void vertex() {
 }
 """
 
-var screen_index := 0
-var show_diagnostics := false
 var _elapsed := 0.0
 var _gondola: AnimatedSprite2D
 
@@ -46,8 +44,6 @@ func _ready() -> void:
 	_gondola.play()
 	add_child(_build_footer())
 	add_child(SnowfallLayerScene.create(DESIGN_SIZE, SNOWFLAKE_COUNT, SNOW_SAFE_INSET))
-	if show_diagnostics:
-		add_child(_build_diagnostics())
 	queue_redraw()
 
 
@@ -175,14 +171,3 @@ func _build_footer_separator(font_size: int) -> MarginContainer:
 	separator.add_theme_constant_override("shadow_offset_y", 3)
 	separator_padding.add_child(separator)
 	return separator_padding
-
-
-func _build_diagnostics() -> Label:
-	var diagnostics := Label.new()
-	var screen_size := DisplayServer.screen_get_size(screen_index)
-	diagnostics.text = "Godot screen %d  |  %d x %d" % [screen_index, screen_size.x, screen_size.y]
-	diagnostics.position = Vector2(92, 1020)
-	diagnostics.add_theme_font_override("font", ArcadeTheme.AUDIOWIDE_FONT)
-	diagnostics.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
-	diagnostics.add_theme_font_size_override("font_size", 20)
-	return diagnostics

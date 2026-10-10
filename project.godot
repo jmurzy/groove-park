@@ -10,7 +10,14 @@ config_version=5
 
 [application]
 
-config/name="HEAVENLY"
+config/name="Game - Gunbarrel Haus"
+config/icon="res://images/web/game_icon.png"
+boot_splash/image="res://images/web/splash_icon.png"
+boot_splash/bg_color=Color(0.14, 0.14, 0.14, 1)
+boot_splash/show_image=true
+boot_splash/stretch_mode=1
+boot_splash/use_filter=true
+boot_splash/minimum_display_time=0
 run/main_scene="res://src/app/main.tscn"
 config/features=PackedStringArray("4.6")
 

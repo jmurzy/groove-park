@@ -27,23 +27,23 @@ run *args: version
 
 [doc("Run with Sente-sized dev windows (primary 1920x1080 + marquee 1920x360), even on a single display. Forwards extra args to Godot.")]
 sente *args: version
-    "{{ godot_bin }}" --path . -- --sente {{ quote(args) }}
+    "{{ godot_bin }}" --path . -- {{ quote(args) }}
 
 [doc("Run Sente-sized windows at a capped render rate. Physics remains at the project's fixed rate.")]
 sente-rate rate: version
-    "{{ godot_bin }}" --disable-vsync --max-fps "{{ rate }}" --path . -- --sente
+    "{{ godot_bin }}" --disable-vsync --max-fps "{{ rate }}" --path .
 
 [doc("Run the low (30 FPS) cabinet render-rate check with Sente-sized dev windows.")]
 sente-low: version
-    "{{ godot_bin }}" --disable-vsync --max-fps 30 --path . -- --sente
+    "{{ godot_bin }}" --disable-vsync --max-fps 30 --path .
 
 [doc("Run the target (60 FPS) cabinet render-rate check with Sente-sized dev windows.")]
 sente-target: version
-    "{{ godot_bin }}" --disable-vsync --max-fps 60 --path . -- --sente
+    "{{ godot_bin }}" --disable-vsync --max-fps 60 --path .
 
 [doc("Run the high (120 FPS) cabinet render-rate check with Sente-sized dev windows.")]
 sente-high: version
-    "{{ godot_bin }}" --disable-vsync --max-fps 120 --path . -- --sente
+    "{{ godot_bin }}" --disable-vsync --max-fps 120 --path .
 
 [doc("Import resources headlessly, matching the CI pre-export check.")]
 import: version
@@ -82,21 +82,24 @@ actionlint-check:
 [doc("Run formatting, lint, type, simulation, and GitHub Actions checks.")]
 check: format-check lint-check actionlint-check typecheck test
 
-[doc("Create a local Windows package for inspection. CI is the canonical cabinet build.")]
-export: import
-    mkdir -p build/HEAVENLY
-    "{{ godot_bin }}" --headless --path . --export-release "Windows Desktop" build/HEAVENLY/HEAVENLY.exe
+[doc("Export the same game for same-origin Web/Wasm hosting.")]
+export-web: import
+    rm -rf build/web
+    mkdir -p build/web
+    "{{ godot_bin }}" --headless --path . --export-release "Web" build/web/index.html
 
-[doc("Zip the installer payload (Install.ps1 + game + artwork) and create its SHA-256 checksum. The installer pre-creates both AGS folders, so AGS does not need to run first.")]
-package: export
-    rm -rf dist HEAVENLY-windows-x86_64.zip HEAVENLY-windows-x86_64.zip.sha256
-    mkdir -p dist/game dist/artwork
-    cp -R "build/HEAVENLY/." "dist/game/"
-    cp "tools/Install.ps1" "dist/Install.ps1"
+[doc("Create a local Windows package for inspection. CI is the canonical cabinet build.")]
+export-ags: import
+    rm -rf build/ags
+    mkdir -p build/ags
+    "{{ godot_bin }}" --headless --path . --export-release "Windows Desktop" build/ags/HEAVENLY.exe
+
+[doc("Zip the installer payload and create its SHA-256 checksum. The installer pre-creates both AGS folders, so AGS does not need to run first.")]
+package-ags: export-ags
+    rm -f HEAVENLY-windows-x86_64.zip HEAVENLY-windows-x86_64.zip.sha256
     # Ship heavenly.cfg without dev comments: only section/key lines go to the cabinet.
-    grep -v '^[[:space:]]*;' "heavenly.cfg.example" > "dist/game/heavenly.cfg"
-    for f in header.png hero.png marquee.png; do cp "artwork/ags/export/$f" "dist/artwork/$f"; done
-    (cd dist && zip -r ../HEAVENLY-windows-x86_64.zip Install.ps1 game artwork)
+    grep -v '^[[:space:]]*;' heavenly.cfg.example > build/ags/heavenly.cfg
+    bsdtar --format=zip -cf HEAVENLY-windows-x86_64.zip -s '|^build/ags|game|' -s '|^tools/Install.ps1|Install.ps1|' -s '|^images/ags|artwork|' build/ags tools/Install.ps1 images/ags/header.png images/ags/hero.png images/ags/marquee.png
     if command -v sha256sum >/dev/null 2>&1; then sha256sum HEAVENLY-windows-x86_64.zip; else shasum -a 256 HEAVENLY-windows-x86_64.zip; fi > HEAVENLY-windows-x86_64.zip.sha256
 
 [doc("Run an API Worker command. For example: just api check.")]

@@ -15,16 +15,19 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var controls := _build_button("ControlsButton", "HOW TO PLAY", Vector2(665, 650))
 	var start := _build_button("StartGameButton", "START GAME", Vector2(665, 724))
-	var exit := _build_button("ExitButton", "EXIT", Vector2(665, 798))
 	controls.pressed.connect(controls_requested.emit)
 	start.pressed.connect(start_requested.emit)
-	exit.pressed.connect(exit_requested.emit)
 	controls.focus_neighbor_top = NodePath(".")
 	controls.focus_neighbor_bottom = controls.get_path_to(start)
 	start.focus_neighbor_top = start.get_path_to(controls)
-	start.focus_neighbor_bottom = start.get_path_to(exit)
-	exit.focus_neighbor_top = exit.get_path_to(start)
-	exit.focus_neighbor_bottom = NodePath(".")
+	if OS.has_feature("web"):
+		start.focus_neighbor_bottom = NodePath(".")
+	else:
+		var exit := _build_button("ExitButton", "EXIT", Vector2(665, 798))
+		exit.pressed.connect(exit_requested.emit)
+		start.focus_neighbor_bottom = start.get_path_to(exit)
+		exit.focus_neighbor_top = exit.get_path_to(start)
+		exit.focus_neighbor_bottom = NodePath(".")
 	start.call_deferred("grab_focus")
 
 
