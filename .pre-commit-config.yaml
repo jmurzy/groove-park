@@ -18,3 +18,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: just-web-check
+        name: just web check
+        entry: just web check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

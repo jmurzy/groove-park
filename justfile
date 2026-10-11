@@ -109,3 +109,7 @@ package-ags: export-ags
 [doc("Run an API Worker command. For example: just api check.")]
 api *args:
     just --justfile workers/api/justfile {{ args }}
+
+[doc("Run an Web Worker command. For example: just web check.")]
+web *args:
+    just --justfile workers/web/justfile {{ args }}

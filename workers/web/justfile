@@ -1,0 +1,45 @@
+set default-list := true
+set dotenv-load
+
+[default]
+[doc("List available commands.")]
+help:
+    @just --list
+
+[doc("Install locked Node.js dependencies.")]
+install:
+  npm ci
+
+[doc("Run the local Cloudflare Worker development server. Extra arguments are forwarded to Alchemy.")]
+dev *args:
+    npm run dev -- {{ args }}
+
+format-check:
+  npm run format
+
+format:
+  npm run format -- --fix
+
+lint-check:
+  npm run lint
+
+lint:
+  npm run lint -- --fix
+
+typecheck:
+  npm run typecheck
+
+[doc("Run type checks and tests.")]
+check: format-check lint-check typecheck
+
+[doc("Deploy the Worker using the configured Cloudflare credentials. Extra arguments are forwarded to Alchemy.")]
+deploy *args:
+    npm run deploy -- {{ args }}
+
+[doc("Preview the production infrastructure changes. Extra arguments are forwarded to Alchemy.")]
+plan *args:
+    npm run plan -- {{ args }}
+
+# Vite generates routeTree.gen.ts during dev and builds; use this to refresh it manually.
+generate-routes:
+  npm run generate-routes

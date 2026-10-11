@@ -6,7 +6,18 @@
     "**/*.import": true,
     "**/*.wrangler": true,
     "**/.alchemy": true,
-    "**/node_modules": true
+    "**/node_modules": true,
+    "**/.tanstack": true,
+    "**/dist": true,
+    "**/routeTree.gen.ts": true
+  },
+
+  "files.readonlyInclude": {
+    "**/routeTree.gen.ts": true
+  },
+
+    "files.watcherExclude": {
+    "**/routeTree.gen.ts": true
   },
 
   // @see https://github.com/Microsoft/vscode/issues/6502
@@ -16,7 +27,9 @@
     "**/.godot": true,
     "**/*.wrangler": true,
     "**/.alchemy": true,
-    "**/node_modules": true
+    "**/node_modules": true,
+    "**/.tanstack": true,
+    "**/dist": true
   },
 
   "workbench.colorCustomizations": {
@@ -34,5 +47,30 @@
   },
 
   "godotTools.editorPath.godot4": "/Applications/Godot 4.6.3.app/Contents/MacOS/Godot",
-  "godotTools.lsp.headless": true
+  "godotTools.lsp.headless": true,
+
+  "[javascript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "explicit"
+	}
 }
