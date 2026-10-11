@@ -1,10 +1,9 @@
-# Web Worker
+# API Worker
 
-The Heavenly API is a Cloudflare Worker that serves the Web game's no-cache entry document, serves
-Liftie status, and fronts one SQLite-backed Durable Object named `leaderboard-global` for the shared
-leaderboard.
+The Heavenly API is a Cloudflare Worker that serves Liftie status, and fronts one SQLite-backed 
+Durable Object named `leaderboard-global` for the shared leaderboard.
 
-## Web release hosting
+## API hosting
 
 The Worker reads `current.json` from the `game-releases` R2 bucket and fetches the referenced
 `releases/<commit SHA>/index.html`. It injects a base URL for the R2 custom domain and public
@@ -18,7 +17,7 @@ prefix.
 secrets. Its fixed resource names and adoption policy preserve an existing `game-server` Worker,
 `GlobalLeaderboard` Durable Object namespace, and `game-releases` bucket when present on the first
 deploy. It does not manage DNS records that are not explicitly declared in the stack. Review
-`npm run plan` before production deploys. The web deployment workflow continues to publish immutable
+`just plan` before production deploys. The web deployment workflow continues to publish immutable
 R2 objects and update `current.json`. The API deployment workflow requires the `LIFTIE_USER_AGENT`
 GitHub Actions secret in addition to the Cloudflare credentials.
 
@@ -29,7 +28,7 @@ Configure these as GitHub Actions secrets, restricted to the production reposito
 - `CLOUDFLARE_ACCOUNT_ID`: the target Cloudflare account identifier. It is used only by deployment
   workflows.
 - `CLOUDFLARE_API_TOKEN`: a token restricted to that account, with only the permissions required to
-  deploy the declared Worker resources and read/write `game-releases` R2 objects. Review `npm run plan`
+deploy the declared Worker resources and read/write `game-releases` R2 objects. Review `just plan`
   when infrastructure changes and narrow the token scope accordingly.
 - `LIFTIE_USER_AGENT`: the sole Worker secret. It is supplied only to the API deployment workflow,
   not Web release publishing.
@@ -37,18 +36,12 @@ Configure these as GitHub Actions secrets, restricted to the production reposito
 `GAME_ORIGIN`, `GAME_API_ORIGIN`, and `GAME_ASSET_ORIGIN` are public deployment configuration in
 `alchemy.run.ts`, not secrets.
 
-## Requirements
-
-- Node.js 24.21.0
-- npm 11
-
 ## Commands
 
 ```sh
-npm install
-npm test
-npm run typecheck
-npm run dev
+just install
+just check
+just dev
 ```
 
 The tests deploy `alchemy.run.ts` to local workerd emulation, including the R2 bucket and
@@ -100,7 +93,8 @@ For the initial deployment, copy `.env.example` to `.env`, replace its placehold
 upload the Worker and its required secrets together:
 
 ```sh
-npm run deploy
+just plan
+just deploy
 ```
 
 The `.env` file is also used by local `alchemy dev`; it is ignored and must not be committed.

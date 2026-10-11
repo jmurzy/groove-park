@@ -38,3 +38,7 @@ check: format-check lint-check typecheck test
 [doc("Deploy the Worker using the configured Cloudflare credentials. Extra arguments are forwarded to Alchemy.")]
 deploy *args:
     npm run deploy -- {{ args }}
+
+[doc("Preview the production infrastructure changes. Extra arguments are forwarded to Alchemy.")]
+plan *args:
+    npm run plan -- {{ args }}
