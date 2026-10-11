@@ -9,7 +9,7 @@ on:
 
 concurrency:
   # Serialize current.json updates so an older build cannot promote after a newer one.
-  group: web-deploy-grp
+  group: web-build-grp
   cancel-in-progress: false
 
 jobs:
