@@ -66,16 +66,16 @@ jobs:
           GODOT_BIN: godot
         run: just export-web
 
-      # Uploads the entry document without caching so clients resolve the current release.
-      - name: Upload release entry document
+      # Uploads the release configuration without caching so clients resolve the current release.
+      - name: Upload release configuration
         env:
           R2_BUCKET: game-releases
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/index.html" \
-            --file build/web/index.html \
-            --content-type "text/html; charset=utf-8" \
+          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/config.json" \
+            --file build/web/config.json \
+            --content-type "application/json; charset=utf-8" \
             --cache-control "no-cache, max-age=0, must-revalidate" \
             --remote
 
@@ -86,14 +86,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          find build/web -type f ! -path 'build/web/index.html' -print0 | while IFS= read -r -d '' file; do
+          find build/web -type f ! -path 'build/web/config.json' -print0 | while IFS= read -r -d '' file; do
             key="releases/${RELEASE}/${file#build/web/}"
             case "$file" in
-              *.html) content_type="text/html; charset=utf-8" ;;
               *.js) content_type="text/javascript; charset=utf-8" ;;
               *.wasm) content_type="application/wasm" ;;
               *.pck) content_type="application/octet-stream" ;;
-              *) content_type="$(file --brief --mime-type "$file")" ;;
             esac
             npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/$key" \
               --file "$file" \

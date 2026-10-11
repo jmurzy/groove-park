@@ -79,20 +79,24 @@ test: import
 actionlint-check:
     "{{ actionlint_bin }}"
 
-[doc("Run formatting, lint, type, simulation, and GitHub Actions checks.")]
+[doc("Run game, API, web, and GitHub Actions checks.")]
 check: format-check lint-check actionlint-check typecheck test
 
 [doc("Export the same game for same-origin Web/Wasm hosting.")]
 export-web: import
     rm -rf build/web
     mkdir -p build/web
-    "{{ godot_bin }}" --headless --path . --export-release "Web" build/web/index.html
+    "{{ godot_bin }}" --headless --path . --export-release "Web"
+    # Godot writes the resolved configuration to its HTML entry document.
+    mv build/web/index.html build/web/config.json
+    # The generated splash image is not used.
+    rm -f build/web/index.png
 
 [doc("Create a local Windows package for inspection. CI is the canonical cabinet build.")]
 export-ags: import
     rm -rf build/ags
     mkdir -p build/ags
-    "{{ godot_bin }}" --headless --path . --export-release "Windows Desktop" build/ags/HEAVENLY.exe
+    "{{ godot_bin }}" --headless --path . --export-release "Windows Desktop"
 
 [doc("Zip the installer payload and create its SHA-256 checksum. The installer pre-creates both AGS folders, so AGS does not need to run first.")]
 package-ags: export-ags
