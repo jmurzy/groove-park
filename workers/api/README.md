@@ -1,4 +1,4 @@
-# Heavenly API Worker
+# Web Worker
 
 The Heavenly API is a Cloudflare Worker that serves the Web game's no-cache entry document, serves
 Liftie status, and fronts one SQLite-backed Durable Object named `leaderboard-global` for the shared

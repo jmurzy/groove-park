@@ -16,7 +16,9 @@ const gameReleases = Cloudflare.R2.Bucket("GameReleases", {
 	name: "game-releases",
 	// Keep the r2.dev endpoint private; the declared custom domain remains public.
 	publicAccess: false,
-	domains: [{ name: `assets.game.${rootZoneName}`, zone: rootZoneName, minTLS: "1.2" }],
+	domains: [
+		{ name: `assets.game.${rootZoneName}`, zone: rootZoneName, minTLS: "1.2" },
+	],
 	cors: [
 		{
 			allowedMethods: ["GET", "HEAD"],
@@ -35,7 +37,6 @@ export const apiWorker = Cloudflare.Worker("GameServer", {
 	workersDev: false,
 	domain: {
 		name: `api.game.${rootZoneName}`,
-		aliases: [`game.${rootZoneName}`],
 		zoneName: rootZoneName,
 	},
 	env: {
@@ -62,12 +63,16 @@ export const apiWorker = Cloudflare.Worker("GameServer", {
 export type ApiWorkerEnv = Cloudflare.InferEnv<typeof apiWorker>;
 
 export default Alchemy.Stack(
-	"game",
+	"game-api",
 	{ providers: Cloudflare.providers(), state: Cloudflare.state() },
 	Effect.gen(function* () {
 		const managedZone = yield* zone;
 		const releases = yield* gameReleases;
 		const api = yield* apiWorker;
-		return { apiUrl: api.url, gameReleaseBucket: releases.bucketName, zoneId: managedZone.zoneId };
+		return {
+			apiUrl: api.url,
+			gameReleaseBucket: releases.bucketName,
+			zoneId: managedZone.zoneId,
+		};
 	}),
 );

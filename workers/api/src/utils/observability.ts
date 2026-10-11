@@ -7,11 +7,24 @@ export interface RequestVariables {
 	requestId: string;
 }
 
-type ObservedContext = Context<{ Bindings: ApiWorkerEnv; Variables: RequestVariables }>;
+type ObservedContext = Context<{
+	Bindings: ApiWorkerEnv;
+	Variables: RequestVariables;
+}>;
 
-export function observeRequest(context: ObservedContext, durationMs: number): void {
+export function observeRequest(
+	context: ObservedContext,
+	durationMs: number,
+): void {
 	const status = context.res.status;
-	const outcome = status === 429 ? "rate_limited" : status >= 500 ? "error" : status >= 400 ? "rejected" : "success";
+	const outcome =
+		status === 429
+			? "rate_limited"
+			: status >= 500
+				? "error"
+				: status >= 400
+					? "rejected"
+					: "success";
 	const event = {
 		event: "http_request",
 		method: context.req.method,

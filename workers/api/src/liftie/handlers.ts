@@ -21,11 +21,15 @@ export const UNKNOWN_LIFTIE_STATE: ResortResponse = {
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
 }
 
 function nonNegativeInteger(value: unknown): number | null {
-	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+		? value
+		: null;
 }
 
 export function normalizeResortResponse(value: unknown): ResortResponse | null {
@@ -39,11 +43,24 @@ export function normalizeResortResponse(value: unknown): ResortResponse | null {
 	const holdCount = nonNegativeInteger(stats.hold);
 	const closedCount = nonNegativeInteger(stats.closed);
 	const scheduledCount = nonNegativeInteger(stats.scheduled);
-	if (openCount === null || holdCount === null || closedCount === null || scheduledCount === null) return null;
+	if (
+		openCount === null ||
+		holdCount === null ||
+		closedCount === null ||
+		scheduledCount === null
+	)
+		return null;
 
 	const totalCount = openCount + holdCount + closedCount + scheduledCount;
 	return {
-		status: openCount > 0 ? "open" : holdCount > 0 ? "hold" : totalCount > 0 ? "closed" : "unknown",
+		status:
+			openCount > 0
+				? "open"
+				: holdCount > 0
+					? "hold"
+					: totalCount > 0
+						? "closed"
+						: "unknown",
 		open_count: openCount,
 		hold_count: holdCount,
 		closed_count: closedCount,
@@ -57,7 +74,8 @@ function unavailable(): Response {
 
 export async function getResort(context: WorkerContext): Promise<Response> {
 	const resortName = context.req.param("resortName");
-	if (!resortName || !/^[a-z0-9-]+$/.test(resortName)) return error("INVALID_RESORT_NAME", 400);
+	if (!resortName || !/^[a-z0-9-]+$/.test(resortName))
+		return error("INVALID_RESORT_NAME", 400);
 
 	const request = context.req.raw;
 	const cache = caches.default;
@@ -65,14 +83,19 @@ export async function getResort(context: WorkerContext): Promise<Response> {
 	if (cached) return cached;
 
 	try {
-		const upstream = await fetch(`${LIFTIE_URL}/api/resort/${encodeURIComponent(resortName)}`, {
-			headers: { "User-Agent": context.env.LIFTIE_USER_AGENT },
-		});
+		const upstream = await fetch(
+			`${LIFTIE_URL}/api/resort/${encodeURIComponent(resortName)}`,
+			{
+				headers: { "User-Agent": context.env.LIFTIE_USER_AGENT },
+			},
+		);
 		if (!upstream.ok) return unavailable();
 		const state = normalizeResortResponse(await upstream.json());
 		if (!state) return unavailable();
 
-		const response = json(state, 200, { "Cache-Control": `public, s-maxage=${LIFTIE_CACHE_SECONDS}` });
+		const response = json(state, 200, {
+			"Cache-Control": `public, s-maxage=${LIFTIE_CACHE_SECONDS}`,
+		});
 		context.executionCtx.waitUntil(cache.put(request, response.clone()));
 		return response;
 	} catch {

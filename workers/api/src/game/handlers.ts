@@ -6,12 +6,15 @@ const RELEASE_ID = /^[0-9a-f]{40}$/;
 
 export async function getGame(context: WorkerContext): Promise<Response> {
 	const releaseId = await getReleaseId(context);
-	if (!releaseId) return new Response("Game release is unavailable.", {
+	if (!releaseId)
+		return new Response("Game release is unavailable.", {
 			status: 503,
 			headers: { "Cache-Control": "no-store" },
 		});
 
-	const index = await context.env.GAME_RELEASES.get(`releases/${releaseId}/index.html`);
+	const index = await context.env.GAME_RELEASES.get(
+		`releases/${releaseId}/index.html`,
+	);
 	if (!index) {
 		return new Response("Game release is unavailable.", {
 			status: 503,
@@ -40,7 +43,10 @@ export async function getGame(context: WorkerContext): Promise<Response> {
 			"form-action 'none'",
 		].join("; "),
 	);
-	headers.set("Permissions-Policy", "camera=(), geolocation=(), microphone=(), payment=(), usb=()");
+	headers.set(
+		"Permissions-Policy",
+		"camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+	);
 	headers.set("Referrer-Policy", "no-referrer");
 	headers.set("X-Content-Type-Options", "nosniff");
 	headers.set("X-Frame-Options", "DENY");
@@ -74,9 +80,12 @@ async function getReleaseId(context: WorkerContext): Promise<string | null> {
 	if (!pointer) return null;
 	try {
 		const value: unknown = JSON.parse(await pointer.text());
-		if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+		if (!value || typeof value !== "object" || Array.isArray(value))
+			return null;
 		const release = (value as { release?: unknown }).release;
-		return typeof release === "string" && RELEASE_ID.test(release) ? release : null;
+		return typeof release === "string" && RELEASE_ID.test(release)
+			? release
+			: null;
 	} catch {
 		return null;
 	}

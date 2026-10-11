@@ -2,7 +2,12 @@ import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 
 import { getGame } from "./game/handlers";
-import { getLeaderboard, qualifyLeaderboard, resetLeaderboard, submitLeaderboard } from "./leaderboard/handlers";
+import {
+	getLeaderboard,
+	qualifyLeaderboard,
+	resetLeaderboard,
+	submitLeaderboard,
+} from "./leaderboard/handlers";
 import { getResort } from "./liftie/handlers";
 import { error } from "./utils/http";
 import { observeRequest, type RequestVariables } from "./utils/observability";
@@ -64,7 +69,9 @@ app.onError((exception, context) => {
 			error: exception instanceof Error ? exception.name : "UNKNOWN",
 		}),
 	);
-	return error("INTERNAL_ERROR", 500, { "X-Request-Id": context.get("requestId") });
+	return error("INTERNAL_ERROR", 500, {
+		"X-Request-Id": context.get("requestId"),
+	});
 });
 
 export default app;

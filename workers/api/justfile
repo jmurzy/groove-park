@@ -1,7 +1,7 @@
-# Commands for the Heavenly API Worker. Run from this directory.
+set default-list := true
 
 [default]
-[doc("List available API Worker commands.")]
+[doc("List available commands.")]
 help:
     @just --list
 
@@ -9,25 +9,32 @@ help:
 install:
     npm ci
 
-[doc("Generate Cloudflare Worker TypeScript bindings.")]
-types:
-    npm run cf-typegen
-
-[doc("Run the local Cloudflare Worker development server. Extra arguments are forwarded to Wrangler.")]
+[doc("Run the local Cloudflare Worker development server. Extra arguments are forwarded to Alchemy.")]
 dev *args:
-    npm run dev -- {{ quote(args) }}
+    npm run dev -- {{ args }}
 
-[doc("Run Worker type checks.")]
+format-check:
+  npm run format
+
+format:
+  npm run format -- --fix
+
+lint-check:
+  npm run lint
+
+lint:
+  npm run lint -- --fix
+
 typecheck:
-    npm run typecheck
+  npm run typecheck
 
 [doc("Run the Worker test suite.")]
 test:
     npm test
 
 [doc("Run type checks and tests.")]
-check: typecheck test
+check: format-check lint-check typecheck test
 
 [doc("Deploy the Worker using the configured Cloudflare credentials. Extra arguments are forwarded to Alchemy.")]
 deploy *args:
-    npm run deploy -- {{ quote(args) }}
+    npm run deploy -- {{ args }}

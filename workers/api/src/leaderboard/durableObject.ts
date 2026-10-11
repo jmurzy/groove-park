@@ -84,7 +84,9 @@ export class GlobalLeaderboard extends DurableObject<ApiWorkerEnv> {
 		return { topEntries: [] };
 	}
 
-	async checkQualification(totalScore: number): Promise<{ qualified: boolean }> {
+	async checkQualification(
+		totalScore: number,
+	): Promise<{ qualified: boolean }> {
 		if (totalScore <= 0) return { qualified: false };
 		const tenth = this.ctx.storage.sql
 			.exec<{ total_score: number }>(
@@ -96,9 +98,13 @@ export class GlobalLeaderboard extends DurableObject<ApiWorkerEnv> {
 	}
 
 	async submit(submission: ScoreSubmission): Promise<SubmissionResult> {
-		if (submission.totalScore <= 0) throw new RangeError("Leaderboard scores must be positive");
+		if (submission.totalScore <= 0)
+			throw new RangeError("Leaderboard scores must be positive");
 		const existing = this.ctx.storage.sql
-			.exec<LeaderboardEntryRow>("SELECT * FROM leaderboard_entries WHERE round_id = ?", submission.roundId)
+			.exec<LeaderboardEntryRow>(
+				"SELECT * FROM leaderboard_entries WHERE round_id = ?",
+				submission.roundId,
+			)
 			.toArray()[0];
 		if (existing) {
 			return this.submissionResult(existing);
@@ -130,17 +136,24 @@ export class GlobalLeaderboard extends DurableObject<ApiWorkerEnv> {
 			)
 		`);
 		const currentVersion = this.ctx.storage.sql
-			.exec<{ version: number }>("SELECT COALESCE(MAX(id), 0) AS version FROM _sql_schema_migrations")
+			.exec<{ version: number }>(
+				"SELECT COALESCE(MAX(id), 0) AS version FROM _sql_schema_migrations",
+			)
 			.one().version;
 		const latestVersion = SQL_MIGRATIONS.at(-1)?.id ?? 0;
 		if (currentVersion > latestVersion) {
-			throw new Error(`Unsupported leaderboard schema version: ${currentVersion}`);
+			throw new Error(
+				`Unsupported leaderboard schema version: ${currentVersion}`,
+			);
 		}
 
 		for (const migration of SQL_MIGRATIONS) {
 			if (migration.id <= currentVersion) continue;
 			// The schema changes and their version marker execute as one SQL batch.
-			this.ctx.storage.sql.exec(`${migration.sql}\nINSERT INTO _sql_schema_migrations (id) VALUES (?);`, migration.id);
+			this.ctx.storage.sql.exec(
+				`${migration.sql}\nINSERT INTO _sql_schema_migrations (id) VALUES (?);`,
+				migration.id,
+			);
 		}
 	}
 
@@ -199,8 +212,10 @@ function formatCreatedAt(date: Date, timeZone: string): string {
 		hourCycle: "h23",
 		timeZoneName: "longOffset",
 	}).formatToParts(date);
-	const value = (type: Intl.DateTimeFormatPartTypes): string => parts.find((part) => part.type === type)?.value ?? "";
+	const value = (type: Intl.DateTimeFormatPartTypes): string =>
+		parts.find((part) => part.type === type)?.value ?? "";
 	const offset = value("timeZoneName");
-	if (!/^GMT(?:[+-]\d{2}:\d{2})?$/.test(offset)) throw new Error(`Invalid timezone offset for ${timeZone}`);
+	if (!/^GMT(?:[+-]\d{2}:\d{2})?$/.test(offset))
+		throw new Error(`Invalid timezone offset for ${timeZone}`);
 	return `${value("year")}-${value("month")}-${value("day")}T${value("hour")}:${value("minute")}:${value("second")}${offset === "GMT" ? "+00:00" : offset.slice(3)}`;
 }

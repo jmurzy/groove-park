@@ -5,7 +5,10 @@ import { describe, expect } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 
 import { apiWorker } from "../alchemy.run";
-import { normalizeResortResponse, UNKNOWN_LIFTIE_STATE } from "../src/liftie/handlers";
+import {
+	normalizeResortResponse,
+	UNKNOWN_LIFTIE_STATE,
+} from "../src/liftie/handlers";
 
 const localStack = Alchemy.Stack(
 	"game",
@@ -16,11 +19,16 @@ const localStack = Alchemy.Stack(
 	}),
 );
 
-const { test: alchemyTest, beforeAll, beforeEach, deploy } = Test.make({
+const {
+	test: alchemyTest,
+	beforeAll,
+	beforeEach,
+	deploy,
+} = Test.make({
 	providers: Cloudflare.providers(),
 	dev: true,
 });
-const test = (name: string, make: () => Effect.Effect<void, any>) =>
+const test = (name: string, make: () => Effect.Effect<void, unknown>) =>
 	alchemyTest(name, Effect.suspend(make).pipe(Effect.orDie));
 const stack = beforeAll(deploy(localStack));
 
@@ -44,8 +52,7 @@ describe("leaderboard API", () => {
 			const response = yield* request("/");
 			expect(response.status).toBe(503);
 			expect(response.headers.get("Cache-Control")).toBe("no-store");
-		}),
-	);
+		}));
 
 	test("permits the game origin to call the API", () =>
 		Effect.gen(function* () {
@@ -57,18 +64,24 @@ describe("leaderboard API", () => {
 				},
 			});
 			expect(response.status).toBe(204);
-			expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://game.gunbarrelhaus.com");
-			expect(response.headers.get("Access-Control-Allow-Headers")).toContain("X-Installation-Id");
-		}),
-	);
+			expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+				"https://game.gunbarrelhaus.com",
+			);
+			expect(response.headers.get("Access-Control-Allow-Headers")).toContain(
+				"X-Installation-Id",
+			);
+		}));
 
 	test("rejects an invalid Liftie resort name", () =>
 		Effect.gen(function* () {
-			const response = yield* request("/api/liftie/resort/Heavenly", { headers: cabinetHeaders() });
+			const response = yield* request("/api/liftie/resort/Heavenly", {
+				headers: cabinetHeaders(),
+			});
 			expect(response.status).toBe(400);
-			expect(yield* responseJson(response)).toEqual({ error: { code: "INVALID_RESORT_NAME" } });
-		}),
-	);
+			expect(yield* responseJson(response)).toEqual({
+				error: { code: "INVALID_RESORT_NAME" },
+			});
+		}));
 
 	test("applies cabinet installation validation to the Liftie proxy", () =>
 		Effect.gen(function* () {
@@ -76,21 +89,23 @@ describe("leaderboard API", () => {
 				headers: { "X-Installation-Id": "not-an-installation-id" },
 			});
 			expect(response.status).toBe(400);
-			expect(yield* responseJson(response)).toEqual({ error: { code: "INVALID_INSTALLATION_ID" } });
-		}),
-	);
+			expect(yield* responseJson(response)).toEqual({
+				error: { code: "INVALID_INSTALLATION_ID" },
+			});
+		}));
 
 	test("initializes the global board", () =>
 		Effect.gen(function* () {
-			const response = yield* request("/api/leaderboard", { headers: cabinetHeaders() });
+			const response = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
 			expect(response.status).toBe(200);
 			expect(response.headers.get("X-Request-Id")).toMatch(
 				/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
 			);
 			expect(response.headers.get("Cache-Control")).toBe("no-store");
 			expect(yield* responseJson(response)).toMatchObject({ topEntries: [] });
-		}),
-	);
+		}));
 
 	test("clears the leaderboard", () =>
 		Effect.gen(function* () {
@@ -98,32 +113,42 @@ describe("leaderboard API", () => {
 			const reset = yield* request("/api/reset", { headers: cabinetHeaders() });
 			expect(reset.status).toBe(200);
 			expect(yield* responseJson(reset)).toEqual({ topEntries: [] });
-			const board = yield* request("/api/leaderboard", { headers: cabinetHeaders() });
+			const board = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
 			expect(yield* responseJson(board)).toEqual({ topEntries: [] });
-		}),
-	);
+		}));
 
 	test("requires an installation ID before processing a request", () =>
 		Effect.gen(function* () {
 			const response = yield* request("/api/leaderboard");
 			expect(response.status).toBe(400);
-			expect(yield* responseJson(response)).toEqual({ error: { code: "MISSING_INSTALLATION_ID" } });
-		}),
-	);
+			expect(yield* responseJson(response)).toEqual({
+				error: { code: "MISSING_INSTALLATION_ID" },
+			});
+		}));
 
 	test("rejects malformed cabinet installation IDs before invoking the leaderboard", () =>
 		Effect.gen(function* () {
-			const response = yield* submit(submission, { "X-Installation-Id": "not-an-installation-id" });
+			const response = yield* submit(submission, {
+				"X-Installation-Id": "not-an-installation-id",
+			});
 			expect(response.status).toBe(400);
-			expect(yield* responseJson(response)).toEqual({ error: { code: "INVALID_INSTALLATION_ID" } });
-			const board = yield* request("/api/leaderboard", { headers: cabinetHeaders() });
+			expect(yield* responseJson(response)).toEqual({
+				error: { code: "INVALID_INSTALLATION_ID" },
+			});
+			const board = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
 			expect(yield* responseJson(board)).toEqual({ topEntries: [] });
-		}),
-	);
+		}));
 
 	test("limits cabinet requests by installation without mutating the board", () =>
 		Effect.gen(function* () {
-			const headers = cabinetHeaders("018f3d8e-6b1c-4ef9-8cf6-252ff3d07199", "192.0.2.20");
+			const headers = cabinetHeaders(
+				"018f3d8e-6b1c-4ef9-8cf6-252ff3d07199",
+				"192.0.2.20",
+			);
 			for (let index = 0; index < 20; index += 1) {
 				const response = yield* request("/api/leaderboard/qualify", {
 					method: "POST",
@@ -135,9 +160,10 @@ describe("leaderboard API", () => {
 			const limited = yield* submit(submission, headers);
 			expect(limited.status).toBe(429);
 			expect(limited.headers.get("Retry-After")).toBe("60");
-			expect(yield* responseJson(limited)).toEqual({ error: { code: "RATE_LIMITED" } });
-		}),
-	);
+			expect(yield* responseJson(limited)).toEqual({
+				error: { code: "RATE_LIMITED" },
+			});
+		}));
 
 	test("limits cabinet requests by connecting IP independently of installation ID", () =>
 		Effect.gen(function* () {
@@ -156,9 +182,10 @@ describe("leaderboard API", () => {
 				body: JSON.stringify({ totalScore: 61 }),
 			});
 			expect(limited.status).toBe(429);
-			expect(yield* responseJson(limited)).toEqual({ error: { code: "RATE_LIMITED" } });
-		}),
-	);
+			expect(yield* responseJson(limited)).toEqual({
+				error: { code: "RATE_LIMITED" },
+			});
+		}));
 
 	test("qualifies an empty board and stores a normalized submission idempotently", () =>
 		Effect.gen(function* () {
@@ -169,62 +196,94 @@ describe("leaderboard API", () => {
 			expect(yield* responseJson(first)).toEqual({ accepted: true, rank: 1 });
 			const repeated = yield* submit(submission);
 			expect(repeated.status).toBe(201);
-			expect(yield* responseJson(repeated)).toEqual({ accepted: true, rank: 1 });
-			const board = yield* request("/api/leaderboard", { headers: cabinetHeaders() });
-			expect(yield* responseJson(board)).toMatchObject({ topEntries: [expect.objectContaining({ playerName: "Sky Rider" })] });
-		}),
-	);
+			expect(yield* responseJson(repeated)).toEqual({
+				accepted: true,
+				rank: 1,
+			});
+			const board = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
+			expect(yield* responseJson(board)).toMatchObject({
+				topEntries: [expect.objectContaining({ playerName: "Sky Rider" })],
+			});
+		}));
 
 	test("does not qualify or store zero scores", () =>
 		Effect.gen(function* () {
 			expect(yield* qualify(0)).toEqual({ qualified: false });
 			const response = yield* submit({ ...submission, totalScore: 0 });
 			expect(response.status).toBe(400);
-			expect(yield* responseJson(response)).toEqual({ error: { code: "INVALID_TOTAL_SCORE" } });
-			const board = yield* request("/api/leaderboard", { headers: cabinetHeaders() });
+			expect(yield* responseJson(response)).toEqual({
+				error: { code: "INVALID_TOTAL_SCORE" },
+			});
+			const board = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
 			expect(yield* responseJson(board)).toEqual({ topEntries: [] });
-		}),
-	);
+		}));
 
 	test("returns the original entry when a round ID is reused", () =>
 		Effect.gen(function* () {
 			yield* submit(submission);
 			const repeated = yield* submit({ ...submission, totalScore: 421 });
 			expect(repeated.status).toBe(201);
-			expect(yield* responseJson(repeated)).toEqual({ accepted: true, rank: 1 });
-		}),
-	);
+			expect(yield* responseJson(repeated)).toEqual({
+				accepted: true,
+				rank: 1,
+			});
+		}));
 
 	test("accepts only ags or web platforms", () =>
 		Effect.gen(function* () {
-			const accepted = yield* submit({ ...submission, roundId: roundId(24), platform: "ags" });
+			const accepted = yield* submit({
+				...submission,
+				roundId: roundId(24),
+				platform: "ags",
+			});
 			expect(accepted.status).toBe(201);
-			const rejected = yield* submit({ ...submission, roundId: roundId(25), platform: "cabinet" });
+			const rejected = yield* submit({
+				...submission,
+				roundId: roundId(25),
+				platform: "cabinet",
+			});
 			expect(rejected.status).toBe(400);
-			expect(yield* responseJson(rejected)).toEqual({ error: { code: "INVALID_PLATFORM" } });
-		}),
-	);
+			expect(yield* responseJson(rejected)).toEqual({
+				error: { code: "INVALID_PLATFORM" },
+			});
+		}));
 
 	test("accepts player names up to twelve characters", () =>
 		Effect.gen(function* () {
-			const accepted = yield* submit({ ...submission, roundId: roundId(26), playerName: "Powder Rider" });
+			const accepted = yield* submit({
+				...submission,
+				roundId: roundId(26),
+				playerName: "Powder Rider",
+			});
 			expect(accepted.status).toBe(201);
-			const rejected = yield* submit({ ...submission, roundId: roundId(27), playerName: "Too Long Name" });
+			const rejected = yield* submit({
+				...submission,
+				roundId: roundId(27),
+				playerName: "Too Long Name",
+			});
 			expect(rejected.status).toBe(400);
-			expect(yield* responseJson(rejected)).toEqual({ error: { code: "INVALID_PLAYER_NAME" } });
-		}),
-	);
+			expect(yield* responseJson(rejected)).toEqual({
+				error: { code: "INVALID_PLAYER_NAME" },
+			});
+		}));
 
 	test("requires a score above tenth place", () =>
 		Effect.gen(function* () {
 			for (let score = 1000; score > 990; score -= 1) {
-				const response = yield* submit({ ...submission, roundId: roundId(score), totalScore: score });
+				const response = yield* submit({
+					...submission,
+					roundId: roundId(score),
+					totalScore: score,
+				});
 				expect(response.status).toBe(201);
 			}
 			expect(yield* qualify(991)).toEqual({ qualified: false });
 			expect(yield* qualify(992)).toEqual({ qualified: true });
-		}),
-	);
+		}));
 
 	test("serializes concurrent submissions", () =>
 		Effect.gen(function* () {
@@ -237,26 +296,38 @@ describe("leaderboard API", () => {
 				),
 				{ concurrency: "unbounded" },
 			);
-			expect(responses.map((response) => response.status)).toEqual(Array(12).fill(201));
-			const board = yield* request("/api/leaderboard", { headers: cabinetHeaders() });
+			expect(responses.map((response) => response.status)).toEqual(
+				Array(12).fill(201),
+			);
+			const board = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
 			const body = (yield* responseJson(board)) as { topEntries: unknown[] };
 			expect(body.topEntries).toHaveLength(10);
-		}),
-	);
+		}));
 });
 
 describe("Liftie normalization", () => {
 	test("normalizes Liftie stats for the web client", () =>
 		Effect.sync(() => {
 			expect(
-				normalizeResortResponse({ lifts: { stats: { open: 19, hold: 2, closed: 8, scheduled: 3 } } }),
-			).toEqual({ status: "open", open_count: 19, hold_count: 2, closed_count: 8, total_count: 32 });
-		}),
-	);
+				normalizeResortResponse({
+					lifts: { stats: { open: 19, hold: 2, closed: 8, scheduled: 3 } },
+				}),
+			).toEqual({
+				status: "open",
+				open_count: 19,
+				hold_count: 2,
+				closed_count: 8,
+				total_count: 32,
+			});
+		}));
 
 	test("rejects malformed Liftie data for an unavailable response", () =>
 		Effect.sync(() => {
-			expect(normalizeResortResponse({ lifts: { stats: { open: "19" } } })).toBeNull();
+			expect(
+				normalizeResortResponse({ lifts: { stats: { open: "19" } } }),
+			).toBeNull();
 			expect(UNKNOWN_LIFTIE_STATE).toEqual({
 				status: "unknown",
 				open_count: 0,
@@ -264,8 +335,7 @@ describe("Liftie normalization", () => {
 				closed_count: 0,
 				total_count: 0,
 			});
-		}),
-	);
+		}));
 });
 
 function request(path: string, init?: RequestInit) {
@@ -282,12 +352,22 @@ function responseJson(response: Response) {
 function submit(payload: object, headers: HeadersInit = {}) {
 	const requestHeaders = new Headers(headers);
 	requestHeaders.set("Content-Type", "application/json");
-	if (!requestHeaders.has("X-Installation-Id")) requestHeaders.set("X-Installation-Id", crypto.randomUUID());
-	return request("/api/leaderboard/submissions", { method: "POST", headers: requestHeaders, body: JSON.stringify(payload) });
+	if (!requestHeaders.has("X-Installation-Id"))
+		requestHeaders.set("X-Installation-Id", crypto.randomUUID());
+	return request("/api/leaderboard/submissions", {
+		method: "POST",
+		headers: requestHeaders,
+		body: JSON.stringify(payload),
+	});
 }
 
-function cabinetHeaders(installationId: string = crypto.randomUUID(), ipAddress?: string): HeadersInit {
-	const headers: Record<string, string> = { "X-Installation-Id": installationId };
+function cabinetHeaders(
+	installationId: string = crypto.randomUUID(),
+	ipAddress?: string,
+): HeadersInit {
+	const headers: Record<string, string> = {
+		"X-Installation-Id": installationId,
+	};
 	if (ipAddress) headers["CF-Connecting-IP"] = ipAddress;
 	return headers;
 }

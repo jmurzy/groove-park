@@ -11,3 +11,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: just-api-check
+        name: just api check
+        entry: just api check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
