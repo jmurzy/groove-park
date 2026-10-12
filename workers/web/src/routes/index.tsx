@@ -8,6 +8,7 @@ import {
 	type GodotEngineConfig,
 	type GodotReleaseConfig,
 } from "#/server/game-releases";
+import styles from "./index.module.css";
 
 const getReleasesUrl = createServerFn({ method: "GET" }).handler(
 	() => env.GAME_RELEASES_URL,
@@ -142,25 +143,34 @@ function IndexPage() {
 	}
 
 	return (
-		<main style={pageStyle}>
-			<canvas ref={canvasRef} id="canvas" style={canvasStyle} tabIndex={0}>
+		<main className={styles.page}>
+			<canvas
+				ref={canvasRef}
+				id="canvas"
+				className={styles.canvas}
+				tabIndex={0}
+			>
 				Your browser does not support the canvas tag.
 			</canvas>
 			{(progress || notice) && (
-				<div style={statusStyle}>
+				<div className={styles.status}>
 					{notice ? (
-						<div style={noticeStyle}>{notice}</div>
+						<div className={styles.notice}>{notice}</div>
 					) : (
 						<progress
 							aria-label="Loading game"
-							style={progressStyle}
+							className={styles.progress}
 							value={progress?.current || undefined}
 							max={progress?.total || undefined}
 						/>
 					)}
 				</div>
 			)}
-			<button onClick={toggleFullscreen} style={fullscreenStyle} type="button">
+			<button
+				className={styles.fullscreen}
+				onClick={toggleFullscreen}
+				type="button"
+			>
 				Fullscreen
 			</button>
 		</main>
@@ -244,49 +254,3 @@ function loadEngine(source: string) {
 	});
 	return engineScriptPromise;
 }
-
-const pageStyle = {
-	background: "black",
-	bottom: 0,
-	left: 0,
-	margin: 0,
-	overflow: "hidden",
-	position: "fixed",
-	right: 0,
-	top: 0,
-	touchAction: "none",
-} as const;
-
-const canvasStyle = { display: "block", outline: "none" } as const;
-const statusStyle = {
-	alignItems: "center",
-	background: "black",
-	display: "flex",
-	inset: 0,
-	justifyContent: "center",
-	position: "absolute",
-} as const;
-const progressStyle = { width: "50%" } as const;
-const noticeStyle = {
-	background: "#5b3943",
-	border: "1px solid #9b3943",
-	borderRadius: "0.5rem",
-	color: "#e0e0e0",
-	fontFamily: "Arial, sans-serif",
-	lineHeight: 1.3,
-	margin: "0 2rem",
-	padding: "1rem",
-	textAlign: "center",
-	whiteSpace: "pre-line",
-} as const;
-const fullscreenStyle = {
-	background: "#10233d",
-	border: "1px solid #65d9ef",
-	borderRadius: ".25rem",
-	bottom: "1rem",
-	color: "white",
-	padding: ".6rem .8rem",
-	position: "fixed",
-	right: "1rem",
-	zIndex: 1,
-} as const;
