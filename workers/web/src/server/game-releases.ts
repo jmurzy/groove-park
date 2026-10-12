@@ -45,7 +45,6 @@ export type GodotReleaseConfig = {
 	threadsEnabled: boolean;
 	projectName: string;
 	splashColor: string;
-	headInclude: string;
 	splashClasses: string;
 	splash: string;
 	url: string;

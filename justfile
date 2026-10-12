@@ -89,8 +89,6 @@ export-web: import
     "{{ godot_bin }}" --headless --path . --export-release "Web"
     # Godot writes the resolved configuration to its HTML entry document.
     mv build/web/index.html build/web/release_config.json
-    # The generated splash image is not used.
-    rm -f build/web/index.png
 
 [doc("Create a local Windows package for inspection. CI is the canonical cabinet build.")]
 export-ags: import
