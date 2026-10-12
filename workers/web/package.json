@@ -6,7 +6,7 @@
 		"#/*": "./src/*"
 	},
 	"scripts": {
-		"dev": "alchemy dev --config alchemy.run.ts --stage development --env-file .env",
+		"dev": "alchemy dev --config alchemy.run.ts --stage production --env-file .env",
 		"generate-routes": "tsr generate",
 		"format": "biome format",
 		"lint": "biome lint",
@@ -35,13 +35,5 @@
 		"@vitejs/plugin-react": "^6.0.1",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.0"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"esbuild",
-			"lightningcss",
-			"sharp",
-			"workerd"
-		]
 	}
 }

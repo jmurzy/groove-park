@@ -6,11 +6,11 @@ It serves the web experience at `game.gunbarrelhaus.com`.
 ## Web hosting
 
 `alchemy.run.ts` adopts the existing `gunbarrelhaus.com` zone and manages the `game-web` Worker,
-its client assets, and the `game.gunbarrelhaus.com` custom domain. It references the
-`game-releases` R2 bucket managed by the API stack, rather than creating or managing that bucket.
-Its fixed resource names and adoption policy preserve the existing zone and Worker when present on
-the first deploy. It does not manage DNS records that are not explicitly declared in the stack.
-Review `just plan` before production deploys.
+its client assets, the `game.gunbarrelhaus.com` custom domain, and the `game-releases` R2 bucket.
+The bucket owns the `assets.game.gunbarrelhaus.com` custom domain and CORS policy for immutable
+game assets. Its fixed resource names and adoption policy preserve the existing zone, Worker, and
+bucket when present on the first deploy. It does not manage DNS records that are not explicitly
+declared in the stack. Review `just plan` before production deploys.
 
 Alchemy's Vite resource builds and deploys the TanStack Start server bundle and client assets.
 Add future Cloudflare bindings and secrets to `alchemy.run.ts`.

@@ -1,7 +1,6 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 
-import { getGame } from "./game/handlers";
 import {
 	getLeaderboard,
 	qualifyLeaderboard,
@@ -40,7 +39,7 @@ const limitRequest: MiddlewareHandler<{
 
 app.use("/api/*", (context, next) =>
 	cors({
-		origin: context.env.GAME_ORIGIN,
+		origin: [context.env.GAME_ORIGIN, "http://localhost:3000"],
 		allowHeaders: ["Accept", "Content-Type", "X-Installation-Id"],
 		allowMethods: ["GET", "POST", "OPTIONS"],
 		exposeHeaders: ["X-Request-Id"],
@@ -48,8 +47,6 @@ app.use("/api/*", (context, next) =>
 	})(context, next),
 );
 app.use("/api/*", limitRequest);
-
-app.get("/", getGame);
 
 app.get("/api/liftie/resort/:resortName", getResort);
 

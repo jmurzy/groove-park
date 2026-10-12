@@ -47,13 +47,6 @@ beforeEach(
 );
 
 describe("leaderboard API", () => {
-	test("does not cache an unavailable game release", () =>
-		Effect.gen(function* () {
-			const response = yield* request("/");
-			expect(response.status).toBe(503);
-			expect(response.headers.get("Cache-Control")).toBe("no-store");
-		}));
-
 	test("permits the game origin to call the API", () =>
 		Effect.gen(function* () {
 			const response = yield* request("/api/leaderboard", {
@@ -69,6 +62,21 @@ describe("leaderboard API", () => {
 			);
 			expect(response.headers.get("Access-Control-Allow-Headers")).toContain(
 				"X-Installation-Id",
+			);
+		}));
+
+	test("permits the local game development server to call the API", () =>
+		Effect.gen(function* () {
+			const response = yield* request("/api/leaderboard", {
+				method: "OPTIONS",
+				headers: {
+					Origin: "http://localhost:3000",
+					"Access-Control-Request-Method": "POST",
+				},
+			});
+			expect(response.status).toBe(204);
+			expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+				"http://localhost:3000",
 			);
 		}));
 
