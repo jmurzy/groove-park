@@ -100,6 +100,21 @@ jobs:
               --remote
           done
 
+      # Records the prior release so its immutable assets can be removed after promotion.
+      - name: Record current release
+        env:
+          R2_BUCKET: game-releases
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          previous_pointer="$RUNNER_TEMP/previous-current.json"
+          if npx --prefix workers/api wrangler r2 object get "$R2_BUCKET/current.json" \
+            --file "$previous_pointer" \
+            --remote; then
+            previous_release="$(jq -er '.release | select(type == "string" and test("^[0-9a-f]{40}$"))' "$previous_pointer")"
+            printf 'PREVIOUS_RELEASE=%s\n' "$previous_release" >> "$GITHUB_ENV"
+          fi
+
       # Promotes this commit only after every immutable asset has uploaded.
       - name: Publish release pointer
         env:
@@ -112,4 +127,26 @@ jobs:
             --file "$RUNNER_TEMP/current.json" \
             --content-type "application/json; charset=utf-8" \
             --cache-control "no-store" \
+            --remote
+
+      # Removes the immutable files from the release previously selected by current.json.
+      - name: Remove previous release
+        if: env.PREVIOUS_RELEASE != '' && env.PREVIOUS_RELEASE != env.RELEASE
+        env:
+          R2_BUCKET: game-releases
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          previous_config="$RUNNER_TEMP/previous-release-config.json"
+          npx --prefix workers/api wrangler r2 object get \
+            "$R2_BUCKET/releases/$PREVIOUS_RELEASE/release_config.json" \
+            --file "$previous_config" \
+            --remote
+          jq -r '.config.fileSizes | keys[]' "$previous_config" | while IFS= read -r file; do
+            npx --prefix workers/api wrangler r2 object delete \
+              "$R2_BUCKET/releases/$PREVIOUS_RELEASE/$file" \
+              --remote
+          done
+          npx --prefix workers/api wrangler r2 object delete \
+            "$R2_BUCKET/releases/$PREVIOUS_RELEASE/release_config.json" \
             --remote
