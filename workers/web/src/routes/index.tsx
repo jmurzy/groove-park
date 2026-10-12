@@ -1,5 +1,7 @@
+import { env } from "cloudflare:workers";
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import {
 	getGameReleaseConfig,
 	getGameReleaseId,
@@ -7,21 +9,36 @@ import {
 	type GodotReleaseConfig,
 } from "#/server/game-releases";
 
-const GAME_ASSET_ORIGIN = "https://assets.game.gunbarrelhaus.com";
-const GAME_API_ORIGIN = "https://api.game.gunbarrelhaus.com";
+const getReleasesUrl = createServerFn({ method: "GET" }).handler(
+	() => env.GAME_RELEASES_URL,
+);
+
+const getGameApiUrl = createServerFn({ method: "GET" }).handler(
+	() => env.GAME_API_URL,
+);
 
 export const Route = createFileRoute("/")({
 	loader: async () => ({
 		releaseConfig: await getGameReleaseConfig(),
 		releaseId: await getGameReleaseId(),
+		gameApiUrl: await getGameApiUrl(),
+		releasesUrl: await getReleasesUrl(),
 	}),
 	component: IndexPage,
 });
 
 function IndexPage() {
-	const { releaseConfig, releaseId } = Route.useLoaderData();
+	const { gameApiUrl, releaseConfig, releaseId, releasesUrl } =
+		Route.useLoaderData();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const [progress, setProgress] = useState<{ current: number; total: number }>();
+	const gameStartRef = useRef<Promise<void> | undefined>(undefined);
+	const onProgressRef = useRef<
+		((current: number, total: number) => void) | undefined
+	>(undefined);
+	const [progress, setProgress] = useState<{
+		current: number;
+		total: number;
+	}>();
 	const [notice, setNotice] = useState<string>();
 
 	useEffect(() => {
@@ -32,7 +49,7 @@ function IndexPage() {
 		}
 
 		window.HEAVENLY_CFG ??= {
-			leaderboard_api: { base_url: GAME_API_ORIGIN },
+			leaderboard_api: { base_url: gameApiUrl },
 		};
 		setNotice(undefined);
 		setProgress({ current: 0, total: 0 });
@@ -43,7 +60,11 @@ function IndexPage() {
 			canvas.focus();
 		};
 		const preventScroll = (event: KeyboardEvent) => {
-			if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(event.key)) {
+			if (
+				["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(
+					event.key,
+				)
+			) {
 				event.preventDefault();
 			}
 		};
@@ -62,9 +83,23 @@ function IndexPage() {
 		document.addEventListener("keyup", preventScroll);
 
 		let active = true;
-		void startGame(releaseId, releaseConfig, canvas, (current, total) => {
+		onProgressRef.current = (current, total) => {
 			if (active) setProgress({ current, total });
-		})
+		};
+		let gameStart = gameStartRef.current;
+		if (!gameStart) {
+			gameStart = startGame(
+				releaseId,
+				releaseConfig,
+				releasesUrl,
+				canvas,
+				(current, total) => {
+					onProgressRef.current?.(current, total);
+				},
+			);
+			gameStartRef.current = gameStart;
+		}
+		void gameStart
 			.then(() => {
 				if (active) setProgress(undefined);
 			})
@@ -77,6 +112,7 @@ function IndexPage() {
 
 		return () => {
 			active = false;
+			onProgressRef.current = undefined;
 			for (const eventName of [
 				"pointerdown",
 				"pointerup",
@@ -90,7 +126,7 @@ function IndexPage() {
 			document.removeEventListener("keydown", preventScroll);
 			document.removeEventListener("keyup", preventScroll);
 		};
-	}, [releaseConfig, releaseId]);
+	}, [gameApiUrl, releaseConfig, releaseId, releasesUrl]);
 
 	async function toggleFullscreen() {
 		const canvas = canvasRef.current;
@@ -134,10 +170,11 @@ function IndexPage() {
 async function startGame(
 	releaseId: string,
 	releaseConfig: GodotReleaseConfig,
+	releasesUrl: string,
 	canvas: HTMLCanvasElement,
 	onProgress: (current: number, total: number) => void,
 ) {
-	const assetBase = `${GAME_ASSET_ORIGIN}/releases/${releaseId}/`;
+	const assetBase = `${releasesUrl}/releases/${releaseId}/`;
 	const config: GodotEngineConfig = {
 		...releaseConfig.config,
 		executable: new URL(releaseConfig.config.executable, assetBase).href,
@@ -146,17 +183,21 @@ async function startGame(
 	if (!window.Engine) throw new Error("Game engine failed to load.");
 
 	const engine = new window.Engine(config);
-	const missing = window.Engine.getMissingFeatures({ threads: releaseConfig.threadsEnabled });
+	const missing = window.Engine.getMissingFeatures({
+		threads: releaseConfig.threadsEnabled,
+	});
 	if (missing.length !== 0) {
 		if (
 			config.serviceWorker &&
 			config.ensureCrossOriginIsolationHeaders &&
 			"serviceWorker" in navigator
 		) {
-			await navigator.serviceWorker.getRegistration(assetBase).then((registration) => {
-				if (registration) throw new Error("Service worker already exists.");
-				return engine.installServiceWorker();
-			});
+			await navigator.serviceWorker
+				.getRegistration(assetBase)
+				.then((registration) => {
+					if (registration) throw new Error("Service worker already exists.");
+					return engine.installServiceWorker();
+				});
 			window.location.reload();
 			return;
 		}
@@ -213,7 +254,7 @@ const pageStyle = {
 	position: "fixed",
 	right: 0,
 	top: 0,
-	"touchAction": "none",
+	touchAction: "none",
 } as const;
 
 const canvasStyle = { display: "block", outline: "none" } as const;

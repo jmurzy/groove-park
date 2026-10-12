@@ -4,10 +4,11 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 
-const rootZoneName = "gunbarrelhaus.com";
+const ROOT_ZONE_NAME = "gunbarrelhaus.com";
+const GAME_ASSETS_DOMAIN = `assets.game.${ROOT_ZONE_NAME}`;
 
 const zone = Cloudflare.Zone.Zone("GunbarrelHausZone", {
-	name: rootZoneName,
+	name: ROOT_ZONE_NAME,
 }).pipe(adopt(true));
 
 const gameReleases = Effect.gen(function* () {
@@ -25,13 +26,13 @@ const gameReleases = Effect.gen(function* () {
 		// Keep the r2.dev endpoint private; the declared custom domain remains public.
 		publicAccess: false,
 		domains: [
-			{ name: `assets.game.${rootZoneName}`, zone: rootZoneName, minTLS: "1.2" },
+			{ name: GAME_ASSETS_DOMAIN, zone: ROOT_ZONE_NAME, minTLS: "1.2" },
 		],
 		cors: [
 			{
 				allowedMethods: ["GET", "HEAD"],
 				allowedOrigins: [
-					`https://game.${rootZoneName}`,
+					`https://game.${ROOT_ZONE_NAME}`,
 					"http://localhost:3000",
 				],
 				allowedHeaders: ["range"],
@@ -42,28 +43,39 @@ const gameReleases = Effect.gen(function* () {
 	}).pipe(adopt(true));
 });
 
-const webWorker = Cloudflare.Website.Vite("GameWeb", {
-	name: "game-web",
-	rootDir: ".",
-	compatibility: {
-		date: "2025-09-02",
-		flags: ["nodejs_compat"],
-	},
-	workersDev: false,
-	dev: {
-		port: 3000,
-		strictPort: true,
-	},
-	env: {
-		GAME_RELEASES: gameReleases,
-		EXAMPLE_MESSAGE_2: Config.String("EXAMPLE_MESSAGE_2"),
-		EXAMPLE_SECRET_2: Config.Redacted("EXAMPLE_SECRET_2"),
-	},
-	domain: {
-		name: `game.${rootZoneName}`,
-		zoneName: rootZoneName,
-	},
-}).pipe(adopt(true));
+const webWorker = Effect.gen(function* () {
+	const stage = yield* Alchemy.Stage;
+	const gameApi = yield* Cloudflare.Worker.ref("GameApi", {
+		stack: "game-api",
+		stage,
+	});
+
+	return yield* Cloudflare.Website.Vite("GameWeb", {
+		name: "game-web",
+		rootDir: ".",
+		compatibility: {
+			date: "2025-09-02",
+			flags: ["nodejs_compat"],
+		},
+		workersDev: false,
+		dev: {
+			port: 3000,
+			strictPort: true,
+		},
+		env: {
+			GAME_API_URL: gameApi.url.as<string>(),
+			GAME_RELEASES_URL: `https://${GAME_ASSETS_DOMAIN}`,
+			GAME_RELEASES: gameReleases,
+
+			EXAMPLE_MESSAGE_2: Config.String("EXAMPLE_MESSAGE_2"),
+			EXAMPLE_SECRET_2: Config.Redacted("EXAMPLE_SECRET_2"),
+		},
+		domain: {
+			name: `game.${ROOT_ZONE_NAME}`,
+			zoneName: ROOT_ZONE_NAME,
+		},
+	}).pipe(adopt(true));
+});
 
 export type WebWorkerEnv = Cloudflare.InferEnv<typeof webWorker>;
 

@@ -11,8 +11,9 @@
 		"format": "biome format",
 		"lint": "biome lint",
 		"typecheck": "tsc --noEmit",
-		"plan": "alchemy plan --config alchemy.run.ts --stage production",
-		"deploy": "alchemy deploy --config alchemy.run.ts --stage production"
+		"plan": "alchemy plan --detailed --config alchemy.run.ts --stage production",
+		"deploy": "alchemy deploy --config alchemy.run.ts --stage production",
+		"destroy": "alchemy destroy --config alchemy.run.ts --stage production"
 	},
 	"dependencies": {
 		"@tanstack/react-devtools": "0.10.13",

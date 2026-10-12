@@ -64,7 +64,7 @@ powershell -ExecutionPolicy Bypass -File .\Install.ps1
 
 1. Sign in to GitHub with an account that has read access to the repository.
 2. Open the repository's **Actions** tab.
-3. Select the **Windows build** workflow.
+3. Select the **Windows Build** workflow.
 4. Open the latest successful run for the commit being tested.
 5. In the run's **Artifacts** section, download `HEAVENLY-windows-x86_64`.
 6. Extract GitHub's outer artifact ZIP.

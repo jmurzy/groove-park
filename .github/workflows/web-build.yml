@@ -1,4 +1,4 @@
-name: Deploy web game
+name: Web Build
 
 on:
   workflow_run:
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
@@ -26,7 +26,7 @@ jobs:
       contents: read
     timeout-minutes: 20
     steps:
-      # Deploys the exact commit that completed the successful Checks workflow.
+      # Builds the exact commit that completed the successful Checks workflow.
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -49,22 +49,43 @@ jobs:
           install-export-templates: "true"
           template-version: ${{ env.GODOT_TEMPLATE_VERSION }}
 
-      # Provides the Node.js runtime and dependency cache needed by Wrangler.
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.21.0
-          cache: npm
-          cache-dependency-path: workers/api/package-lock.json
-
-      # Installs the pinned project dependencies, including the Wrangler CLI.
-      - name: Install Wrangler
-        run: npm ci --prefix workers/api
-
       - name: Export Web game
         env:
           GODOT_BIN: godot
         run: just export-web
+
+      - name: Upload Web release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: HEAVENLY-web
+          path: build/web
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE: ${{ github.event.workflow_run.head_sha }}
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      - name: Download Web release
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: HEAVENLY-web
+          path: build/web
+
+      # Provides the Node.js runtime needed to install the R2 upload CLI.
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.21.0
+
+      # Install the exact CLI version used to publish game assets to R2.
+      - name: Install Wrangler
+        run: npm install --global wrangler@4.145.0
 
       # Uploads the release configuration without caching so clients resolve the current release.
       - name: Upload release configuration
@@ -73,7 +94,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/release_config.json" \
+          wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/release_config.json" \
             --file build/web/release_config.json \
             --content-type "application/json; charset=utf-8" \
             --cache-control "no-cache, max-age=0, must-revalidate" \
@@ -93,7 +114,7 @@ jobs:
               *.wasm) content_type="application/wasm" ;;
               *.pck) content_type="application/octet-stream" ;;
             esac
-            npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/$key" \
+            wrangler r2 object put "$R2_BUCKET/$key" \
               --file "$file" \
               --content-type "$content_type" \
               --cache-control "public, max-age=31536000, immutable" \
@@ -108,7 +129,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           previous_pointer="$RUNNER_TEMP/previous-current.json"
-          if npx --prefix workers/api wrangler r2 object get "$R2_BUCKET/current.json" \
+          if wrangler r2 object get "$R2_BUCKET/current.json" \
             --file "$previous_pointer" \
             --remote; then
             previous_release="$(jq -er '.release | select(type == "string" and test("^[0-9a-f]{40}$"))' "$previous_pointer")"
@@ -123,7 +144,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           printf '{"release":"%s"}\n' "$RELEASE" > "$RUNNER_TEMP/current.json"
-          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/current.json" \
+          wrangler r2 object put "$R2_BUCKET/current.json" \
             --file "$RUNNER_TEMP/current.json" \
             --content-type "application/json; charset=utf-8" \
             --cache-control "no-store" \
@@ -138,15 +159,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           previous_config="$RUNNER_TEMP/previous-release-config.json"
-          npx --prefix workers/api wrangler r2 object get \
+          wrangler r2 object get \
             "$R2_BUCKET/releases/$PREVIOUS_RELEASE/release_config.json" \
             --file "$previous_config" \
             --remote
           jq -r '.config.fileSizes | keys[]' "$previous_config" | while IFS= read -r file; do
-            npx --prefix workers/api wrangler r2 object delete \
+            wrangler r2 object delete \
               "$R2_BUCKET/releases/$PREVIOUS_RELEASE/$file" \
               --remote
           done
-          npx --prefix workers/api wrangler r2 object delete \
+          wrangler r2 object delete \
             "$R2_BUCKET/releases/$PREVIOUS_RELEASE/release_config.json" \
             --remote

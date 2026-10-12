@@ -25,7 +25,6 @@ export const getGameReleaseId = createServerFn({ method: "GET" }).handler(
 	getCurrentReleaseId,
 );
 
-
 export type GodotEngineConfig = {
 	args: string[];
 	canvasResizePolicy: number;

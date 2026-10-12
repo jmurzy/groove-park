@@ -5,7 +5,7 @@ Durable Object named `leaderboard-global` for the shared leaderboard.
 
 `alchemy.run.ts` adopts the `gunbarrelhaus.com` zone and manages the API Worker domain, rate
 limits, and secrets. Its fixed resource names and adoption policy preserve an existing
-`game-server` Worker and `GlobalLeaderboard` Durable Object namespace when present on the first
+`game-api` Worker and `GlobalLeaderboard` Durable Object namespace when present on the first
 deploy. It does not manage DNS records that are not explicitly declared in the stack. Review
 `just plan` before production deploys. The API deployment workflow requires the
 `LIFTIE_USER_AGENT` GitHub Actions secret in addition to the Cloudflare credentials.
