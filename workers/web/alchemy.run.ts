@@ -10,26 +10,37 @@ const zone = Cloudflare.Zone.Zone("GunbarrelHausZone", {
 	name: rootZoneName,
 }).pipe(adopt(true));
 
-const gameReleases = Cloudflare.R2.Bucket("GameReleases", {
-	name: "game-releases",
-	// Keep the r2.dev endpoint private; the declared custom domain remains public.
-	publicAccess: false,
-	domains: [
-		{ name: `assets.game.${rootZoneName}`, zone: rootZoneName, minTLS: "1.2" },
-	],
-	cors: [
-		{
-			allowedMethods: ["GET", "HEAD"],
-			allowedOrigins: [
-				`https://game.${rootZoneName}`,
-				"http://localhost:3000",
-			],
-			allowedHeaders: ["range"],
-			exposeHeaders: ["etag", "content-range"],
-			maxAgeSeconds: 86400,
-		},
-	],
-}).pipe(adopt(true));
+const gameReleases = Effect.gen(function* () {
+	const stage = yield* Alchemy.Stage;
+
+	if (stage !== "production") {
+		// Local Workers proxy this real bucket instead of using the R2 emulator.
+		return yield* Cloudflare.R2.Bucket.ref("GameReleases", {
+			stage: "production",
+		});
+	}
+
+	return yield* Cloudflare.R2.Bucket("GameReleases", {
+		name: "game-releases",
+		// Keep the r2.dev endpoint private; the declared custom domain remains public.
+		publicAccess: false,
+		domains: [
+			{ name: `assets.game.${rootZoneName}`, zone: rootZoneName, minTLS: "1.2" },
+		],
+		cors: [
+			{
+				allowedMethods: ["GET", "HEAD"],
+				allowedOrigins: [
+					`https://game.${rootZoneName}`,
+					"http://localhost:3000",
+				],
+				allowedHeaders: ["range"],
+				exposeHeaders: ["etag", "content-range"],
+				maxAgeSeconds: 86400,
+			},
+		],
+	}).pipe(adopt(true));
+});
 
 const webWorker = Cloudflare.Website.Vite("GameWeb", {
 	name: "game-web",
