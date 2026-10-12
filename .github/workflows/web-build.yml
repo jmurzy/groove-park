@@ -73,8 +73,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/config.json" \
-            --file build/web/config.json \
+          npx --prefix workers/api wrangler r2 object put "$R2_BUCKET/releases/$RELEASE/release_config.json" \
+            --file build/web/release_config.json \
             --content-type "application/json; charset=utf-8" \
             --cache-control "no-cache, max-age=0, must-revalidate" \
             --remote
@@ -86,7 +86,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          find build/web -type f ! -path 'build/web/config.json' -print0 | while IFS= read -r -d '' file; do
+          find build/web -type f ! -path 'build/web/release_config.json' -print0 | while IFS= read -r -d '' file; do
             key="releases/${RELEASE}/${file#build/web/}"
             case "$file" in
               *.js) content_type="text/javascript; charset=utf-8" ;;

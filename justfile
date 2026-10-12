@@ -88,7 +88,7 @@ export-web: import
     mkdir -p build/web
     "{{ godot_bin }}" --headless --path . --export-release "Web"
     # Godot writes the resolved configuration to its HTML entry document.
-    mv build/web/index.html build/web/config.json
+    mv build/web/index.html build/web/release_config.json
     # The generated splash image is not used.
     rm -f build/web/index.png
 
