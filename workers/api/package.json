@@ -7,7 +7,7 @@
 		"node": "24.21.0"
 	},
 	"scripts": {
-		"dev": "alchemy dev --config alchemy.run.ts --stage production",
+		"dev": "alchemy dev --config alchemy.run.ts --stage development",
 		"plan": "alchemy plan --config alchemy.run.ts --stage production",
 		"deploy": "alchemy deploy --config alchemy.run.ts --stage production",
 		"format": "biome format",
