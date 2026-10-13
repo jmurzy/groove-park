@@ -19,7 +19,6 @@ const localStack = Alchemy.Stack(
 const {
 	test: alchemyTest,
 	beforeAll,
-	beforeEach,
 	deploy,
 } = Test.make({
 	providers: Cloudflare.providers(),
@@ -36,12 +35,6 @@ const submission = {
 	totalScore: 420,
 	platform: "web",
 };
-
-beforeEach(
-	Effect.gen(function* () {
-		yield* request("/api/reset", { headers: cabinetHeaders() });
-	}),
-);
 
 describe("leaderboard API", () => {
 	test("permits the game origin to call the API", () =>
@@ -99,7 +92,7 @@ describe("leaderboard API", () => {
 			});
 		}));
 
-	test("initializes the global board", () =>
+	test("returns the global board", () =>
 		Effect.gen(function* () {
 			const response = yield* request("/api/leaderboard", {
 				headers: cabinetHeaders(),
@@ -109,19 +102,21 @@ describe("leaderboard API", () => {
 				/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
 			);
 			expect(response.headers.get("Cache-Control")).toBe("no-store");
-			expect(yield* responseJson(response)).toMatchObject({ topEntries: [] });
+			const board = (yield* responseJson(response)) as {
+				topEntries: unknown[];
+			};
+			expect(board.topEntries).toBeInstanceOf(Array);
 		}));
 
-	test("clears the leaderboard", () =>
+	test("does not expose a leaderboard reset route", () =>
 		Effect.gen(function* () {
-			yield* submit(submission);
-			const reset = yield* request("/api/reset", { headers: cabinetHeaders() });
-			expect(reset.status).toBe(200);
-			expect(yield* responseJson(reset)).toEqual({ topEntries: [] });
-			const board = yield* request("/api/leaderboard", {
+			const response = yield* request("/api/reset", {
 				headers: cabinetHeaders(),
 			});
-			expect(yield* responseJson(board)).toEqual({ topEntries: [] });
+			expect(response.status).toBe(404);
+			expect(yield* responseJson(response)).toEqual({
+				error: { code: "NOT_FOUND" },
+			});
 		}));
 
 	test("requires an installation ID before processing a request", () =>
@@ -135,6 +130,10 @@ describe("leaderboard API", () => {
 
 	test("rejects malformed cabinet installation IDs before invoking the leaderboard", () =>
 		Effect.gen(function* () {
+			const before = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
+			const beforeBody = yield* responseJson(before);
 			const response = yield* submit(submission, {
 				"X-Installation-Id": "not-an-installation-id",
 			});
@@ -145,7 +144,7 @@ describe("leaderboard API", () => {
 			const board = yield* request("/api/leaderboard", {
 				headers: cabinetHeaders(),
 			});
-			expect(yield* responseJson(board)).toEqual({ topEntries: [] });
+			expect(yield* responseJson(board)).toEqual(beforeBody);
 		}));
 
 	test("limits cabinet requests by installation without mutating the board", () =>
@@ -192,14 +191,19 @@ describe("leaderboard API", () => {
 			});
 		}));
 
-	test("qualifies an empty board and stores a normalized submission idempotently", () =>
+	test("qualifies a top score and stores a normalized submission idempotently", () =>
 		Effect.gen(function* () {
-			const qualification = yield* qualify(420);
+			const topSubmission = {
+				...submission,
+				roundId: roundId(2_147_483_647),
+				totalScore: 2_147_483_647,
+			};
+			const qualification = yield* qualify(topSubmission.totalScore);
 			expect(qualification).toEqual({ qualified: true });
-			const first = yield* submit(submission);
+			const first = yield* submit(topSubmission);
 			expect(first.status).toBe(201);
 			expect(yield* responseJson(first)).toEqual({ accepted: true, rank: 1 });
-			const repeated = yield* submit(submission);
+			const repeated = yield* submit(topSubmission);
 			expect(repeated.status).toBe(201);
 			expect(yield* responseJson(repeated)).toEqual({
 				accepted: true,
@@ -208,13 +212,22 @@ describe("leaderboard API", () => {
 			const board = yield* request("/api/leaderboard", {
 				headers: cabinetHeaders(),
 			});
-			expect(yield* responseJson(board)).toMatchObject({
-				topEntries: [expect.objectContaining({ playerName: "Sky Rider" })],
-			});
+			const boardBody = (yield* responseJson(board)) as {
+				topEntries: Array<{ roundId: string }>;
+			};
+			expect(
+				boardBody.topEntries.some(
+					(entry) => entry.roundId === topSubmission.roundId,
+				),
+			).toBe(true);
 		}));
 
 	test("does not qualify or store zero scores", () =>
 		Effect.gen(function* () {
+			const before = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
+			const beforeBody = yield* responseJson(before);
 			expect(yield* qualify(0)).toEqual({ qualified: false });
 			const response = yield* submit({ ...submission, totalScore: 0 });
 			expect(response.status).toBe(400);
@@ -224,18 +237,24 @@ describe("leaderboard API", () => {
 			const board = yield* request("/api/leaderboard", {
 				headers: cabinetHeaders(),
 			});
-			expect(yield* responseJson(board)).toEqual({ topEntries: [] });
+			expect(yield* responseJson(board)).toEqual(beforeBody);
 		}));
 
 	test("returns the original entry when a round ID is reused", () =>
 		Effect.gen(function* () {
-			yield* submit(submission);
-			const repeated = yield* submit({ ...submission, totalScore: 421 });
-			expect(repeated.status).toBe(201);
-			expect(yield* responseJson(repeated)).toEqual({
-				accepted: true,
-				rank: 1,
+			const first = yield* submit({
+				...submission,
+				roundId: roundId(2_147_483_646),
+				totalScore: 2_147_483_646,
 			});
+			const firstBody = yield* responseJson(first);
+			const repeated = yield* submit({
+				...submission,
+				roundId: roundId(2_147_483_646),
+				totalScore: 421,
+			});
+			expect(repeated.status).toBe(201);
+			expect(yield* responseJson(repeated)).toEqual(firstBody);
 		}));
 
 	test("accepts only ags or web platforms", () =>
@@ -278,7 +297,8 @@ describe("leaderboard API", () => {
 
 	test("requires a score above tenth place", () =>
 		Effect.gen(function* () {
-			for (let score = 1000; score > 990; score -= 1) {
+			for (let offset = 100; offset < 110; offset += 1) {
+				const score = 2_147_483_647 - offset;
 				const response = yield* submit({
 					...submission,
 					roundId: roundId(score),
@@ -286,8 +306,19 @@ describe("leaderboard API", () => {
 				});
 				expect(response.status).toBe(201);
 			}
-			expect(yield* qualify(991)).toEqual({ qualified: false });
-			expect(yield* qualify(992)).toEqual({ qualified: true });
+			const board = yield* request("/api/leaderboard", {
+				headers: cabinetHeaders(),
+			});
+			const boardBody = (yield* responseJson(board)) as {
+				topEntries: Array<{ totalScore: number }>;
+			};
+			const tenthScore = boardBody.topEntries[9]?.totalScore;
+			expect(tenthScore).toBeTypeOf("number");
+			if (tenthScore === undefined) return;
+			expect(yield* qualify(tenthScore)).toEqual({ qualified: false });
+			if (tenthScore < 2_147_483_647) {
+				expect(yield* qualify(tenthScore + 1)).toEqual({ qualified: true });
+			}
 		}));
 
 	test("serializes concurrent submissions", () =>

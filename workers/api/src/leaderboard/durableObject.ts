@@ -79,11 +79,6 @@ export class GlobalLeaderboard extends DurableObject<ApiWorkerEnv> {
 		};
 	}
 
-	async reset(): Promise<BoardSnapshot> {
-		this.ctx.storage.sql.exec("DELETE FROM leaderboard_entries");
-		return { topEntries: [] };
-	}
-
 	async checkQualification(
 		totalScore: number,
 	): Promise<{ qualified: boolean }> {

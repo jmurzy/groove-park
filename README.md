@@ -10,11 +10,11 @@ Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing gam
 
 The digital marquee is a dedicated 1920x360 Godot window. It shows an animated skier and snowboarder, a scrolling lift-status ticker, an operations footer, snowfall, and a `LIVE MOUNTAIN OPS` treatment designed for the Sente's overhead display.
 
-The game requests live Heavenly Mountain Resort lift information from the game API at `game_api.base_url/api/resort/heavenly` at launch and every 60 seconds. Each request includes the installation ID, then normalizes open, hold, closed, and scheduled lift counts.
+The game starts with a local Heavenly lift lineup, then refreshes live lift information every 60 seconds from `game_api.base_url/api/liftie/resort/<game_api.resort_slug>`. Each request includes the generated installation ID. The API validates and normalizes Liftie responses, caches successful responses for 60 seconds, and the marquee updates its lift totals and ticker from the returned statuses.
 
 Copy [heavenly.cfg.example](heavenly.cfg.example) to `heavenly.cfg` in the repository for development. The packaged game receives this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
 
-The `game_api.base_url` setting is required. The game exits at startup when it is missing or blank. The Liftie service is initialized and passed to both display views. At present, the marquee's visible lift names and statuses are demo content, so live lift responses are not yet rendered in its ticker. The API polling and configuration are in place for that connection; when it is wired in, the marquee will refresh from Heavenly lift data once per minute. Lift data is informational only; observe all posted resort signage and operations guidance.
+Both `game_api.base_url` and `game_api.resort_slug` are required. The game exits at startup when either is missing or blank. On cabinet builds, `heavenly.cfg` beside `HEAVENLY.exe` overrides the packaged fallback; the installer preserves that operator-managed file during upgrades. Lift data is informational only; observe all posted resort signage and operations guidance.
 
 ## Polycade AGS
 
@@ -90,7 +90,9 @@ just version
 | `just sente-high` | Run the Sente window check at 120 FPS. |
 | `just import` | Import resources headlessly, as performed before export. |
 | `just test` | Run the headless park-rider simulation tests. |
-| `just check` | Run formatting, linting, type checks, simulation tests, and workflow linting. |
+| `just check` | Run game formatting, linting, type checks, simulation tests, and workflow linting. |
+| `just api check` | Run API Worker formatting, linting, type checks, and tests. |
+| `just web check` | Run Web Worker formatting, linting, and type checks. |
 | `just export-ags` | Create a local 64-bit Windows build at `build/ags/HEAVENLY.exe`. |
 | `just export-web` | Create the Web/Wasm release at `build/web/index.html`. |
 | `just package-ags` | Export, assemble the AGS payload, and create `HEAVENLY-windows-x86_64.zip` with a SHA-256 checksum. |
@@ -101,8 +103,8 @@ The canonical cabinet package is the Windows x86_64 export. `just package-ags` i
 
 Godot can export the game as a standalone native application in addition to the AGS package. This repository currently defines and automates the 64-bit Windows desktop preset, which produces a standalone `HEAVENLY.exe` before it is assembled into the AGS installer payload.
 
-`just export-web` produces a non-threaded Godot Web/Wasm build in `build/web`. GitHub Actions
-uploads each release under its commit SHA in the `game-releases` R2 bucket. The game Worker serves a
+`just export-web` produces a non-threaded Godot Web/Wasm build in `build/web`. After a successful
+`Checks` run on `main`, GitHub Actions uploads each release under its commit SHA in the `game-releases` R2 bucket and promotes it through `current.json`. The game Worker serves a
 no-cache entry document at `game.gunbarrelhaus.com`; its injected release-specific base URL sends
 the Wasm, PCK, and JavaScript requests directly to R2's `assets.game.gunbarrelhaus.com` custom
 domain. The browser owns resizing and fullscreen; the game keeps its 1920x1080 presentation
@@ -110,6 +112,7 @@ letterboxed, composes the cabinet marquee above the primary game view, and has n
 action.
 
 Web is supported on desktop browsers with a keyboard or connected gamepad. Browser builds do not
-read `heavenly.cfg` or send Liftie requests directly. They persist a browser-scoped installation ID
-for leaderboard rate-limit grouping; other local browser settings remain browser-managed. The Web
-export is non-threaded, so it does not require cross-origin isolation headers.
+read `heavenly.cfg`; the Web Worker injects the API URL and resort slug into `window.HEAVENLY_CFG`.
+They persist a browser-scoped installation ID for API rate-limit grouping; other local browser settings
+remain browser-managed. The Web export is non-threaded, so it does not require cross-origin isolation
+headers.

@@ -40,15 +40,6 @@ export async function getLeaderboard(
 	return json(snapshot, 200, { "Cache-Control": "no-store" });
 }
 
-export async function resetLeaderboard(
-	context: WorkerContext,
-): Promise<Response> {
-	const leaderboard = context.env.LEADERBOARD.getByName(
-		LEADERBOARD_OBJECT_NAME,
-	);
-	return json(await leaderboard.reset());
-}
-
 export async function qualifyLeaderboard(
 	context: WorkerContext,
 ): Promise<Response> {

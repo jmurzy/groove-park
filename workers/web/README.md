@@ -15,9 +15,9 @@ declared in the stack. Review `just plan` before production deploys.
 Alchemy's Vite resource builds and deploys the TanStack Start server bundle and client assets.
 Add future Cloudflare bindings and secrets to `alchemy.run.ts`.
 
-## Production secrets
+## Deployment configuration
 
-Configure these as GitHub Actions secrets, restricted to the production repository or environment:
+Configure these credentials as GitHub Actions secrets, restricted to the production repository or environment:
 
 - `CLOUDFLARE_ACCOUNT_ID`: the target Cloudflare account identifier. It is used only by deployment
   workflows.
@@ -25,9 +25,11 @@ Configure these as GitHub Actions secrets, restricted to the production reposito
   deploy the declared Worker resources. Review `just plan` when infrastructure changes and narrow
   the token scope accordingly.
 
+Configure `RESORT_SLUG` as a GitHub Actions variable. It is public deployment configuration
+containing the lowercase Liftie resort slug injected into the Web game's runtime configuration.
+
 `EXAMPLE_MESSAGE_2` is public Worker configuration and `EXAMPLE_SECRET_2` is a Worker secret
-declared in `alchemy.run.ts`. Replace or remove these example bindings before using them in
-production.
+currently required by `alchemy.run.ts`. Supply both until those example bindings are removed.
 
 ## Commands
 
@@ -39,7 +41,8 @@ just dev
 
 `just dev` runs the local Cloudflare Worker through Alchemy with Vite hot module replacement at
 `http://localhost:3000`. Vite generates `src/routeTree.gen.ts` during development and builds; run
-`just generate-routes` to refresh it manually.
+`just generate-routes` to refresh it manually. Local development reads `.env`; it must provide
+`RESORT_SLUG`, `EXAMPLE_MESSAGE_2`, and `EXAMPLE_SECRET_2`.
 
 ## Deployments
 
@@ -53,3 +56,6 @@ just deploy
 
 For local development, copy `.env.example` to `.env` and replace its placeholder values. The
 `.env` file is used by `alchemy dev`; it is ignored and must not be committed.
+
+The `Deploy Web` workflow deploys both the game site and the separate redirect stack. Web game
+assets are published by the `Web Build` workflow after successful game checks on `main`.

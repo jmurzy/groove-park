@@ -1,5 +1,12 @@
 ## AI-generated asset briefs
 
+### Current asset status
+
+`artwork/players/skier/` and `artwork/players/snowboarder/` contain the production rider animation
+sets used by `RiderVisualDefinition`. Treat those files as the visual and filename contracts for the
+live game; do not overwrite them during exploratory generation. The briefs below apply to new or
+replacement assets after an approval sample has been accepted.
+
 ### Reference rule for every generation
 
 Attach the relevant supplied HEAVENLY reference images from the `artwork/` folder to every generation request.
@@ -20,7 +27,7 @@ Generate one approval sample before each complete set. Keep approved rider desig
 
 **Asset: `heavenly_park_snowboarder_pose_set`**
 
-> Use Image 1, `artwork/marquee/snowboarder_sprite.png`, as the only character reference. Create the same side-view pixel-art freestyle snowboarder for a future `SnowboarderView`: glossy blue helmet with white stripe, orange-yellow goggles, brown ponytail, pink puffy jacket with dark-blue sides, dark-blue pants, blue gloves, and pink snowboard with a white top stripe. Never add ski poles. Match the skier animation contract and scale: neutral glide, tuck, heel/toe carves, compression, takeoff extension, neutral air, grab reach/hold/tweak, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep board and body anchors consistent across one shared 1024 x 1024 canvas. Use the same frame counts and looping/one-shot intent as the skier set where applicable. Deliver frames under `artwork/players/snowboarder/`, named `snowboarder_<state>_f<index>.png`. The full body and board must be centered and uncropped, with the board on the same horizontal baseline in every frame. Background pixels must be fully transparent (alpha 0); no solid black background, fake transparency pattern, snow, shadow, text, UI, scanlines, or CRT effect.
+> Use Image 1, `artwork/marquee/snowboarder_sprite.png`, as the only character reference. Create the same side-view pixel-art freestyle snowboarder for `SnowboarderView`: glossy blue helmet with white stripe, orange-yellow goggles, brown ponytail, pink puffy jacket with dark-blue sides, dark-blue pants, blue gloves, and pink snowboard with a white top stripe. Never add ski poles. Match the skier animation contract and scale: neutral glide, tuck, heel/toe carves, compression, takeoff extension, neutral air, grab reach/hold/tweak, landing preparation, deep landing compression, sketchy recovery, crash, and celebration. Keep board and body anchors consistent across one shared 1024 x 1024 canvas. Use the same frame counts and looping/one-shot intent as the skier set where applicable. Deliver frames under `artwork/players/snowboarder/`, named `snowboarder_<state>_f<index>.png`. The full body and board must be centered and uncropped, with the board on the same horizontal baseline in every frame. Background pixels must be fully transparent (alpha 0); no solid black background, fake transparency pattern, snow, shadow, text, UI, scanlines, or CRT effect.
 
 ### Priority 2 — park
 

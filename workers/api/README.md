@@ -10,7 +10,7 @@ deploy. It does not manage DNS records that are not explicitly declared in the s
 `just plan` before production deploys. The API deployment workflow requires the
 `LIFTIE_USER_AGENT` GitHub Actions secret in addition to the Cloudflare credentials.
 
-## Production secrets
+## Deployment configuration
 
 Configure these as GitHub Actions secrets, restricted to the production repository or environment:
 
@@ -19,8 +19,8 @@ Configure these as GitHub Actions secrets, restricted to the production reposito
 - `CLOUDFLARE_API_TOKEN`: a token restricted to that account, with only the permissions required to
   deploy the declared Worker resources. Review `just plan` when infrastructure changes and narrow
   the token scope accordingly.
-- `LIFTIE_USER_AGENT`: the sole Worker secret. It is supplied only to the API deployment workflow,
-  not Web release publishing.
+- `LIFTIE_USER_AGENT`: the sole API Worker secret. It is supplied only to the API deployment
+  workflow, not Web release publishing. It identifies the Liftie proxy to the upstream service.
 
 `GAME_ORIGIN` is public deployment configuration in `alchemy.run.ts`, not a secret.
 

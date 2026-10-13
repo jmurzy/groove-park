@@ -4,7 +4,6 @@ import { cors } from "hono/cors";
 import {
 	getLeaderboard,
 	qualifyLeaderboard,
-	resetLeaderboard,
 	submitLeaderboard,
 } from "./leaderboard/handlers";
 import { getResort } from "./liftie/handlers";
@@ -51,7 +50,6 @@ app.use("/api/*", limitRequest);
 app.get("/api/liftie/resort/:resortName", getResort);
 
 app.get("/api/leaderboard", getLeaderboard);
-app.get("/api/reset", resetLeaderboard);
 app.post("/api/leaderboard/qualify", qualifyLeaderboard);
 app.post("/api/leaderboard/submissions", submitLeaderboard);
 
