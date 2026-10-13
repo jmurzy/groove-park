@@ -56,9 +56,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: Static theme bootstrap prevents a flash of the wrong color scheme. */}
 				<script
 					nonce={nonce}
+					/* biome-ignore lint/security/noDangerouslySetInnerHtml: Static theme bootstrap prevents a flash of the wrong color scheme. */
 					dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
 				/>
 				<HeadContent />
