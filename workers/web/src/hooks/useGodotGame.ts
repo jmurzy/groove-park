@@ -25,7 +25,7 @@ export type GodotReleaseConfig = {
 };
 
 export type HeavenlyCfg = {
-	game_api: { base_url: string };
+	game_api: { base_url: string; resort_slug: string };
 };
 
 type GodotEngine = {

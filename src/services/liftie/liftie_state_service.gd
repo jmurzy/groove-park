@@ -2,12 +2,13 @@
 class_name LiftieStateService
 extends Node
 
-const RESORT_PATH := "/api/liftie/resort/sierra"
-
 signal state_received(state: LiftieResortResponse)
 
-var _http: HTTPRequest
+const RESORT_PATH_PREFIX := "/api/liftie/resort/"
+
 var state: LiftieResortResponse
+
+var _http: HTTPRequest
 
 
 func _ready() -> void:
@@ -19,9 +20,15 @@ func _ready() -> void:
 func request_lift_data() -> void:
 	if _http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		return
-	var endpoint := Config.resolve_game_api_base_url().trim_suffix("/") + RESORT_PATH
+	var endpoint := (
+		Config.resolve_game_api_base_url().trim_suffix("/")
+		+ RESORT_PATH_PREFIX
+		+ Config.resolve_game_api_resort_slug()
+	)
 	var installation_id := Config.resolve_installation_id()
-	var headers := PackedStringArray(["Accept: application/json", "X-Installation-Id: %s" % installation_id])
+	var headers := PackedStringArray(
+		["Accept: application/json", "X-Installation-Id: %s" % installation_id]
+	)
 	var error := _http.request(endpoint, headers)
 	if error != OK:
 		push_warning("Liftie status request failed to start: %s" % error_string(error))

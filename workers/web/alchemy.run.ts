@@ -66,6 +66,7 @@ const webWorker = Effect.gen(function* () {
 			GAME_API_URL: gameApi.url.as<string>(),
 			GAME_RELEASES_URL: `https://${GAME_ASSETS_DOMAIN}`,
 			GAME_RELEASES: gameReleases,
+			RESORT_SLUG: Config.String("RESORT_SLUG"),
 
 			EXAMPLE_MESSAGE_2: Config.String("EXAMPLE_MESSAGE_2"),
 			EXAMPLE_SECRET_2: Config.Redacted("EXAMPLE_SECRET_2"),

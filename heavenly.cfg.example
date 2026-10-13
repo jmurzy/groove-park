@@ -7,3 +7,5 @@
 [game_api]
 ; Required staging or production Worker origin. Startup fails when this is blank.
 base_url="https://example.com"
+; Required Liftie resort slug used in API requests.
+resort_slug="sierra"

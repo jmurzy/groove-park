@@ -43,6 +43,7 @@ jobs:
         env:
           EXAMPLE_MESSAGE_2: "hello_world"
           EXAMPLE_SECRET_2: "hello_secret"
+          RESORT_SLUG: "sierra"
         run: just check
 
   deploy:
@@ -76,6 +77,7 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RESORT_SLUG: ${{ vars.RESORT_SLUG }}
           EXAMPLE_MESSAGE_2: ${{ secrets.EXAMPLE_MESSAGE_2 }}
           EXAMPLE_SECRET_2: ${{ secrets.EXAMPLE_SECRET_2 }}
         run: just deploy --yes
