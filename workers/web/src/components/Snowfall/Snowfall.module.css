@@ -1,0 +1,41 @@
+.snowfall {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.flake {
+	position: absolute;
+	top: -4rem;
+	left: var(--left);
+	width: var(--size);
+	height: var(--size);
+	image-rendering: pixelated;
+	opacity: 0;
+	animation: snowfall var(--duration) linear var(--delay) infinite;
+}
+
+@keyframes snowfall {
+	0% {
+		opacity: 0;
+		transform: translate3d(0, 0, 0) rotate(0deg);
+	}
+
+	10%,
+	85% {
+		opacity: 0.9;
+	}
+
+	100% {
+		opacity: 0;
+		transform: translate3d(var(--drift), 110vh, 0) rotate(180deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.snowfall {
+		display: none;
+	}
+}

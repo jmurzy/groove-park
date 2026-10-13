@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { LoadingBar } from "#/components/LoadingBar";
+import { Snowfall } from "#/components/Snowfall/Snowfall";
 import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 import { useGameInputLock } from "#/hooks/useGameInputLock";
 import { useFullscreen } from "#/hooks/useFullscreen";
@@ -64,18 +65,21 @@ function IndexPage() {
 			</canvas>
 			{isShowingSplash && (
 				<div className={styles.status}>
-					<img
-						className={styles.splash}
-						src={new URL(releaseConfig.splash, assetBase).href}
-						alt=""
-					/>
-					{notice ? (
-						<div className={styles.notice}>{notice}</div>
-					) : (
-						progress && (
-							<LoadingBar current={progress.current} total={progress.total} />
-						)
-					)}
+					<Snowfall />
+					<div className={styles.content}>
+						<img
+							className={styles.splash}
+							src={new URL(releaseConfig.splash, assetBase).href}
+							alt=""
+						/>
+						{notice ? (
+							<div className={styles.notice}>{notice}</div>
+						) : (
+							progress && (
+								<LoadingBar current={progress.current} total={progress.total} />
+							)
+						)}
+					</div>
 				</div>
 			)}
 			{!isShowingSplash && (
