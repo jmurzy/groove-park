@@ -87,6 +87,7 @@ const HELICOPTER_HOVER_LANDING_VOLUME_DB := 0.0
 const GAMEPLAY_MUSIC_RESCUE_DUCK_VOLUME_DB := -20.0
 # -30 dB is approximately 3% amplitude.
 const MUSIC_FADE_START_VOLUME_DB := -30.0
+const AUDIO_BUSES := [MUSIC_BUS, GAMEPLAY_SFX_BUS, UI_SFX_BUS]
 
 var _background_music_player: AudioStreamPlayer
 
@@ -99,12 +100,15 @@ var _next_one_shot_player: Dictionary = {}
 
 var _music_fade: Tween
 var _gameplay_sfx_fade: Tween
+var _muted := false
+var _set_muted_callback: JavaScriptObject
 
 
 func configure() -> void:
 	_ensure_bus(MUSIC_BUS, MUSIC_BUS_VOLUME_DB)
 	_ensure_bus(GAMEPLAY_SFX_BUS, GAMEPLAY_SFX_BUS_VOLUME_DB)
 	_ensure_bus(UI_SFX_BUS, UI_SFX_BUS_VOLUME_DB)
+	_register_web_audio_control()
 
 	# MUSIC_BUS
 	_background_music_player = _build_looping_player(
@@ -163,6 +167,40 @@ func _ensure_bus(bus_name: StringName, volume_db: float) -> void:
 		bus_index = AudioServer.bus_count - 1
 		AudioServer.set_bus_name(bus_index, bus_name)
 	AudioServer.set_bus_volume_db(bus_index, volume_db)
+
+
+func _register_web_audio_control() -> void:
+	if not OS.has_feature("web"):
+		return
+	_set_muted_callback = JavaScriptBridge.create_callback(_set_muted_from_web)
+	var window := JavaScriptBridge.get_interface("window")
+	window["GAME_SET_MUTED"] = _set_muted_callback
+	# Browsers may reject audio started before a player interacts with the page.
+	set_muted(true)
+
+
+func _set_muted_from_web(args: Array) -> void:
+	if args.is_empty():
+		return
+	set_muted(args[0] == true)
+
+
+func set_muted(muted: bool) -> void:
+	_muted = muted
+	for bus_name: StringName in AUDIO_BUSES:
+		var bus_index := AudioServer.get_bus_index(bus_name)
+		if bus_index >= 0:
+			AudioServer.set_bus_mute(bus_index, _muted)
+	_publish_web_muted_state()
+
+
+func _publish_web_muted_state() -> void:
+	if not OS.has_feature("web"):
+		return
+	var window := JavaScriptBridge.get_interface("window")
+	window["GAME_MUTED"] = _muted
+	if window["GAME_ON_MUTED_CHANGE"]:
+		window.call("GAME_ON_MUTED_CHANGE", _muted)
 
 
 func _build_one_shot_pool(

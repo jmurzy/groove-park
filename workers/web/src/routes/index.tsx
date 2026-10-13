@@ -7,6 +7,7 @@ import { Snowfall } from "#/components/Snowfall/Snowfall";
 import { useFullscreen } from "#/hooks/useFullscreen";
 import { useGameInputLock } from "#/hooks/useGameInputLock";
 import { useGodotGame, type HeavenlyCfg } from "#/hooks/useGodotGame";
+import { useMute } from "#/hooks/useMute";
 import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 import { securityHeadersMiddleware } from "#/middleware/securityHeadersMiddleware";
 import styles from "./index.module.css";
@@ -52,6 +53,7 @@ function IndexPage() {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	useGameInputLock(canvasRef, Boolean(releaseId && releaseConfig));
 	const toggleFullscreen = useFullscreen(canvasRef);
+	const { muted, toggleMute } = useMute();
 
 	const assetBase = `${releasesUrl}/releases/${releaseId}/`;
 	const heavenlyCfg: HeavenlyCfg = {
@@ -95,13 +97,15 @@ function IndexPage() {
 				</div>
 			)}
 			{!isShowingSplash && (
-				<button
-					className={styles.fullscreen}
-					onClick={toggleFullscreen}
-					type="button"
-				>
-					Fullscreen
-				</button>
+				<div className={styles.controls}>
+					<span className={styles.controlsLabel}>Controls</span>
+					<button onClick={toggleFullscreen} type="button">
+						Fullscreen
+					</button>
+					<button onClick={toggleMute} type="button">
+						{muted ? "Unmute" : "Mute"}
+					</button>
+				</div>
 			)}
 		</main>
 	);
