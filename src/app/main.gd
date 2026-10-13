@@ -80,7 +80,9 @@ func _setup_audio() -> void:
 	_audio_manager = AudioManagerScript.new()
 	add_child(_audio_manager)
 	_audio_manager.configure()
-	_audio_manager.play_background_music()
+	# Starting a player creates/resumes Web Audio, which Chrome only permits after a gesture.
+	if not OS.has_feature("web"):
+		_audio_manager.play_background_music()
 
 
 func _setup_game_services(game_api_base_url: String) -> void:

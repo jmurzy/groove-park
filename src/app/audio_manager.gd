@@ -182,7 +182,11 @@ func _register_web_audio_control() -> void:
 func _set_muted_from_web(args: Array) -> void:
 	if args.is_empty():
 		return
-	set_muted(args[0] == true)
+	var muted: bool = args[0] == true
+	set_muted(muted)
+	# This callback is invoked directly by the web mute button's click handler.
+	if not muted and not _background_music_player.playing:
+		play_background_music()
 
 
 func set_muted(muted: bool) -> void:
