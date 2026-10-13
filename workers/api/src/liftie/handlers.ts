@@ -4,21 +4,32 @@ import type { WorkerContext } from "../workerTypes";
 const LIFTIE_URL = "https://liftie.info";
 const LIFTIE_CACHE_SECONDS = 60;
 
-export interface ResortResponse {
-	status: "open" | "hold" | "closed" | "unknown";
-	open_count: number;
-	hold_count: number;
-	closed_count: number;
-	total_count: number;
-}
+export type LiftStatus = "open" | "hold" | "scheduled" | "closed";
 
-export const UNKNOWN_LIFTIE_STATE: ResortResponse = {
-	status: "unknown",
-	open_count: 0,
-	hold_count: 0,
-	closed_count: 0,
-	total_count: 0,
-};
+export interface LiftieResortResponse {
+	id: string;
+	open: boolean;
+	ll: [longitude: number, latitude: number];
+	timestamp: {
+		lifts: number;
+		opening: number;
+	};
+	lifts: {
+		status: Record<string, LiftStatus>;
+		stats: {
+			open: number;
+			hold: number;
+			scheduled: number;
+			closed: number;
+			percentage: {
+				open: number;
+				hold: number;
+				scheduled: number;
+				closed: number;
+			};
+		};
+	};
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
 	return value && typeof value === "object" && !Array.isArray(value)
@@ -32,12 +43,59 @@ function nonNegativeInteger(value: unknown): number | null {
 		: null;
 }
 
-export function normalizeResortResponse(value: unknown): ResortResponse | null {
+function finiteNumber(value: unknown): number | null {
+	return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function liftStatus(value: unknown): LiftStatus | null {
+	return value === "open" ||
+		value === "hold" ||
+		value === "scheduled" ||
+		value === "closed"
+		? value
+		: null;
+}
+
+function normalizeLiftStatuses(
+	value: unknown,
+): Record<string, LiftStatus> | null {
+	const statuses = asRecord(value);
+	if (!statuses) return null;
+
+	const lifts: Record<string, LiftStatus> = {};
+	for (const [name, value] of Object.entries(statuses)) {
+		const status = liftStatus(value);
+		if (!status) return null;
+		lifts[name] = status;
+	}
+	return lifts;
+}
+
+export function normalizeResortResponse(
+	value: unknown,
+): LiftieResortResponse | null {
 	const root = asRecord(value);
 	if (!root) return null;
+	const id = typeof root.id === "string" && root.id ? root.id : null;
+	const isOpen = typeof root.open === "boolean" ? root.open : null;
+	const coordinates = Array.isArray(root.ll) ? root.ll : null;
+	if (!id || isOpen === null || !coordinates || coordinates.length !== 2)
+		return null;
+	const longitude = finiteNumber(coordinates[0]);
+	const latitude = finiteNumber(coordinates[1]);
+	if (longitude === null || latitude === null) return null;
+
+	const timestamp = asRecord(root.timestamp);
+	if (!timestamp) return null;
+	const liftsTimestamp = nonNegativeInteger(timestamp.lifts);
+	const openingTimestamp = nonNegativeInteger(timestamp.opening);
+	if (liftsTimestamp === null || openingTimestamp === null) return null;
+
 	const lifts = asRecord(root.lifts);
 	const stats = lifts && asRecord(lifts.stats);
 	if (!stats) return null;
+	const liftStatuses = normalizeLiftStatuses(lifts.status);
+	if (!liftStatuses) return null;
 
 	const openCount = nonNegativeInteger(stats.open);
 	const holdCount = nonNegativeInteger(stats.hold);
@@ -50,26 +108,48 @@ export function normalizeResortResponse(value: unknown): ResortResponse | null {
 		scheduledCount === null
 	)
 		return null;
+	const percentage = asRecord(stats.percentage);
+	if (!percentage) return null;
+	const openPercentage = finiteNumber(percentage.open);
+	const holdPercentage = finiteNumber(percentage.hold);
+	const scheduledPercentage = finiteNumber(percentage.scheduled);
+	const closedPercentage = finiteNumber(percentage.closed);
+	if (
+		openPercentage === null ||
+		holdPercentage === null ||
+		scheduledPercentage === null ||
+		closedPercentage === null
+	)
+		return null;
 
-	const totalCount = openCount + holdCount + closedCount + scheduledCount;
 	return {
-		status:
-			openCount > 0
-				? "open"
-				: holdCount > 0
-					? "hold"
-					: totalCount > 0
-						? "closed"
-						: "unknown",
-		open_count: openCount,
-		hold_count: holdCount,
-		closed_count: closedCount,
-		total_count: totalCount,
+		id,
+		open: isOpen,
+		ll: [longitude, latitude],
+		timestamp: { lifts: liftsTimestamp, opening: openingTimestamp },
+		lifts: {
+			status: liftStatuses,
+			stats: {
+				open: openCount,
+				hold: holdCount,
+				scheduled: scheduledCount,
+				closed: closedCount,
+				percentage: {
+					open: openPercentage,
+					hold: holdPercentage,
+					scheduled: scheduledPercentage,
+					closed: closedPercentage,
+				},
+			},
+		},
 	};
 }
 
 function unavailable(): Response {
-	return json(UNKNOWN_LIFTIE_STATE, 503, { "Cache-Control": "no-store" });
+	return new Response(null, {
+		status: 503,
+		headers: { "Cache-Control": "no-store" },
+	});
 }
 
 export async function getResort(context: WorkerContext): Promise<Response> {

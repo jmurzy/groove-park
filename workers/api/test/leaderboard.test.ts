@@ -5,10 +5,7 @@ import { describe, expect } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 
 import { apiWorker } from "../alchemy.run";
-import {
-	normalizeResortResponse,
-	UNKNOWN_LIFTIE_STATE,
-} from "../src/liftie/handlers";
+import { normalizeResortResponse } from "../src/liftie/handlers";
 
 const localStack = Alchemy.Stack(
 	"game",
@@ -316,33 +313,62 @@ describe("leaderboard API", () => {
 });
 
 describe("Liftie normalization", () => {
-	test("normalizes Liftie stats for the web client", () =>
+	test("normalizes a complete Liftie resort response", () =>
+		Effect.sync(() => {
+			const liftieResort = {
+				id: "sierra",
+				open: false,
+				ll: [-120.090012, 38.792763],
+				timestamp: { lifts: 1791917385485, opening: 1791915613570 },
+				lifts: {
+					status: {
+						"Easy Rider Express": "closed",
+						"Grandview Express": "closed",
+						"Rock Garden": "closed",
+						"Tahoe King": "closed",
+						"Thunder Gulch Carpet (Ski/Ride School Only)": "closed",
+						"Blizzard Mountain Tubing": "closed",
+						"Fuego Carpet": "closed",
+						"Nob Hill": "closed",
+						"Slider Carpet": "closed",
+						"Wild Mountain Carpet (Ski/Ride School Only)": "closed",
+						"El Dorado": "closed",
+						"Short Stuff": "closed",
+						"West Bowl Express": "closed",
+						Puma: "closed",
+					},
+					stats: {
+						open: 0,
+						hold: 0,
+						scheduled: 0,
+						closed: 14,
+						percentage: { open: 0, hold: 0, scheduled: 0, closed: 100 },
+					},
+				},
+			};
+			expect(normalizeResortResponse(liftieResort)).toEqual(liftieResort);
+		}));
+
+	test("rejects malformed Liftie data", () =>
 		Effect.sync(() => {
 			expect(
 				normalizeResortResponse({
-					lifts: { stats: { open: 19, hold: 2, closed: 8, scheduled: 3 } },
+					id: "sierra",
+					open: false,
+					ll: [-120.090012, 38.792763],
+					timestamp: { lifts: 1791917385485, opening: 1791915613570 },
+					lifts: {
+						status: {},
+						stats: {
+							open: "19",
+							hold: 0,
+							scheduled: 0,
+							closed: 0,
+							percentage: { open: 0, hold: 0, scheduled: 0, closed: 0 },
+						},
+					},
 				}),
-			).toEqual({
-				status: "open",
-				open_count: 19,
-				hold_count: 2,
-				closed_count: 8,
-				total_count: 32,
-			});
-		}));
-
-	test("rejects malformed Liftie data for an unavailable response", () =>
-		Effect.sync(() => {
-			expect(
-				normalizeResortResponse({ lifts: { stats: { open: "19" } } }),
 			).toBeNull();
-			expect(UNKNOWN_LIFTIE_STATE).toEqual({
-				status: "unknown",
-				open_count: 0,
-				hold_count: 0,
-				closed_count: 0,
-				total_count: 0,
-			});
 		}));
 });
 

@@ -53,9 +53,9 @@ schema change; never edit an applied one.
 - `POST /api/leaderboard/submissions` accepts a validated immutable round submission and returns
   `{ "accepted": true, "rank": number }`. Fetch the leaderboard separately for board entries.
 - `GET /api/liftie/resort/:resortName` proxies the matching Liftie resort with the
-  `LIFTIE_USER_AGENT` Worker secret, normalizes its lift counts, and caches successful responses
-  for 60 seconds. Resort names must be lowercase `a-z`, `0-9`, and `-`; upstream or parsing
-  failures return `503` with an `unknown` state.
+  `LIFTIE_USER_AGENT` Worker secret, returning Liftie's validated resort response and caching
+  successful responses for 60 seconds. Resort names must be lowercase `a-z`, `0-9`, and `-`;
+  upstream or parsing failures return an empty, non-cacheable `503` response.
 
 The Worker validates payload shape, a normalized player name of up to 12 characters, total score,
 rider kind, and the `ags` or `web` platform.
