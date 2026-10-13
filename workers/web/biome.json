@@ -10,7 +10,7 @@
 		"includes": [
 			"**/src/**/*",
 			"**/.vscode/**/*",
-			"**/alchemy.run.ts",
+			"**/*.alchemy.run.ts",
 			"**/tsconfig.json",
 			"**/package.json",
 			"**/vite.config.ts",
