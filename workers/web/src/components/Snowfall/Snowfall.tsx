@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import snowflake from "#/components/Snowflake/snowflake.png";
+import snowflake from "./images/snowflake.png";
 import styles from "./Snowfall.module.css";
 
 const flakes = [

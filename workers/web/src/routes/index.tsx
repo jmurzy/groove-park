@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { LoadingBar } from "#/components/LoadingBar";
+import { LoadingBar } from "#/components/LoadingBar/LoadingBar";
 import { Snowfall } from "#/components/Snowfall/Snowfall";
 import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 import { useGameInputLock } from "#/hooks/useGameInputLock";
