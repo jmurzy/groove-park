@@ -10,8 +10,8 @@ declare global {
 
 export function useMute() {
 	// Start muted: browsers can reject audio that starts before player interaction.
-	const [muted, setMuted] = useState(
-		() => (typeof window === "undefined" ? true : (window.GAME_MUTED ?? true)),
+	const [muted, setMuted] = useState(() =>
+		typeof window === "undefined" ? true : (window.GAME_MUTED ?? true),
 	);
 
 	useEffect(() => {
