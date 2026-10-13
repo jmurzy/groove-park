@@ -1,5 +1,6 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { getStartContext } from "@tanstack/start-storage-context";
+import { env } from "cloudflare:workers";
 
 function createNonce() {
 	const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -19,14 +20,14 @@ function securityHeaders(nonce: string) {
 			"object-src 'none'",
 			"frame-ancestors 'none'",
 			"form-action 'self'",
-			`script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://assets.game.gunbarrelhaus.com`,
+			`script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' ${env.GAME_RELEASES_URL}`,
 			...(import.meta.env.DEV
 				? tanStackDevtoolsStyleSrc
 				: ["style-src 'self' https://fonts.googleapis.com"]),
 			"font-src 'self' data: https://fonts.gstatic.com",
-			"img-src 'self' blob: data: https://assets.game.gunbarrelhaus.com",
-			"connect-src 'self' https://api.game.gunbarrelhaus.com https://assets.game.gunbarrelhaus.com",
-			"worker-src 'self' blob: https://assets.game.gunbarrelhaus.com",
+			`img-src 'self' blob: data: ${env.GAME_RELEASES_URL}`,
+			`connect-src 'self' ${env.GAME_API_URL} ${env.GAME_RELEASES_URL}`,
+			`worker-src 'self' blob: ${env.GAME_RELEASES_URL}`,
 		].join("; "),
 		"Permissions-Policy":
 			"camera=(), geolocation=(), microphone=(), payment=(), usb=()",
