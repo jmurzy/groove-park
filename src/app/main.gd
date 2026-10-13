@@ -37,7 +37,7 @@ func _ready() -> void:
 		push_error("Missing required configuration: %s." % ", ".join(missing_config_values))
 		get_tree().quit()
 		return
-	var leaderboard_api_base_url := Config.resolve_leaderboard_api_base_url()
+	var game_api_base_url := Config.resolve_game_api_base_url()
 	# Load rider animation textures before a gameplay transition needs to build their views.
 	RiderVisualDefinition.warm()
 	_setup_audio()
@@ -47,7 +47,7 @@ func _ready() -> void:
 	add_child(_input_router)
 
 	var options := GameArgsScene.parse_options()
-	_setup_game_services(leaderboard_api_base_url)
+	_setup_game_services(game_api_base_url)
 	_window_coordinator = WindowCoordinatorScene.new()
 	_window_coordinator.close_requested.connect(_quit)
 	add_child(_window_coordinator)
@@ -90,7 +90,7 @@ func _setup_audio() -> void:
 	_audio_manager.play_background_music()
 
 
-func _setup_game_services(leaderboard_api_base_url: String) -> void:
+func _setup_game_services(game_api_base_url: String) -> void:
 	# Mountain conditions outlive individual rounds and are shared by app-level views.
 	_mountain_state_source = MockMountainStateSourceScene.new()
 	add_child(_mountain_state_source)
@@ -98,13 +98,13 @@ func _setup_game_services(leaderboard_api_base_url: String) -> void:
 	add_child(_game_session)
 	_liftie_state_service = LiftieStateServiceScene.new()
 	add_child(_liftie_state_service)
-	_setup_leaderboard_repository(leaderboard_api_base_url)
+	_setup_leaderboard_repository(game_api_base_url)
 
 
-func _setup_leaderboard_repository(leaderboard_api_base_url: String) -> void:
+func _setup_leaderboard_repository(game_api_base_url: String) -> void:
 	_leaderboard_repository = RemoteLeaderboardRepositoryScene.new()
 	_leaderboard_repository.installation_id = Config.resolve_installation_id()
-	_leaderboard_repository.setup(leaderboard_api_base_url)
+	_leaderboard_repository.setup(game_api_base_url)
 	add_child(_leaderboard_repository)
 
 

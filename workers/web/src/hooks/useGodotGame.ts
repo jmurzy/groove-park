@@ -25,7 +25,7 @@ export type GodotReleaseConfig = {
 };
 
 export type HeavenlyCfg = {
-	leaderboard_api: { base_url: string };
+	game_api: { base_url: string };
 };
 
 type GodotEngine = {

@@ -15,8 +15,8 @@ static func missing_required_values() -> PackedStringArray:
 	var missing := PackedStringArray()
 	if not OS.has_feature("web") and resolve_liftie_user_agent().is_empty():
 		missing.append("liftie_api/user_agent")
-	if resolve_leaderboard_api_base_url().is_empty():
-		missing.append("leaderboard_api/base_url")
+	if resolve_game_api_base_url().is_empty():
+		missing.append("game_api/base_url")
 	return missing
 
 
@@ -24,8 +24,8 @@ static func resolve_liftie_user_agent() -> String:
 	return resolve_value("liftie_api", "user_agent")
 
 
-static func resolve_leaderboard_api_base_url() -> String:
-	return resolve_value("leaderboard_api", "base_url")
+static func resolve_game_api_base_url() -> String:
+	return resolve_value("game_api", "base_url")
 
 
 static func resolve_value(section: String, key: String) -> String:

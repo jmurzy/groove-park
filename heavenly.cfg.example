@@ -8,6 +8,6 @@
 ; Required Liftie API user agent. Startup fails when this is blank.
 user_agent="Example/1.0 (+https://example.com; contact: you@example.com)"
 
-[leaderboard_api]
+[game_api]
 ; Required staging or production Worker origin. Startup fails when this is blank.
 base_url="https://example.com"

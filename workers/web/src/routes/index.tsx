@@ -50,7 +50,7 @@ function IndexPage() {
 
 	const assetBase = `${releasesUrl}/releases/${releaseId}/`;
 	const heavenlyCfg = {
-		leaderboard_api: { base_url: gameApiUrl },
+		game_api: { base_url: gameApiUrl },
 	};
 	const { notice, progress } = useGodotGame(
 		canvasRef,
