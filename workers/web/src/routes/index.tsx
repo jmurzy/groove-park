@@ -1,13 +1,14 @@
 import { env } from "cloudflare:workers";
-import { useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { useRef } from "react";
 import { LoadingBar } from "#/components/LoadingBar/LoadingBar";
 import { Snowfall } from "#/components/Snowfall/Snowfall";
-import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
-import { useGameInputLock } from "#/hooks/useGameInputLock";
 import { useFullscreen } from "#/hooks/useFullscreen";
+import { useGameInputLock } from "#/hooks/useGameInputLock";
 import { useGodotGame } from "#/hooks/useGodotGame";
+import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
+import { securityHeadersMiddleware } from "#/middleware/securityHeadersMiddleware";
 import styles from "./index.module.css";
 
 const getReleasesUrl = createServerFn({ method: "GET" }).handler(
@@ -19,6 +20,9 @@ const getGameApiUrl = createServerFn({ method: "GET" }).handler(
 );
 
 export const Route = createFileRoute("/")({
+	server: {
+		middleware: [securityHeadersMiddleware],
+	},
 	loader: async () => ({
 		releaseConfig: await getGameReleaseConfig(),
 		releaseId: await getGameReleaseId(),
