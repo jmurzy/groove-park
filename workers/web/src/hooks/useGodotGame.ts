@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 
 export type GodotEngineConfig = {
 	args: string[];
@@ -133,6 +133,8 @@ export function useGodotGame(
 	heavenlyCfg: HeavenlyCfg,
 	assetBase: string,
 ) {
+	// biome-ignore lint/correctness/useExhaustiveDependencies: The game config is intentionally fixed for this mounted page.
+	const stableHeavenlyCfg = useMemo(() => heavenlyCfg, []);
 	const gameStartRef = useRef<Promise<void> | undefined>(undefined);
 	const onProgressRef = useRef<
 		((current: number, total: number) => void) | undefined
@@ -147,7 +149,7 @@ export function useGodotGame(
 			return;
 		}
 
-		window.HEAVENLY_CFG ??= heavenlyCfg;
+		window.HEAVENLY_CFG ??= stableHeavenlyCfg;
 		setNotice(undefined);
 		setProgress({ current: 0, total: 0 });
 
@@ -182,7 +184,7 @@ export function useGodotGame(
 			active = false;
 			onProgressRef.current = undefined;
 		};
-	}, [assetBase, canvasRef, heavenlyCfg, releaseConfig]);
+	}, [assetBase, canvasRef, releaseConfig, stableHeavenlyCfg]);
 
 	return { notice, progress };
 }
