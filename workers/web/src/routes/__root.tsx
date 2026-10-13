@@ -21,7 +21,17 @@ export const Route = createRootRoute({
 			},
 		],
 		links: [
-			{ rel: "icon", type: "image/svg+xml", href: "/favicon.png" },
+			{ rel: "icon", type: "image/png", href: "/favicon.png" },
+			{ rel: "preconnect", href: "https://fonts.googleapis.com" },
+			{
+				rel: "preconnect",
+				href: "https://fonts.gstatic.com",
+				crossOrigin: "anonymous",
+			},
+			{
+				rel: "stylesheet",
+				href: "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap",
+			},
 			{
 				rel: "stylesheet",
 				href: "https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap",

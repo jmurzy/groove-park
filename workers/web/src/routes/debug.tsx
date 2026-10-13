@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import ThemeToggle from "#/components/ThemeToggle";
-import { getGameReleaseConfig, getGameReleaseId } from "#/server/game-releases";
+import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 
 const exampleMessage = import.meta.env.VITE_EXAMPLE_MESSAGE;
 const exampleSecret = import.meta.env.EXAMPLE_SECRET;

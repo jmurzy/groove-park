@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getGameReleaseConfig, getGameReleaseId } from "#/server/game-releases";
+import { LoadingBar } from "#/components/LoadingBar";
+import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 import { useGameInputLock } from "#/hooks/useGameInputLock";
 import { useFullscreen } from "#/hooks/useFullscreen";
 import { useGodotGame } from "#/hooks/useGodotGame";
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/")({
 	}),
 	head: ({ loaderData }) => ({
 		meta: [
-			{ title: loaderData?.releaseConfig?.projectName },
+			{ title: loaderData?.releaseConfig.projectName },
 			{
 				name: "viewport",
 				content: "width=device-width, user-scalable=no, initial-scale=1.0",
@@ -49,6 +50,7 @@ function IndexPage() {
 		assetBase,
 		gameApiUrl,
 	);
+	const isShowingSplash = progress || notice;
 
 	return (
 		<main className={styles.page}>
@@ -60,30 +62,31 @@ function IndexPage() {
 			>
 				Your browser does not support the canvas tag.
 			</canvas>
-			{(progress || notice) && (
+			{isShowingSplash && (
 				<div className={styles.status}>
-					{releaseConfig?.splash ? (
-						<img src={new URL(releaseConfig?.splash, assetBase).href} />
-					) : null}
+					<img
+						className={styles.splash}
+						src={new URL(releaseConfig.splash, assetBase).href}
+						alt=""
+					/>
 					{notice ? (
 						<div className={styles.notice}>{notice}</div>
 					) : (
-						<progress
-							aria-label="Loading game"
-							className={styles.progress}
-							value={progress?.current || undefined}
-							max={progress?.total || undefined}
-						/>
+						progress && (
+							<LoadingBar current={progress.current} total={progress.total} />
+						)
 					)}
 				</div>
 			)}
-			<button
-				className={styles.fullscreen}
-				onClick={toggleFullscreen}
-				type="button"
-			>
-				Fullscreen
-			</button>
+			{!isShowingSplash && (
+				<button
+					className={styles.fullscreen}
+					onClick={toggleFullscreen}
+					type="button"
+				>
+					Fullscreen
+				</button>
+			)}
 		</main>
 	);
 }

@@ -1,0 +1,55 @@
+.progress {
+	position: relative;
+	width: min(50%, 20rem);
+	height: 1.75rem;
+	overflow: hidden;
+	border: 3px solid #fff36b;
+	border-radius: 0;
+	background: #071126;
+	box-shadow:
+		4px 4px 0 #02050d,
+		-2px -2px 0 #e0391f;
+}
+
+.fill {
+	height: 100%;
+	background: linear-gradient(#ffef65 0 30%, #ff9f1c 30% 65%, #e7391d 65%);
+	box-shadow:
+		inset 0 2px #fff9a8,
+		inset 0 -2px #a81919;
+	transition: width 120ms linear;
+}
+
+.indeterminate .fill {
+	width: 28%;
+	animation: loading-scan 1s steps(8) infinite;
+}
+
+.label {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	color: #fff36b;
+	font-family: monospace;
+	font-size: 0.75rem;
+	font-weight: 900;
+	letter-spacing: 0.15em;
+	text-shadow: 2px 2px #071126;
+}
+
+@keyframes loading-scan {
+	from {
+		transform: translateX(-110%);
+	}
+
+	to {
+		transform: translateX(360%);
+	}
+}
+
+@media (max-width: 600px) {
+	.progress {
+		width: calc(100% - 3rem);
+	}
+}

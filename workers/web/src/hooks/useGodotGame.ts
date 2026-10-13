@@ -1,6 +1,124 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
-import type { GodotReleaseConfig } from "#/server/game-releases";
-import { startGodotGame } from "#/util/godot";
+import { type RefObject, useEffect, useRef, useState } from "react";
+
+export type GodotEngineConfig = {
+	args: string[];
+	canvasResizePolicy: number;
+	emscriptenPoolSize?: number;
+	ensureCrossOriginIsolationHeaders: boolean;
+	executable: string;
+	experimentalVK: boolean;
+	fileSizes: Record<string, number>;
+	focusCanvas: boolean;
+	gdextensionLibs: string[];
+	godotPoolSize?: number;
+	serviceWorker?: string;
+};
+
+export type GodotReleaseConfig = {
+	config: GodotEngineConfig;
+	threadsEnabled: boolean;
+	projectName: string;
+	splashColor: string;
+	splashClasses: string;
+	splash: string;
+	url: string;
+};
+
+type GodotEngine = {
+	installServiceWorker(): Promise<void>;
+	startGame(options: {
+		canvas: HTMLCanvasElement;
+		onProgress(current: number, total: number): void;
+	}): Promise<void>;
+};
+
+type GodotEngineConstructor = {
+	new (config: GodotEngineConfig): GodotEngine;
+	getMissingFeatures(options: { threads: boolean }): string[];
+};
+
+declare global {
+	interface Window {
+		Engine?: GodotEngineConstructor;
+		HEAVENLY_CFG?: {
+			leaderboard_api: { base_url: string };
+		};
+	}
+}
+
+let engineScriptPromise: Promise<GodotEngineConstructor> | undefined;
+
+function loadGodotEngine(url: string) {
+	engineScriptPromise ??= new Promise((resolve, reject) => {
+		const script = document.createElement("script");
+		script.src = url;
+		script.async = true;
+		script.onload = () => {
+			if (window.Engine) resolve(window.Engine);
+			else reject(new Error("Game engine failed to load."));
+		};
+		script.onerror = () => reject(new Error("Game engine failed to load."));
+		document.head.append(script);
+	});
+	return engineScriptPromise;
+}
+
+async function handleMissingFeatures(
+	assetBase: string,
+	config: GodotEngineConfig,
+	engine: GodotEngine,
+	missing: string[],
+) {
+	if (missing.length === 0) return false;
+
+	const canInstallServiceWorker =
+		config.serviceWorker &&
+		config.ensureCrossOriginIsolationHeaders &&
+		"serviceWorker" in navigator;
+
+	if (!canInstallServiceWorker) {
+		throw new Error(
+			`The following features required to run the game are missing:\n${missing.join("\n")}`,
+		);
+	}
+
+	// FIXME(jmurzy): The game page is game.gunbarrelhaus.com, while assetBase is on
+	// assets.game.gunbarrelhaus.com. Both this lookup and the following Godot
+	// registration reject a service worker URL from that cross-origin host.
+	const registration = await navigator.serviceWorker.getRegistration(assetBase);
+	if (registration) throw new Error("Service worker already exists.");
+
+	await engine.installServiceWorker();
+	window.location.reload();
+	return true;
+}
+
+async function startGodotGame(
+	releaseConfig: GodotReleaseConfig,
+	assetBase: string,
+	canvas: HTMLCanvasElement,
+	onProgress: (current: number, total: number) => void,
+) {
+	const serviceWorker = releaseConfig.config.serviceWorker;
+	const config: GodotEngineConfig = {
+		...releaseConfig.config,
+		executable: new URL(releaseConfig.config.executable, assetBase).href,
+		// engine.installServiceWorker() installs the service worker.
+		...(serviceWorker
+			? { serviceWorker: new URL(serviceWorker, assetBase).href }
+			: {}),
+	};
+	await loadGodotEngine(new URL(releaseConfig.url, assetBase).href);
+	if (!window.Engine) throw new Error("Game engine failed to load.");
+
+	const engine = new window.Engine(config);
+	const missing = window.Engine.getMissingFeatures({
+		threads: releaseConfig.threadsEnabled,
+	});
+	if (await handleMissingFeatures(assetBase, config, engine, missing)) return;
+
+	await engine.startGame({ canvas, onProgress });
+}
 
 type GameProgress = {
 	current: number;
