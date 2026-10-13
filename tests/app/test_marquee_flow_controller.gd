@@ -23,10 +23,12 @@ func _run_tests() -> void:
 
 func _test_marquee_receives_initial_and_gameplay_context() -> void:
 	var session := GameSession.new()
+	var mountain_state_source := MountainStateSource.new()
 	var flow := MarqueeFlowControllerScene.new()
 	get_root().add_child(session)
+	get_root().add_child(mountain_state_source)
 	get_root().add_child(flow)
-	flow.setup(session, LiftieStateService.new())
+	flow.setup(session, mountain_state_source)
 	_expect(
 		flow._marquee_view._session_phase == RoundState.SessionPhase.ATTRACT,
 		"The marquee must start with the session's attract context."
@@ -39,7 +41,48 @@ func _test_marquee_receives_initial_and_gameplay_context() -> void:
 		),
 		"Starting a round must refresh the marquee with the active jump context."
 	)
+	var mountain_state := MountainState.create(
+		[LiftState.create("Sky Express", LiftState.Status.HOLD)]
+	)
+	mountain_state_source._refresh_mountain_state(mountain_state)
+	_expect(
+		flow._marquee_view._ticker._lifts == mountain_state.lifts,
+		"The marquee must receive mountain-state updates."
+	)
+	_expect(
+		flow._marquee_view._ticker._status_text(LiftState.Status.HOLD) == "WIND HOLD",
+		"Held lifts must display as wind holds in the marquee."
+	)
+	_expect(
+		flow._marquee_view._ticker._status_text(LiftState.Status.SCHEDULED) == "SCHEDULED",
+		"Scheduled lifts must display as scheduled in the marquee."
+	)
+	var first_item := flow._marquee_view._ticker._tracks[0].get_child(0)
+	var status_label := first_item.get_child(2) as Label
+	(
+		mountain_state_source
+		. _refresh_mountain_state(
+			(
+				MountainState
+				. create(
+					[
+						LiftState.create("Sky Express", LiftState.Status.CLOSED),
+						LiftState.create("Heavenly Gondola", LiftState.Status.OPEN),
+					]
+				)
+			)
+		)
+	)
+	_expect(
+		(
+			flow._marquee_view._ticker._tracks[0].get_child_count() == 2
+			and flow._marquee_view._ticker._tracks[0].get_child(0) == first_item
+			and status_label.text == "  CLOSED  "
+		),
+		"Lift updates must preserve existing ticker items when the count changes."
+	)
 	flow.free()
+	mountain_state_source.free()
 	session.free()
 
 

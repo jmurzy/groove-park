@@ -10,11 +10,11 @@ Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing gam
 
 The digital marquee is a dedicated 1920x360 Godot window. It shows an animated skier and snowboarder, a scrolling lift-status ticker, an operations footer, snowfall, and a `LIVE MOUNTAIN OPS` treatment designed for the Sente's overhead display.
 
-The game includes a Liftie client for live Heavenly Mountain Resort lift information from [liftie.info](https://liftie.info). It requests `https://liftie.info/api/resort/heavenly` at launch and every 60 seconds, then normalizes open, hold, closed, and scheduled lift counts.
+The game requests live Heavenly Mountain Resort lift information from the game API at `game_api.base_url/api/resort/heavenly` at launch and every 60 seconds. Each request includes the installation ID, then normalizes open, hold, closed, and scheduled lift counts.
 
 Copy [heavenly.cfg.example](heavenly.cfg.example) to `heavenly.cfg` in the repository for development. The packaged game receives this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
 
-The `game_api.base_url` and `liftie_api.user_agent` settings are required. The game exits at startup when either is missing or blank. The Liftie service is initialized and passed to both display views. At present, the marquee's visible lift names and statuses are demo content, so live Liftie responses are not yet rendered in its ticker. The API polling and configuration are in place for that connection; when it is wired in, the marquee will refresh from Liftie's Heavenly data once per minute. Liftie data is informational only; observe all posted resort signage and operations guidance.
+The `game_api.base_url` setting is required. The game exits at startup when it is missing or blank. The Liftie service is initialized and passed to both display views. At present, the marquee's visible lift names and statuses are demo content, so live lift responses are not yet rendered in its ticker. The API polling and configuration are in place for that connection; when it is wired in, the marquee will refresh from Heavenly lift data once per minute. Lift data is informational only; observe all posted resort signage and operations guidance.
 
 ## Polycade AGS
 

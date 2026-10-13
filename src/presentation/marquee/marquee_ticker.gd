@@ -5,30 +5,78 @@ extends Control
 const SPEED := 85.0
 const TRACK_GAP := 72.0
 
-const LIFTS: Array[Dictionary] = [
-	{"name": "HEAVENLY GONDOLA", "status": "OPEN"},
-	{"name": "GUNBARREL EXPRESS", "status": "HOLD"},
-	{"name": "POWDERBOWL EXPRESS", "status": "OPEN"},
-	{"name": "SKY EXPRESS", "status": "WIND HOLD"},
-	{"name": "DIPPER EXPRESS", "status": "CLOSED"},
-]
-
 var _elapsed := 0.0
 var _ticker_width := 1.0
 var _tracks: Array[HBoxContainer] = []
+var _lifts: Array[LiftState] = []
+
+
+func _status_text(status: LiftState.Status) -> String:
+	match status:
+		LiftState.Status.OPEN:
+			return "OPEN"
+		LiftState.Status.HOLD:
+			return "WIND HOLD"
+		LiftState.Status.CLOSED:
+			return "CLOSED"
+		LiftState.Status.SCHEDULED:
+			return "SCHEDULED"
+		_:
+			return "UNKNOWN"
+
+
+func _status_text_color(status: LiftState.Status) -> Color:
+	match status:
+		LiftState.Status.OPEN:
+			return Color("bdf77d")
+		LiftState.Status.HOLD:
+			return Color("ffd166")
+		LiftState.Status.CLOSED:
+			return Color("d7e0e8")
+		LiftState.Status.SCHEDULED:
+			return Color("92c5ff")
+		_:
+			return Color("ffffff")
 
 
 func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rebuild_tracks()
+
+
+func set_mountain_state(mountain_state: MountainState) -> void:
+	_lifts = mountain_state.lifts
+	if is_node_ready():
+		# Preserve scrolling tracks so live updates do not visibly flash the ticker.
+		_update_tracks()
+
+
+func _rebuild_tracks() -> void:
+	for child in get_children():
+		child.queue_free()
+	_tracks.clear()
+	_ticker_width = 1.0
 	for track_index in 2:
 		var track := HBoxContainer.new()
 		track.name = "TickerTrack%d" % (track_index + 1)
 		track.add_theme_constant_override("separation", TRACK_GAP)
-		for lift in LIFTS:
-			track.add_child(_build_lift_item(lift.name, lift.status))
 		add_child(track)
 		_tracks.append(track)
+	_update_tracks()
+
+
+func _update_tracks() -> void:
+	for track in _tracks:
+		# Reconcile only changed item counts; existing labels update in place below.
+		while track.get_child_count() > _lifts.size():
+			var item := track.get_child(-1)
+			track.remove_child(item)
+			item.queue_free()
+		while track.get_child_count() < _lifts.size():
+			track.add_child(_build_lift_item())
+		for index in _lifts.size():
+			_apply_lift_item(track.get_child(index), _lifts[index])
 	call_deferred("_finish_layout")
 
 
@@ -41,11 +89,10 @@ func _process(delta: float) -> void:
 	_tracks[1].position.x = ticker_x + _ticker_width
 
 
-func _build_lift_item(lift_name: String, status: String) -> HBoxContainer:
+func _build_lift_item() -> HBoxContainer:
 	var item := HBoxContainer.new()
 	item.add_theme_constant_override("separation", 18)
 	var name_label := Label.new()
-	name_label.text = lift_name
 	name_label.custom_minimum_size = Vector2(620, 116)
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
@@ -65,15 +112,22 @@ func _build_lift_item(lift_name: String, status: String) -> HBoxContainer:
 	leader_label.add_theme_font_size_override("font_size", 24)
 	item.add_child(leader_label)
 	var status_label := Label.new()
-	status_label.text = "  %s  " % status
 	status_label.custom_minimum_size = Vector2(0, 70)
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_label.add_theme_font_override("font", ArcadeTheme.ARCADE_FONT)
-	status_label.add_theme_color_override("font_color", _status_text_color(status))
 	status_label.add_theme_font_size_override("font_size", 28)
-	status_label.add_theme_stylebox_override("normal", _status_style(status))
 	item.add_child(status_label)
 	return item
+
+
+func _apply_lift_item(item: Node, lift: LiftState) -> void:
+	var name_label := item.get_child(0) as Label
+	var status_label := item.get_child(2) as Label
+	var status := _status_text(lift.status)
+	name_label.text = lift.display_name.to_upper()
+	status_label.text = "  %s  " % status
+	status_label.add_theme_color_override("font_color", _status_text_color(lift.status))
+	status_label.add_theme_stylebox_override("normal", _status_style(lift.status))
 
 
 func _finish_layout() -> void:
@@ -93,7 +147,7 @@ func _add_pixel_shadow(label: Label, offset: int) -> void:
 	label.add_theme_constant_override("shadow_outline_size", 2)
 
 
-func _status_style(status: String) -> StyleBoxFlat:
+func _status_style(status: LiftState.Status) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("05070af0")
 	style.border_width_left = 3
@@ -105,15 +159,3 @@ func _status_style(status: String) -> StyleBoxFlat:
 	style.shadow_size = 5
 	style.shadow_offset = Vector2(5, 5)
 	return style
-
-
-func _status_text_color(status: String) -> Color:
-	match status:
-		"OPEN":
-			return Color("bdf77d")
-		"HOLD", "WIND HOLD":
-			return Color("ffd166")
-		"CLOSED":
-			return Color("d7e0e8")
-		_:
-			return Color("ffffff")

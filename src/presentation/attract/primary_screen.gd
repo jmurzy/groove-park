@@ -10,7 +10,6 @@ const AttractMenuScene := preload("res://src/presentation/attract/attract_menu.g
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
 const AttractIdleFlowControllerScene := preload("res://src/app/attract_idle_flow_controller.gd")
 
-var liftie_state_service: LiftieStateService
 var input_router: InputRouter
 var audio_manager: AudioManager
 var leaderboard_repository: LeaderboardRepository

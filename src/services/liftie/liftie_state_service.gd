@@ -1,26 +1,13 @@
-## Polls liftie.info for Heavenly lift counts every minute and publishes a
-## normalized `{status, open/hold/closed/total}` dict. Falls back to unknown offline.
+## Liftie API service for Heavenly lift data.
 class_name LiftieStateService
 extends Node
 
-signal state_changed(state: Dictionary)
+const RESORT_PATH := "/api/liftie/resort/sierra"
 
-const LIFTIE_URL := "https://liftie.info/api/resort/heavenly"
-const LIFTIE_REFRESH_SECONDS := 60.0
-const DEV_OPEN_LIFT_COUNT := 19
-const DEV_HOLD_LIFT_COUNT := 2
-const DEV_CLOSED_LIFT_COUNT := 8
-
-var state := {
-	"status": "unknown",
-	"open_count": 0,
-	"hold_count": 0,
-	"closed_count": 0,
-	"total_count": 0,
-}
+signal state_received(state: LiftieResortResponse)
 
 var _http: HTTPRequest
-var _refresh_timer: Timer
+var state: LiftieResortResponse
 
 
 func _ready() -> void:
@@ -28,27 +15,16 @@ func _ready() -> void:
 	add_child(_http)
 	_http.request_completed.connect(_on_request_completed)
 
-	_refresh_timer = Timer.new()
-	_refresh_timer.wait_time = LIFTIE_REFRESH_SECONDS
-	_refresh_timer.autostart = true
-	add_child(_refresh_timer)
-	_refresh_timer.timeout.connect(request_status)
 
-	request_status()
-
-
-func request_status() -> void:
+func request_lift_data() -> void:
 	if _http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		return
-	var user_agent := Config.resolve_liftie_user_agent()
-	if user_agent.is_empty():
-		push_warning("Liftie user agent is not configured; using unknown lift state.")
-		_publish_unknown()
-		return
-	var error := _http.request(LIFTIE_URL, PackedStringArray(["User-Agent: %s" % user_agent]))
+	var endpoint := Config.resolve_game_api_base_url().trim_suffix("/") + RESORT_PATH
+	var installation_id := Config.resolve_installation_id()
+	var headers := PackedStringArray(["Accept: application/json", "X-Installation-Id: %s" % installation_id])
+	var error := _http.request(endpoint, headers)
 	if error != OK:
 		push_warning("Liftie status request failed to start: %s" % error_string(error))
-		_publish_unknown()
 
 
 func _on_request_completed(
@@ -58,50 +34,140 @@ func _on_request_completed(
 		push_warning(
 			"Liftie status request failed with result %d and HTTP %d." % [result, response_code]
 		)
-		_publish_unknown()
 		return
-	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
-	if parsed == null or typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("Liftie status response was not a JSON object.")
-		_publish_unknown()
+	var response := _parse_response(body)
+	if response == null:
+		push_warning("Liftie status request returned malformed JSON.")
 		return
-	var data: Dictionary = parsed
-	var lifts: Dictionary = data.get("lifts", {})
-	var stats: Dictionary = lifts.get("stats", {})
-	var open_count := int(stats.get("open", 0))
-	var hold_count := int(stats.get("hold", 0))
-	var closed_count := int(stats.get("closed", 0))
-	var scheduled_count := int(stats.get("scheduled", 0))
-	var total_count := open_count + hold_count + closed_count + scheduled_count
-	if OS.is_debug_build() and total_count == 0:
-		# Liftie omits the lift inventory outside the operating season.
-		open_count = DEV_OPEN_LIFT_COUNT
-		hold_count = DEV_HOLD_LIFT_COUNT
-		closed_count = DEV_CLOSED_LIFT_COUNT
-		total_count = open_count + hold_count + closed_count
-	var normalized_status := "unknown"
-	if open_count > 0:
-		normalized_status = "open"
-	elif hold_count > 0:
-		normalized_status = "hold"
-	elif total_count > 0:
-		normalized_status = "closed"
-	state = {
-		"status": normalized_status,
-		"open_count": open_count,
-		"hold_count": hold_count,
-		"closed_count": closed_count,
-		"total_count": total_count,
-	}
-	state_changed.emit(state)
+	state = response
+	state_received.emit(state)
 
 
-func _publish_unknown() -> void:
-	state = {
-		"status": "unknown",
-		"open_count": 0,
-		"hold_count": 0,
-		"closed_count": 0,
-		"total_count": 0,
-	}
-	state_changed.emit(state)
+func _parse_response(body: PackedByteArray) -> LiftieResortResponse:
+	var json := JSON.new()
+	if json.parse(body.get_string_from_utf8()) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		return null
+	var payload: Dictionary = json.data
+	var id: Variant = payload.get("id")
+	var is_open: Variant = payload.get("open")
+	var coordinates: Variant = payload.get("ll")
+	var timestamp_data: Variant = payload.get("timestamp")
+	var lifts_data: Variant = payload.get("lifts")
+	if (
+		typeof(id) != TYPE_STRING
+		or typeof(is_open) != TYPE_BOOL
+		or typeof(coordinates) != TYPE_ARRAY
+		or typeof(timestamp_data) != TYPE_DICTIONARY
+		or typeof(lifts_data) != TYPE_DICTIONARY
+	):
+		return null
+	var coordinate_values := Array(coordinates)
+	if (
+		coordinate_values.size() != 2
+		or not _is_finite_number(coordinate_values[0])
+		or not _is_finite_number(coordinate_values[1])
+	):
+		return null
+
+	var timestamp := _parse_timestamp(Dictionary(timestamp_data))
+	var lifts := _parse_lifts(Dictionary(lifts_data))
+	if timestamp == null or lifts == null:
+		return null
+
+	var response := LiftieResortResponse.new()
+	response.id = String(id)
+	response.open = bool(is_open)
+	response.ll = Vector2(float(coordinate_values[0]), float(coordinate_values[1]))
+	response.timestamp = timestamp
+	response.lifts = lifts
+	return response
+
+
+func _parse_timestamp(data: Dictionary) -> LiftieResortResponse.Timestamp:
+	var lifts: Variant = data.get("lifts")
+	var opening: Variant = data.get("opening")
+	if not _is_non_negative_integer(lifts) or not _is_non_negative_integer(opening):
+		return null
+	var timestamp := LiftieResortResponse.Timestamp.new()
+	timestamp.lifts = int(lifts)
+	timestamp.opening = int(opening)
+	return timestamp
+
+
+func _parse_lifts(data: Dictionary) -> LiftieResortResponse.Lifts:
+	var status_data: Variant = data.get("status")
+	var stats_data: Variant = data.get("stats")
+	if typeof(status_data) != TYPE_DICTIONARY or typeof(stats_data) != TYPE_DICTIONARY:
+		return null
+	var status_dictionary := Dictionary(status_data)
+	var statuses: Dictionary[String, String] = {}
+	for lift_id: Variant in status_dictionary:
+		var lift_status: Variant = status_dictionary[lift_id]
+		if typeof(lift_id) != TYPE_STRING or not _is_lift_status(lift_status):
+			return null
+		statuses[String(lift_id)] = String(lift_status)
+	var stats := _parse_stats(Dictionary(stats_data))
+	if stats == null:
+		return null
+	var lifts := LiftieResortResponse.Lifts.new()
+	lifts.status = statuses
+	lifts.stats = stats
+	return lifts
+
+
+func _parse_stats(data: Dictionary) -> LiftieResortResponse.LiftStats:
+	var open: Variant = data.get("open")
+	var hold: Variant = data.get("hold")
+	var scheduled: Variant = data.get("scheduled")
+	var closed: Variant = data.get("closed")
+	var percentage_data: Variant = data.get("percentage")
+	if (
+		not _is_non_negative_integer(open)
+		or not _is_non_negative_integer(hold)
+		or not _is_non_negative_integer(scheduled)
+		or not _is_non_negative_integer(closed)
+		or typeof(percentage_data) != TYPE_DICTIONARY
+	):
+		return null
+	var percentage := _parse_percentage(Dictionary(percentage_data))
+	if percentage == null:
+		return null
+	var stats := LiftieResortResponse.LiftStats.new()
+	stats.open = int(open)
+	stats.hold = int(hold)
+	stats.scheduled = int(scheduled)
+	stats.closed = int(closed)
+	stats.percentage = percentage
+	return stats
+
+
+func _parse_percentage(data: Dictionary) -> LiftieResortResponse.LiftPercentage:
+	var open: Variant = data.get("open")
+	var hold: Variant = data.get("hold")
+	var scheduled: Variant = data.get("scheduled")
+	var closed: Variant = data.get("closed")
+	if (
+		not _is_finite_number(open)
+		or not _is_finite_number(hold)
+		or not _is_finite_number(scheduled)
+		or not _is_finite_number(closed)
+	):
+		return null
+	var percentage := LiftieResortResponse.LiftPercentage.new()
+	percentage.open = float(open)
+	percentage.hold = float(hold)
+	percentage.scheduled = float(scheduled)
+	percentage.closed = float(closed)
+	return percentage
+
+
+func _is_non_negative_integer(value: Variant) -> bool:
+	return _is_finite_number(value) and float(value) >= 0.0 and float(value) == floor(float(value))
+
+
+func _is_finite_number(value: Variant) -> bool:
+	return (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value))
+
+
+func _is_lift_status(value: Variant) -> bool:
+	return value == "open" or value == "hold" or value == "scheduled" or value == "closed"

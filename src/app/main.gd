@@ -10,8 +10,7 @@ const WindowCoordinatorScene := preload("res://src/app/window_coordinator.gd")
 const ScreenFlowControllerScene := preload("res://src/app/screen_flow_controller.gd")
 const MarqueeFlowControllerScene := preload("res://src/app/marquee_flow_controller.gd")
 const GameSessionScene := preload("res://src/game/game_session.gd")
-const MockMountainStateSourceScene := preload("res://src/game/world/mock_mountain_state_source.gd")
-const LiftieStateServiceScene := preload("res://src/services/liftie/liftie_state_service.gd")
+const MountainStateSourceScene := preload("res://src/game/world/mountain_state_source.gd")
 const RemoteLeaderboardRepositoryScene := preload(
 	"res://src/services/leaderboard/leaderboard_repository_remote.gd"
 )
@@ -21,7 +20,6 @@ var _cabinet_exit_handler := CabinetExitHandlerScript.new()
 var _input_router: InputRouter
 var _game_session: GameSession
 var _mountain_state_source: MountainStateSource
-var _liftie_state_service: LiftieStateService
 var _leaderboard_repository: RemoteLeaderboardRepository
 var _window_coordinator: WindowCoordinator
 var _screen_flow: ScreenFlowController
@@ -57,7 +55,7 @@ func _ready() -> void:
 	if marquee_parent:
 		_marquee_flow = MarqueeFlowControllerScene.new()
 		marquee_parent.add_child(_marquee_flow)
-		_marquee_flow.setup(_game_session, _liftie_state_service)
+		_marquee_flow.setup(_game_session, _mountain_state_source)
 
 	var primary_parent := _window_coordinator.primary_content_parent()
 	if primary_parent:
@@ -65,12 +63,7 @@ func _ready() -> void:
 		_screen_flow.quit_requested.connect(_quit)
 		primary_parent.add_child(_screen_flow)
 		_screen_flow.setup(
-			_game_session,
-			_input_router,
-			_audio_manager,
-			_liftie_state_service,
-			_leaderboard_repository,
-			options
+			_game_session, _input_router, _audio_manager, _leaderboard_repository, options
 		)
 
 
@@ -92,12 +85,11 @@ func _setup_audio() -> void:
 
 func _setup_game_services(game_api_base_url: String) -> void:
 	# Mountain conditions outlive individual rounds and are shared by app-level views.
-	_mountain_state_source = MockMountainStateSourceScene.new()
+	_mountain_state_source = MountainStateSourceScene.new()
 	add_child(_mountain_state_source)
+
 	_game_session = GameSessionScene.new()
 	add_child(_game_session)
-	_liftie_state_service = LiftieStateServiceScene.new()
-	add_child(_liftie_state_service)
 	_setup_leaderboard_repository(game_api_base_url)
 
 

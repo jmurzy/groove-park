@@ -13,7 +13,6 @@ const PostRoundFlowControllerScene := preload("res://src/app/post_round_flow_con
 var _game_session: GameSession
 var _input_router: InputRouter
 var _audio_manager: AudioManager
-var _liftie_state_service: LiftieStateService
 var _leaderboard_repository: LeaderboardRepository
 var _post_round_flow: PostRoundFlowController
 var _options: GameArgsScene.GameOptions
@@ -26,7 +25,6 @@ func setup(
 	game_session: GameSession,
 	input_router: InputRouter,
 	audio_manager: AudioManager,
-	liftie_state_service: LiftieStateService,
 	leaderboard_repository: LeaderboardRepository,
 	options: GameArgsScene.GameOptions
 ) -> void:
@@ -36,7 +34,6 @@ func setup(
 	_game_session = game_session
 	_input_router = input_router
 	_audio_manager = audio_manager
-	_liftie_state_service = liftie_state_service
 	_leaderboard_repository = leaderboard_repository
 	_options = options
 	_post_round_flow = PostRoundFlowControllerScene.new()
@@ -145,7 +142,6 @@ func _connect_run_audio(run_manager: RiderRunManager) -> void:
 
 func _show_attract() -> void:
 	_primary_view = PrimaryScreenScene.new()
-	_primary_view.liftie_state_service = _liftie_state_service
 	_primary_view.input_router = _input_router
 	_primary_view.audio_manager = _audio_manager
 	_primary_view.leaderboard_repository = _leaderboard_repository

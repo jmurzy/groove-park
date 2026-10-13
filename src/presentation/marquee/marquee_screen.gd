@@ -25,14 +25,15 @@ const SEPARATOR_COLORS: Array[Color] = [
 	Color("80ed99"),
 	Color("ff4d4d"),
 ]
-var liftie_state_service: LiftieStateService
-
 var _elapsed := 0.0
 var _animated_separators: Array[Label] = []
 var _logomark: AnimatedSprite2D
+var _ticker: MarqueeTicker
 var _session_phase := RoundState.SessionPhase.ATTRACT
 var _round_state: RoundState
 var _leaderboard: Leaderboard
+var _mountain_state: MountainState
+var _lift_summary_labels: Array[Label] = []
 
 
 ## Accepts gameplay state without making the marquee responsible for game flow.
@@ -40,6 +41,13 @@ func set_session_context(phase: int, round_state: RoundState, leaderboard: Leade
 	_session_phase = phase
 	_round_state = round_state
 	_leaderboard = leaderboard
+
+
+func set_mountain_state(mountain_state: MountainState) -> void:
+	_mountain_state = mountain_state
+	_update_lift_summary()
+	if _ticker:
+		_ticker.set_mountain_state(mountain_state)
 
 
 func _ready() -> void:
@@ -87,17 +95,39 @@ func _build_header() -> void:
 	add_child(header)
 
 	var summary := _build_divided_line(
-		["14 OPEN", "2 HOLD", "1 CLOSED"], 32, Color("ffffff"), 52, 6, true
+		["0 OPEN", "0 HOLD", "0 SCHEDULED", "0 CLOSED"],
+		32,
+		Color("ffffff"),
+		52,
+		6,
+		true,
+		_lift_summary_labels
 	)
 	header.add_child(LiveIndicatorScene.new())
 	header.add_child(summary)
+	_update_lift_summary()
+
+
+func _update_lift_summary() -> void:
+	if not _mountain_state or _lift_summary_labels.size() != 4:
+		return
+	var totals := [
+		"%d OPEN" % _mountain_state.open,
+		"%d HOLD" % _mountain_state.hold,
+		"%d SCHEDULED" % _mountain_state.scheduled,
+		"%d CLOSED" % _mountain_state.closed,
+	]
+	for index in totals.size():
+		_lift_summary_labels[index].text = totals[index]
 
 
 func _build_ticker() -> void:
-	var ticker := MarqueeTickerScene.new()
-	ticker.position = Vector2(BORDER_WIDTH, 142)
-	ticker.size = Vector2(DESIGN_SIZE.x - BORDER_WIDTH * 2.0, 132)
-	add_child(ticker)
+	_ticker = MarqueeTickerScene.new()
+	_ticker.position = Vector2(BORDER_WIDTH, 142)
+	_ticker.size = Vector2(DESIGN_SIZE.x - BORDER_WIDTH * 2.0, 132)
+	add_child(_ticker)
+	if _mountain_state:
+		_ticker.set_mountain_state(_mountain_state)
 
 
 func _build_footer() -> void:
@@ -116,7 +146,8 @@ func _build_divided_line(
 	text_color: Color,
 	line_height: int,
 	separator_top_margin: int,
-	animate_separators: bool = false
+	animate_separators: bool = false,
+	labels: Array[Label] = []
 ) -> HBoxContainer:
 	var line := HBoxContainer.new()
 	line.custom_minimum_size.y = line_height
@@ -153,6 +184,7 @@ func _build_divided_line(
 		label.add_theme_constant_override("outline_size", 7)
 		label.add_theme_font_size_override("font_size", font_size)
 		_add_pixel_shadow(label, 4)
+		labels.append(label)
 		label_container.add_child(label)
 		line.add_child(label_container)
 	return line

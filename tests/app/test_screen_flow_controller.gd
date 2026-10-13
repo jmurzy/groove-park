@@ -407,7 +407,6 @@ func _gameplay_fixture(with_leaderboard_service := false) -> Fixture:
 		fixture.session,
 		fixture.input_router,
 		fixture.audio_manager,
-		LiftieStateService.new(),
 		fixture.leaderboard_repository,
 		GameArgsScene.GameOptions.new()
 	)
