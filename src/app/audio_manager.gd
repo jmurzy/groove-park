@@ -102,6 +102,7 @@ var _music_fade: Tween
 var _gameplay_sfx_fade: Tween
 var _muted := false
 var _set_muted_callback: JavaScriptObject
+var _enable_web_audio_callback: JavaScriptObject
 
 
 func configure() -> void:
@@ -173,8 +174,10 @@ func _register_web_audio_control() -> void:
 	if not OS.has_feature("web"):
 		return
 	_set_muted_callback = JavaScriptBridge.create_callback(_set_muted_from_web)
+	_enable_web_audio_callback = JavaScriptBridge.create_callback(_enable_web_audio_from_web)
 	var window := JavaScriptBridge.get_interface("window")
 	window["GAME_SET_MUTED"] = _set_muted_callback
+	window["GAME_ENABLE_AUDIO"] = _enable_web_audio_callback
 	# Browsers may reject audio started before a player interacts with the page.
 	set_muted(true)
 
@@ -184,8 +187,11 @@ func _set_muted_from_web(args: Array) -> void:
 		return
 	var muted: bool = args[0] == true
 	set_muted(muted)
-	# This callback is invoked directly by the web mute button's click handler.
-	if not muted and not _background_music_player.playing:
+
+
+func _enable_web_audio_from_web(_args: Array) -> void:
+	set_muted(false)
+	if not _background_music_player.playing and not _gameplay_ambience_player.playing:
 		play_background_music()
 
 

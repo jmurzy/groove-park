@@ -53,7 +53,6 @@ function IndexPage() {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	useGameInputLock(canvasRef, Boolean(releaseId && releaseConfig));
 	const toggleFullscreen = useFullscreen(canvasRef);
-	const { muted, toggleMute } = useMute();
 
 	const assetBase = `${releasesUrl}/releases/${releaseId}/`;
 	const gameCfg: GameCfg = {
@@ -65,6 +64,7 @@ function IndexPage() {
 		gameCfg,
 		assetBase,
 	);
+	const { muted, toggleMute } = useMute(isReady);
 	const isShowingSplash = !isReady;
 
 	return (
