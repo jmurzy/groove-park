@@ -12,9 +12,9 @@ The digital marquee is a dedicated 1920x360 Godot window. It shows an animated s
 
 The game starts with a local Heavenly lift lineup, then refreshes live lift information every 60 seconds from `game_api.base_url/api/liftie/resort/<game_api.resort_slug>`. Each request includes the generated installation ID. The API validates and normalizes Liftie responses, caches successful responses for 60 seconds, and the marquee updates its lift totals and ticker from the returned statuses.
 
-Copy [heavenly.cfg.example](heavenly.cfg.example) to `heavenly.cfg` in the repository for development. The packaged game receives this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
+Copy [game.cfg.example](game.cfg.example) to `game.cfg` in the repository for development. The packaged game receives this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
 
-Both `game_api.base_url` and `game_api.resort_slug` are required. The game exits at startup when either is missing or blank. On cabinet builds, `heavenly.cfg` beside `HEAVENLY.exe` overrides the packaged fallback; the installer preserves that operator-managed file during upgrades. Lift data is informational only; observe all posted resort signage and operations guidance.
+Both `game_api.base_url` and `game_api.resort_slug` are required. The game exits at startup when either is missing or blank. On cabinet builds, `game.cfg` beside `HEAVENLY.exe` overrides the packaged fallback; the installer preserves that operator-managed file during upgrades. Lift data is informational only; observe all posted resort signage and operations guidance.
 
 ## Polycade AGS
 
@@ -112,7 +112,7 @@ letterboxed, composes the cabinet marquee above the primary game view, and has n
 action.
 
 Web is supported on desktop browsers with a keyboard or connected gamepad. Browser builds do not
-read `heavenly.cfg`; the Web Worker injects the API URL and resort slug into `window.HEAVENLY_CFG`.
+read `game.cfg`; the Web Worker injects the API URL and resort slug into `window.GAME_CFG`.
 They persist a browser-scoped installation ID for API rate-limit grouping; other local browser settings
 remain browser-managed. The Web export is non-threaded, so it does not require cross-origin isolation
 headers.

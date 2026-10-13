@@ -1,7 +1,7 @@
-; Copy to heavenly.cfg (never commit the real file).
-; Dev: place at the repo root, the app reads it via res://heavenly.cfg.
+; Copy to game.cfg (never commit the real file).
+; Dev: place at the repo root, the app reads it via res://game.cfg.
 ; Cabinet (Polycade AGS on Windows): `just package-ags` ships this file renamed
-; to heavenly.cfg next to HEAVENLY.exe with these `;` comments stripped.
+; to game.cfg next to HEAVENLY.exe with these `;` comments stripped.
 ; Install.ps1 seeds it only when missing and never overwrites live values.
 
 [game_api]

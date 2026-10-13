@@ -11,10 +11,10 @@
   Expected ZIP layout (script sits at the ZIP root next to these folders):
 
     Install.ps1
-    game\       # HEAVENLY.exe, HEAVENLY.pck, heavenly.cfg (placeholders), ...required runtime files
+    game\       # HEAVENLY.exe, HEAVENLY.pck, game.cfg (placeholders), ...required runtime files
     artwork\    # header.png, hero.png, marquee.png (lowercase)
 
-  The shipped heavenly.cfg contains placeholder values: edit it next to
+  The shipped game.cfg contains placeholder values: edit it next to
   HEAVENLY.exe after installing. It is seeded only when missing, so
   upgrades never overwrite the operator's live values.
 
@@ -70,20 +70,20 @@ foreach ($dir in @($gameDir, $artDir)) {
 }
 
 if ($PSCmdlet.ShouldProcess($resolvedGameSource + " -> " + $gameDir, "Copy game files")) {
-  # Never overwrite the operator's heavenly.cfg on upgrades: exclude it from
+  # Never overwrite the operator's game.cfg on upgrades: exclude it from
   # the blanket copy and seed it only when missing.
-  Copy-Item -Path (Join-Path $resolvedGameSource "*") -Destination $gameDir -Recurse -Force -Exclude "heavenly.cfg"
+  Copy-Item -Path (Join-Path $resolvedGameSource "*") -Destination $gameDir -Recurse -Force -Exclude "game.cfg"
 }
 
-$shippedCfg = Join-Path $resolvedGameSource "heavenly.cfg"
-$targetCfg = Join-Path $gameDir "heavenly.cfg"
+$shippedCfg = Join-Path $resolvedGameSource "game.cfg"
+$targetCfg = Join-Path $gameDir "game.cfg"
 if ((Test-Path -LiteralPath $shippedCfg) -and -not (Test-Path -LiteralPath $targetCfg)) {
-  if ($PSCmdlet.ShouldProcess($shippedCfg + " -> " + $targetCfg, "Seed heavenly.cfg")) {
+  if ($PSCmdlet.ShouldProcess($shippedCfg + " -> " + $targetCfg, "Seed game.cfg")) {
     Copy-Item -LiteralPath $shippedCfg -Destination $targetCfg
-    Write-Host "Seeded heavenly.cfg with placeholder values; edit it next to HEAVENLY.exe."
+    Write-Host "Seeded game.cfg with placeholder values; edit it next to HEAVENLY.exe."
   }
 } elseif (Test-Path -LiteralPath $targetCfg) {
-  Write-Verbose "Preserving existing heavenly.cfg."
+  Write-Verbose "Preserving existing game.cfg."
 }
 
 $exePath = Join-Path $gameDir "$GameName.exe"

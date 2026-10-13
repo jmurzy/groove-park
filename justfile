@@ -99,8 +99,8 @@ export-ags: import
 [doc("Zip the installer payload and create its SHA-256 checksum. The installer pre-creates both AGS folders, so AGS does not need to run first.")]
 package-ags: export-ags
     rm -f HEAVENLY-windows-x86_64.zip HEAVENLY-windows-x86_64.zip.sha256
-    # Ship heavenly.cfg without dev comments: only section/key lines go to the cabinet.
-    grep -v '^[[:space:]]*;' heavenly.cfg.example > build/ags/heavenly.cfg
+    # Ship game.cfg without dev comments: only section/key lines go to the cabinet.
+    grep -v '^[[:space:]]*;' game.cfg.example > build/ags/game.cfg
     bsdtar --format=zip -cf HEAVENLY-windows-x86_64.zip -s '|^build/ags|game|' -s '|^tools/Install.ps1|Install.ps1|' -s '|^images/ags|artwork|' build/ags tools/Install.ps1 images/ags/header.png images/ags/hero.png images/ags/marquee.png
     if command -v sha256sum >/dev/null 2>&1; then sha256sum HEAVENLY-windows-x86_64.zip; else shasum -a 256 HEAVENLY-windows-x86_64.zip; fi > HEAVENLY-windows-x86_64.zip.sha256
 

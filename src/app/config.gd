@@ -3,11 +3,11 @@
 class_name Config
 extends RefCounted
 
-# Generic runtime source for app settings. Web reads window.HEAVENLY_CFG;
+# Generic runtime source for app settings. Web reads window.GAME_CFG;
 # native builds look beside the executable before falling back to res://.
 # Never log resolved values themselves.
 
-const CONFIG_PATH := "res://heavenly.cfg"
+const CONFIG_PATH := "res://game.cfg"
 const USER_SETTINGS_PATH := "user://installation.cfg"
 
 
@@ -45,7 +45,7 @@ static func resolve_value(section: String, key: String) -> String:
 
 
 static func _read_from_web_config(section: String, key: String) -> String:
-	var cfg := JavaScriptBridge.get_interface("HEAVENLY_CFG")
+	var cfg := JavaScriptBridge.get_interface("GAME_CFG")
 	if cfg == null:
 		return ""
 	var values: JavaScriptObject = cfg[section]

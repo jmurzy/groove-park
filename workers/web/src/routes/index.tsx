@@ -6,10 +6,10 @@ import { LoadingBar } from "#/components/LoadingBar/LoadingBar";
 import { Snowfall } from "#/components/Snowfall/Snowfall";
 import { useFullscreen } from "#/hooks/useFullscreen";
 import { useGameInputLock } from "#/hooks/useGameInputLock";
-import { useGodotGame, type HeavenlyCfg } from "#/hooks/useGodotGame";
+import { type GameCfg, useGodotGame } from "#/hooks/useGodotGame";
 import { useMute } from "#/hooks/useMute";
-import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 import { securityHeadersMiddleware } from "#/middleware/securityHeadersMiddleware";
+import { getGameReleaseConfig, getGameReleaseId } from "#/server/gameReleases";
 import styles from "./index.module.css";
 
 const getReleasesUrl = createServerFn({ method: "GET" }).handler(
@@ -56,13 +56,13 @@ function IndexPage() {
 	const { muted, toggleMute } = useMute();
 
 	const assetBase = `${releasesUrl}/releases/${releaseId}/`;
-	const heavenlyCfg: HeavenlyCfg = {
+	const gameCfg: GameCfg = {
 		game_api: { base_url: gameApiUrl, resort_slug: resortSlug },
 	};
 	const { notice, progress } = useGodotGame(
 		canvasRef,
 		releaseConfig,
-		heavenlyCfg,
+		gameCfg,
 		assetBase,
 	);
 	const isShowingSplash = progress || notice;

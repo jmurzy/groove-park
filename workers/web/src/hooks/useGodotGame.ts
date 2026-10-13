@@ -24,7 +24,7 @@ export type GodotReleaseConfig = {
 	url: string;
 };
 
-export type HeavenlyCfg = {
+export type GameCfg = {
 	game_api: { base_url: string; resort_slug: string };
 };
 
@@ -44,7 +44,7 @@ type GodotEngineConstructor = {
 declare global {
 	interface Window {
 		Engine?: GodotEngineConstructor;
-		HEAVENLY_CFG?: HeavenlyCfg;
+		GAME_CFG?: GameCfg;
 	}
 }
 
@@ -130,11 +130,11 @@ type GameProgress = {
 export function useGodotGame(
 	canvasRef: RefObject<HTMLCanvasElement | null>,
 	releaseConfig: GodotReleaseConfig | null,
-	heavenlyCfg: HeavenlyCfg,
+	gameCfg: GameCfg,
 	assetBase: string,
 ) {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: The game config is intentionally fixed for this mounted page.
-	const stableHeavenlyCfg = useMemo(() => heavenlyCfg, []);
+	const stableGameCfg = useMemo(() => gameCfg, []);
 	const gameStartRef = useRef<Promise<void> | undefined>(undefined);
 	const onProgressRef = useRef<
 		((current: number, total: number) => void) | undefined
@@ -149,7 +149,7 @@ export function useGodotGame(
 			return;
 		}
 
-		window.HEAVENLY_CFG ??= stableHeavenlyCfg;
+		window.GAME_CFG ??= stableGameCfg;
 		setNotice(undefined);
 		setProgress({ current: 0, total: 0 });
 
@@ -184,7 +184,7 @@ export function useGodotGame(
 			active = false;
 			onProgressRef.current = undefined;
 		};
-	}, [assetBase, canvasRef, releaseConfig, stableHeavenlyCfg]);
+	}, [assetBase, canvasRef, releaseConfig, stableGameCfg]);
 
 	return { notice, progress };
 }

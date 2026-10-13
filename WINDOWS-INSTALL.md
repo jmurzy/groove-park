@@ -57,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File .\Install.ps1
 ```
 
 8. Confirm the script reports both `games\drm-free\HEAVENLY\HEAVENLY.exe` and `assets\drm-free\HEAVENLY\`, not an extra nested directory such as `HEAVENLY\HEAVENLY\HEAVENLY.exe`.
-9. Edit `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY\heavenly.cfg`. Set `game_api.base_url` to the deployed game API origin and `game_api.resort_slug` to the intended lowercase Liftie resort slug. The shipped values are placeholders.
+9. Edit `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY\game.cfg`. Set `game_api.base_url` to the deployed game API origin and `game_api.resort_slug` to the intended lowercase Liftie resort slug. The shipped values are placeholders.
 10. Start or restart AGS so it discovers the local executable.
 11. Confirm HEAVENLY appears in the selector, then launch it with the cabinet A button.
 
@@ -71,7 +71,7 @@ powershell -ExecutionPolicy Bypass -File .\Install.ps1
 6. Extract GitHub's outer artifact ZIP.
 7. Verify the enclosed `HEAVENLY-windows-x86_64.zip` against its `.sha256` file as described above.
 8. Extract the verified game ZIP to a temporary folder and run `powershell -ExecutionPolicy Bypass -File .\Install.ps1` from the extracted folder, so the executable ends at `...\games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is pre-seeded under `...\assets\drm-free\HEAVENLY\`.
-9. Configure `heavenly.cfg` next to `HEAVENLY.exe` as described in Option A, then start or restart AGS, confirm it finds HEAVENLY, and launch it.
+9. Configure `game.cfg` next to `HEAVENLY.exe` as described in Option A, then start or restart AGS, confirm it finds HEAVENLY, and launch it.
 
 Workflow artifacts are temporary and may require authentication. They are for development testing, not permanent distribution.
 
@@ -85,7 +85,7 @@ Workflow artifacts are temporary and may require authentication. They are for de
 6. Restart AGS only if it no longer finds the game.
 7. Launch HEAVENLY and confirm both primary-only and dual-display behavior as applicable.
 
-The installer preserves the operator-managed `heavenly.cfg` beside `HEAVENLY.exe`. The generated
+The installer preserves the operator-managed `game.cfg` beside `HEAVENLY.exe`. The generated
 installation ID is stored separately in Godot's `user://installation.cfg`, so it also survives a
 release-directory replacement.
 
