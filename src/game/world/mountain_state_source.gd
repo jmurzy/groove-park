@@ -22,6 +22,7 @@ func _ready() -> void:
 	refresh_timer.timeout.connect(_liftie_state_service.request_lift_data)
 	add_child(refresh_timer)
 	_refresh_mountain_state(_create_initial_mountain_state())
+	_liftie_state_service.request_lift_data()
 
 
 func _refresh_mountain_state(next_state: MountainState) -> void:
