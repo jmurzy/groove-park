@@ -59,13 +59,13 @@ function IndexPage() {
 	const gameCfg: GameCfg = {
 		game_api: { base_url: gameApiUrl, resort_slug: resortSlug },
 	};
-	const { notice, progress } = useGodotGame(
+	const { isReady, notice, progress } = useGodotGame(
 		canvasRef,
 		releaseConfig,
 		gameCfg,
 		assetBase,
 	);
-	const isShowingSplash = progress || notice;
+	const isShowingSplash = !isReady;
 
 	return (
 		<main className={styles.page}>

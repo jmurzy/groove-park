@@ -141,8 +141,10 @@ export function useGodotGame(
 	>(undefined);
 	const [progress, setProgress] = useState<GameProgress>();
 	const [notice, setNotice] = useState<string>();
+	const [isReady, setIsReady] = useState(false);
 
 	useEffect(() => {
+		setIsReady(false);
 		const canvas = canvasRef.current;
 		if (!canvas || !releaseConfig) {
 			setNotice("Game release is unavailable.");
@@ -171,7 +173,10 @@ export function useGodotGame(
 		}
 		void gameStart
 			.then(() => {
-				if (active) setProgress(undefined);
+				if (active) {
+					setProgress(undefined);
+					setIsReady(true);
+				}
 			})
 			.catch((error: unknown) => {
 				console.error(error);
@@ -186,5 +191,5 @@ export function useGodotGame(
 		};
 	}, [assetBase, canvasRef, releaseConfig, stableGameCfg]);
 
-	return { notice, progress };
+	return { isReady, notice, progress };
 }
