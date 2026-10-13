@@ -24,6 +24,10 @@ export type GodotReleaseConfig = {
 	url: string;
 };
 
+export type HeavenlyCfg = {
+	leaderboard_api: { base_url: string };
+};
+
 type GodotEngine = {
 	installServiceWorker(): Promise<void>;
 	startGame(options: {
@@ -40,9 +44,7 @@ type GodotEngineConstructor = {
 declare global {
 	interface Window {
 		Engine?: GodotEngineConstructor;
-		HEAVENLY_CFG?: {
-			leaderboard_api: { base_url: string };
-		};
+		HEAVENLY_CFG?: HeavenlyCfg;
 	}
 }
 
@@ -128,8 +130,8 @@ type GameProgress = {
 export function useGodotGame(
 	canvasRef: RefObject<HTMLCanvasElement | null>,
 	releaseConfig: GodotReleaseConfig | null,
+	heavenlyCfg: HeavenlyCfg,
 	assetBase: string,
-	gameApiUrl: string,
 ) {
 	const gameStartRef = useRef<Promise<void> | undefined>(undefined);
 	const onProgressRef = useRef<
@@ -145,9 +147,7 @@ export function useGodotGame(
 			return;
 		}
 
-		window.HEAVENLY_CFG ??= {
-			leaderboard_api: { base_url: gameApiUrl },
-		};
+		window.HEAVENLY_CFG ??= heavenlyCfg;
 		setNotice(undefined);
 		setProgress({ current: 0, total: 0 });
 
@@ -182,7 +182,7 @@ export function useGodotGame(
 			active = false;
 			onProgressRef.current = undefined;
 		};
-	}, [assetBase, canvasRef, gameApiUrl, releaseConfig]);
+	}, [assetBase, canvasRef, heavenlyCfg, releaseConfig]);
 
 	return { notice, progress };
 }

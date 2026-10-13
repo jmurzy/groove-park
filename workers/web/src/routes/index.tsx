@@ -45,11 +45,14 @@ function IndexPage() {
 	const toggleFullscreen = useFullscreen(canvasRef);
 
 	const assetBase = `${releasesUrl}/releases/${releaseId}/`;
+	const heavenlyCfg = {
+		leaderboard_api: { base_url: gameApiUrl },
+	};
 	const { notice, progress } = useGodotGame(
 		canvasRef,
 		releaseConfig,
+		heavenlyCfg,
 		assetBase,
-		gameApiUrl,
 	);
 	const isShowingSplash = progress || notice;
 
