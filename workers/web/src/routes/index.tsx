@@ -66,6 +66,8 @@ function IndexPage() {
 	);
 	const { muted, toggleMute } = useMute(isReady);
 	const isShowingSplash = !isReady;
+	// Control clicks must not take keyboard input away from the game canvas.
+	const keepCanvasFocused = () => canvasRef.current?.focus();
 
 	return (
 		<main className={styles.page}>
@@ -99,10 +101,21 @@ function IndexPage() {
 			{!isShowingSplash && (
 				<div className={styles.controls}>
 					<span className={styles.controlsLabel}>Controls</span>
-					<button onClick={toggleFullscreen} type="button">
+					<button
+						onClick={toggleFullscreen}
+						onPointerDown={(event) => event.preventDefault()}
+						type="button"
+					>
 						Fullscreen
 					</button>
-					<button onClick={toggleMute} type="button">
+					<button
+						onClick={() => {
+							toggleMute();
+							keepCanvasFocused();
+						}}
+						onPointerDown={(event) => event.preventDefault()}
+						type="button"
+					>
 						{muted ? "Unmute" : "Mute"}
 					</button>
 				</div>

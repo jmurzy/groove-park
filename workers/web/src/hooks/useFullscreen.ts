@@ -8,9 +8,11 @@ export function useFullscreen(targetRef: RefObject<HTMLElement | null>) {
 		try {
 			if (document.fullscreenElement) await document.exitFullscreen();
 			else await target.requestFullscreen();
-			target.focus();
 		} catch {
 			// Fullscreen is optional and browsers may reject it due to local policy.
+		} finally {
+			// Return keyboard input to the game after interacting with this control.
+			target.focus();
 		}
 	}
 
