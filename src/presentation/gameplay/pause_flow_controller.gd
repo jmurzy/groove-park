@@ -6,6 +6,8 @@ signal abort_requested
 
 const PauseMenuScene := preload("res://src/presentation/gameplay/pause_menu.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
+const HowToPlayAgsScreenScene := preload("res://src/presentation/attract/how_to_play_ags_screen.gd")
+const HowToPlayWebScreenScene := preload("res://src/presentation/attract/how_to_play_web_screen.gd")
 
 var _game_session: GameSession
 var _owner: Node
@@ -68,7 +70,9 @@ func _open_controls() -> void:
 	# This prevents the pause menu's _unhandled_input() from receiving actions
 	# that How To Play does not consume.
 	_pause_menu.process_mode = Node.PROCESS_MODE_DISABLED
-	_controls_screen = HowToPlayScreenScene.new()
+	_controls_screen = (
+		HowToPlayWebScreenScene.new() if OS.has_feature("web") else HowToPlayAgsScreenScene.new()
+	)
 	_controls_screen.audio_manager = _audio_manager
 	_controls_screen.closed.connect(_close_controls)
 	_ui_layer.add_child(_controls_screen)

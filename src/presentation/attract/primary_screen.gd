@@ -8,6 +8,8 @@ signal exit_requested
 const AttractBackdropScene := preload("res://src/presentation/attract/attract_backdrop.gd")
 const AttractMenuScene := preload("res://src/presentation/attract/attract_menu.gd")
 const HowToPlayScreenScene := preload("res://src/presentation/attract/how_to_play_screen.gd")
+const HowToPlayAgsScreenScene := preload("res://src/presentation/attract/how_to_play_ags_screen.gd")
+const HowToPlayWebScreenScene := preload("res://src/presentation/attract/how_to_play_web_screen.gd")
 const AttractIdleFlowControllerScene := preload("res://src/app/attract_idle_flow_controller.gd")
 
 var input_router: InputRouter
@@ -71,7 +73,9 @@ func _open_controls() -> void:
 		return
 	_idle_flow.suspend()
 	audio_manager.play_event(AudioManager.Event.UI_CONFIRM)
-	_controls_screen = HowToPlayScreenScene.new()
+	_controls_screen = (
+		HowToPlayWebScreenScene.new() if OS.has_feature("web") else HowToPlayAgsScreenScene.new()
+	)
 	_controls_screen.audio_manager = audio_manager
 	_controls_screen.closed.connect(_close_controls)
 	add_child(_controls_screen)

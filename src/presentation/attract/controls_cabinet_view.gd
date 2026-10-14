@@ -1,7 +1,7 @@
 ## Live Sente cabinet diagram: joystick sprite follows the stick and buttons show
 ## pressed states with click sounds. Call `tick()` each frame.
-class_name CabinetControlsView
-extends Node2D
+class_name ControlsCabinetView
+extends ControlsView
 
 const CONTROL_BUTTONS := preload("res://artwork/controls/sente_control_buttons.png")
 const CONTROL_BUTTONS_DEPRESSED := preload(
@@ -19,7 +19,6 @@ const JOYSTICK_POSITION := Vector2(303, 546)
 const JOYSTICK_SCALE := 1.265
 const BUTTON_SCALE := 0.64187710587
 
-var audio_manager: AudioManager
 var _control_sprites: Dictionary[StringName, Sprite2D]
 var _control_textures: Dictionary[StringName, Array]
 var _joystick: Sprite2D
@@ -28,7 +27,7 @@ var _joystick_direction := Vector2.ZERO
 
 
 func _ready() -> void:
-	name = "CabinetControlsView"
+	name = "ControlsCabinetView"
 	position = Vector2(0, 54)
 	scale = CABINET_ART_SIZE / CONTROL_LAYOUT_SIZE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
