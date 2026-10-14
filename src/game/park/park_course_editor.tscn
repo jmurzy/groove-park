@@ -24,19 +24,19 @@ point_count = 11
 
 [sub_resource type="Curve2D" id="Curve2D_fqnxt"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 1309, 375, 0, 0, 0, 0, 1422, 558, 0, 0, 0, 0, 1620, 601, 0, 0, 0, 0, 1864, 660)
+"points": PackedVector2Array(0, 0, 0, 0, 1366, 483, 0, 0, 0, 0, 1422, 558, 0, 0, 0, 0, 1620, 601, 0, 0, 0, 0, 1864, 660)
 }
 point_count = 4
 
 [sub_resource type="Curve2D" id="Curve2D_i5xk0"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 1260, 380, 0, 0, 0, 0, 1360, 579, 0, 0, 0, 0, 1612, 642, 0, 0, 0, 0, 1861, 661)
+"points": PackedVector2Array(0, 0, 0, 0, 1294, 485, 0, 0, 0, 0, 1360, 579, 0, 0, 0, 0, 1612, 642, 0, 0, 0, 0, 1861, 661)
 }
 point_count = 4
 
 [sub_resource type="Curve2D" id="Curve2D_ufw7q"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 983, 568, 0, 0, 0, 0, 1407, 650, 0, 0, 0, 0, 1618, 670, 0, 0, 0, 0, 1862, 660)
+"points": PackedVector2Array(0, 0, 0, 0, 984, 569, 0, 0, 0, 0, 1407, 650, 0, 0, 0, 0, 1618, 670, 0, 0, 0, 0, 1862, 660)
 }
 point_count = 4
 
