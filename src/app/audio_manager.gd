@@ -49,9 +49,7 @@ const CABINET_SWITCH_SOUND := preload("res://assets/audio/switch24.ogg")
 const JOYSTICK_SOUND := preload("res://assets/audio/switch38.ogg")
 const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
 const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/keyboard_press.mp3")
-const HELICOPTER_HOVER_SOUND := preload(
-	"res://assets/audio/helivac.mp3"
-)
+const HELICOPTER_HOVER_SOUND := preload("res://assets/audio/helivac.mp3")
 const CRASH_SOUND := preload("res://assets/audio/crash.mp3")
 const BAIL_SOUND := preload("res://assets/audio/bail.mp3")
 const GAME_OVER_SOUND := preload("res://assets/audio/game_over.mp3")
@@ -170,9 +168,15 @@ func configure() -> void:
 	_build_one_shot_pool(UI_SFX_BUS, &"BackSound", BACK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(UI_SFX_BUS, &"CrashSound", CRASH_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(UI_SFX_BUS, &"BailSound", BAIL_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
-	_build_one_shot_pool(UI_SFX_BUS, &"GameOverSound", GAME_OVER_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
-	_build_one_shot_pool(UI_SFX_BUS, &"HighScoreSound", HIGH_SCORE_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
-	_build_one_shot_pool(UI_SFX_BUS, &"CleanLandingSound", ACCELERATION_LOOP_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"GameOverSound", GAME_OVER_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"HighScoreSound", HIGH_SCORE_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
+	_build_one_shot_pool(
+		UI_SFX_BUS, &"CleanLandingSound", ACCELERATION_LOOP_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
+	)
 	_build_one_shot_pool(
 		UI_SFX_BUS,
 		&"KeyboardSelectionSound",
@@ -318,6 +322,7 @@ func play_event(event: Event) -> void:
 			pass
 		Event.RELEASE_WARNING:
 			pass
+
 
 func play_loop_event(loop_event: LoopEvent) -> void:
 	if not _gameplay_action_loop_players.has(loop_event):
