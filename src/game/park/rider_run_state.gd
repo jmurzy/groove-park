@@ -11,6 +11,7 @@ var has_ground_intent := false
 var tuck_active := false
 var brake_active := false
 var edge_active := false
+var acceleration_active := false
 var low_momentum_start_progress := 0.0
 var low_momentum_last_progress := 0.0
 var low_momentum_no_progress_time := 0.0

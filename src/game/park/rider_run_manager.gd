@@ -196,6 +196,9 @@ func _sync_loop_events(tuning: RiderTuning) -> void:
 	_sync_loop_event(AudioManager.LoopEvent.BRAKE, rider_state.run.brake_active, speed_intensity)
 	_sync_loop_event(AudioManager.LoopEvent.TUCK, rider_state.run.tuck_active, speed_intensity)
 	_sync_loop_event(
+		AudioManager.LoopEvent.ACCELERATION, rider_state.run.acceleration_active, speed_intensity
+	)
+	_sync_loop_event(
 		AudioManager.LoopEvent.COMPRESSION,
 		rider_state.jump.compression_active,
 		clampf(

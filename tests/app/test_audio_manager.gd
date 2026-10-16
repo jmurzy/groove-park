@@ -136,6 +136,7 @@ func _test_loop_event_lifecycle() -> void:
 	manager.rider_state.run.edge_active = true
 	manager.rider_state.run.brake_active = true
 	manager.rider_state.run.tuck_active = true
+	manager.rider_state.run.acceleration_active = true
 	manager.rider_state.jump.compression_active = true
 	manager.rider_state.jump.trick_tracker.start_grab()
 	manager.rider_state.kinematics.ground_velocity = Vector2(

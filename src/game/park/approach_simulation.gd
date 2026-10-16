@@ -39,6 +39,7 @@ func step(
 	state.run.edge_active = (
 		not downhill_held and not state.kinematics.ground_velocity.is_zero_approx()
 	)
+	state.run.acceleration_active = downhill_held
 
 	if not steering_heading.is_zero_approx():
 		state.kinematics.desired_heading = steering_heading
@@ -96,6 +97,7 @@ func _clear_controls(state: RiderState) -> void:
 	state.run.tuck_active = false
 	state.run.brake_active = false
 	state.run.edge_active = false
+	state.run.acceleration_active = false
 
 
 func _update_low_momentum_detection(

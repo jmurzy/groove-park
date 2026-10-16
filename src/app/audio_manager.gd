@@ -37,6 +37,7 @@ enum LoopEvent {
 	TUCK,
 	COMPRESSION,
 	GRAB,
+	ACCELERATION,
 }
 
 const BACKGROUND_MUSIC := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
@@ -51,8 +52,21 @@ const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/koiroylers-keyboar
 const HELICOPTER_HOVER_SOUND := preload(
 	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
 )
-# Temporary loop source until dedicated gameplay loop assets are selected.
-const GAMEPLAY_ACTION_LOOP_SOUND := MENU_SWITCH_SOUND
+const CRASH_SOUND := preload("res://assets/audio/crash.mp3")
+const GAME_OVER_SOUND := preload("res://assets/audio/game_over.mp3")
+const HIGH_SCORE_SOUND := preload("res://assets/audio/high_score.mp3")
+
+const CARVE_LOOP_SOUND := preload("res://assets/audio/carve.mp3")
+const COMPRESSION_LOOP_SOUND := preload("res://assets/audio/jump.mp3")
+const ACCELERATION_LOOP_SOUND := preload("res://assets/audio/ski-1.mp3")
+const GAMEPLAY_ACTION_LOOP_SOUNDS: Dictionary[int, AudioStream] = {
+	LoopEvent.CARVE: CARVE_LOOP_SOUND,
+	LoopEvent.BRAKE: null,
+	LoopEvent.TUCK: null,
+	LoopEvent.COMPRESSION: COMPRESSION_LOOP_SOUND,
+	LoopEvent.GRAB: null,
+	LoopEvent.ACCELERATION: ACCELERATION_LOOP_SOUND,
+}
 
 # Looping attract music.
 const MUSIC_BUS := &"Music"
@@ -93,7 +107,7 @@ var _background_music_player: AudioStreamPlayer
 
 var _gameplay_helicopter_player: AudioStreamPlayer
 var _gameplay_ambience_player: AudioStreamPlayer
-var _gameplay_action_loop_players: Array[AudioStreamPlayer] = []
+var _gameplay_action_loop_players: Dictionary[int, AudioStreamPlayer] = {}
 
 var _one_shot_pools: Dictionary = {}
 var _next_one_shot_player: Dictionary = {}
@@ -127,13 +141,16 @@ func configure() -> void:
 		HELICOPTER_HOVER_ENTRY_VOLUME_DB
 	)
 	for loop: int in LoopEvent.values():
-		_gameplay_action_loop_players.append(
-			_build_looping_player(
-				GAMEPLAY_SFX_BUS,
-				&"GameplayLoop%d" % loop,
-				GAMEPLAY_ACTION_LOOP_SOUND,
-				GAMEPLAY_ACTION_LOOP_MIN_VOLUME_DB
-			)
+		if not GAMEPLAY_ACTION_LOOP_SOUNDS.has(loop):
+			continue
+		var loop_sound := GAMEPLAY_ACTION_LOOP_SOUNDS[loop]
+		if loop_sound == null:
+			continue
+		_gameplay_action_loop_players[loop] = _build_looping_player(
+			GAMEPLAY_SFX_BUS,
+			&"GameplayLoop%d" % loop,
+			loop_sound,
+			GAMEPLAY_ACTION_LOOP_MIN_VOLUME_DB
 		)
 
 	# UI_SFX_BUS
@@ -150,6 +167,10 @@ func configure() -> void:
 		UI_SFX_BUS, &"JoystickSound", JOYSTICK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT
 	)
 	_build_one_shot_pool(UI_SFX_BUS, &"BackSound", BACK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(UI_SFX_BUS, &"CrashSound", CRASH_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(UI_SFX_BUS, &"GameOverSound", GAME_OVER_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(UI_SFX_BUS, &"HighScoreSound", HIGH_SCORE_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(UI_SFX_BUS, &"CleanLandingSound", ACCELERATION_LOOP_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(
 		UI_SFX_BUS,
 		&"KeyboardSelectionSound",
@@ -269,27 +290,35 @@ func play_event(event: Event) -> void:
 			_play_one_shot(&"ScoreTickSound")
 		Event.NEXT_JUMP, Event.FULL_ROTATION:
 			_play_one_shot(&"CabinetSwitchSound")
-		Event.JOYSTICK_MOVE, Event.JUMP_START, Event.TAKEOFF, Event.LAND_CLEAN:
+		Event.JOYSTICK_MOVE:
 			_play_one_shot(&"JoystickSound")
 		Event.HALF_ROTATION:
 			_play_one_shot(&"CabinetSwitchSound")
-		Event.RELEASE_WARNING:
-			_play_one_shot(&"BackSound")
-		Event.CRASH, Event.BAIL:
-			_play_one_shot(&"BackSound")
-		Event.LAND_SKETCHY, Event.LOW_MOMENTUM:
-			_play_one_shot(&"KeyboardSelectionSound")
-		Event.HIGH_SCORE:
-			_play_one_shot(&"ConfirmationSound")
+		Event.LAND_CLEAN:
+			_play_one_shot(&"CleanLandingSound")
+		Event.CRASH:
+			_play_one_shot(&"CrashSound")
 		Event.RESULTS_REVEAL, Event.SCORE_TOTAL:
 			_play_one_shot(&"CabinetSwitchSound")
-		# No game-over asset is available yet; retain the semantic event without playback.
 		Event.GAME_OVER:
+			_play_one_shot(&"GameOverSound")
+		Event.HIGH_SCORE:
+			_play_one_shot(&"HighScoreSound")
+		Event.BAIL:
+			pass
+		Event.JUMP_START:
+			pass
+		Event.TAKEOFF:
+			pass
+		Event.LAND_SKETCHY:
+			pass
+		Event.LOW_MOMENTUM:
+			pass
+		Event.RELEASE_WARNING:
 			pass
 
-
 func play_loop_event(loop_event: LoopEvent) -> void:
-	if loop_event < 0 or loop_event >= _gameplay_action_loop_players.size():
+	if not _gameplay_action_loop_players.has(loop_event):
 		return
 	var player := _gameplay_action_loop_players[loop_event]
 	if not player.playing:
@@ -297,7 +326,7 @@ func play_loop_event(loop_event: LoopEvent) -> void:
 
 
 func update_loop_event(loop_event: LoopEvent, intensity: float) -> void:
-	if loop_event < 0 or loop_event >= _gameplay_action_loop_players.size():
+	if not _gameplay_action_loop_players.has(loop_event):
 		return
 	var player := _gameplay_action_loop_players[loop_event]
 	var normalized_intensity := clampf(intensity, 0.0, 1.0)
@@ -312,13 +341,13 @@ func update_loop_event(loop_event: LoopEvent, intensity: float) -> void:
 
 
 func stop_loop_event(loop_event: LoopEvent) -> void:
-	if loop_event < 0 or loop_event >= _gameplay_action_loop_players.size():
+	if not _gameplay_action_loop_players.has(loop_event):
 		return
 	_gameplay_action_loop_players[loop_event].stop()
 
 
 func stop_loop_events() -> void:
-	for player in _gameplay_action_loop_players:
+	for player: AudioStreamPlayer in _gameplay_action_loop_players.values():
 		player.stop()
 
 
