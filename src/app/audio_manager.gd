@@ -53,6 +53,7 @@ const HELICOPTER_HOVER_SOUND := preload(
 	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
 )
 const CRASH_SOUND := preload("res://assets/audio/crash.mp3")
+const BAIL_SOUND := preload("res://assets/audio/bail.mp3")
 const GAME_OVER_SOUND := preload("res://assets/audio/game_over.mp3")
 const HIGH_SCORE_SOUND := preload("res://assets/audio/high_score.mp3")
 
@@ -168,6 +169,7 @@ func configure() -> void:
 	)
 	_build_one_shot_pool(UI_SFX_BUS, &"BackSound", BACK_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(UI_SFX_BUS, &"CrashSound", CRASH_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
+	_build_one_shot_pool(UI_SFX_BUS, &"BailSound", BAIL_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(UI_SFX_BUS, &"GameOverSound", GAME_OVER_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(UI_SFX_BUS, &"HighScoreSound", HIGH_SCORE_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
 	_build_one_shot_pool(UI_SFX_BUS, &"CleanLandingSound", ACCELERATION_LOOP_SOUND, UI_ONE_SHOT_AUDIO_STREAM_COUNT)
@@ -305,7 +307,7 @@ func play_event(event: Event) -> void:
 		Event.HIGH_SCORE:
 			_play_one_shot(&"HighScoreSound")
 		Event.BAIL:
-			pass
+			_play_one_shot(&"BailSound")
 		Event.JUMP_START:
 			pass
 		Event.TAKEOFF:
