@@ -40,17 +40,17 @@ enum LoopEvent {
 	ACCELERATION,
 }
 
-const BACKGROUND_MUSIC := preload("res://assets/audio/slimeyfox-gameotoon.mp3")
-const GAMEPLAY_MUSIC := preload("res://assets/audio/freesound_community-ski-67717.mp3")
+const BACKGROUND_MUSIC := preload("res://assets/audio/attract.mp3")
+const GAMEPLAY_MUSIC := preload("res://assets/audio/resort_ambience.mp3")
 const CONFIRMATION_SOUND := preload("res://assets/audio/confirmation_002.ogg")
 const SCORE_TICK_SOUND := preload("res://assets/audio/score_tick.ogg")
 const MENU_SWITCH_SOUND := preload("res://assets/audio/switch32.ogg")
 const CABINET_SWITCH_SOUND := preload("res://assets/audio/switch24.ogg")
 const JOYSTICK_SOUND := preload("res://assets/audio/switch38.ogg")
 const BACK_SOUND := preload("res://assets/audio/back_003.ogg")
-const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/koiroylers-keyboard-press-351952.mp3")
+const KEYBOARD_SELECTION_SOUND := preload("res://assets/audio/keyboard_press.mp3")
 const HELICOPTER_HOVER_SOUND := preload(
-	"res://assets/audio/flutie8211-helicopter-hovering-598081.mp3"
+	"res://assets/audio/helivac.mp3"
 )
 const CRASH_SOUND := preload("res://assets/audio/crash.mp3")
 const BAIL_SOUND := preload("res://assets/audio/bail.mp3")
