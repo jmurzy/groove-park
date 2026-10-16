@@ -87,6 +87,7 @@ export-web: import
     rm -rf build/web
     mkdir -p build/web
     "{{ godot_bin }}" --headless --path . --export-release "Web"
+    just audit-pck build/web/index.pck
     # Godot writes the resolved configuration to its HTML entry document.
     mv build/web/index.html build/web/release_config.json
 
@@ -95,6 +96,12 @@ export-ags: import
     rm -rf build/ags
     mkdir -p build/ags
     "{{ godot_bin }}" --headless --path . --export-release "Windows Desktop"
+    just audit-pck build/ags/HEAVENLY.pck
+
+[doc("Audit an exported PCK for credentials, private endpoints, and development-only files.")]
+audit-pck pck: version
+    test -f "{{ pck }}"
+    "{{ godot_bin }}" --headless --path "$(dirname "$(realpath "{{ pck }}")")" --main-pack "$(realpath "{{ pck }}")" --script "$(pwd)/tools/audit_pck.gd"
 
 [doc("Zip the installer payload and create its SHA-256 checksum. The installer pre-creates both AGS folders, so AGS does not need to run first.")]
 package-ags: export-ags
