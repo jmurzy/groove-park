@@ -55,7 +55,21 @@ describe("leaderboard API", () => {
 			);
 		}));
 
-	test("permits the local game development server to call the API", () =>
+	test("permits browser requests from the game origin", () =>
+		Effect.gen(function* () {
+			const response = yield* request("/api/leaderboard", {
+				headers: {
+					Origin: "https://game.gunbarrelhaus.com",
+					...cabinetHeaders(),
+				},
+			});
+			expect(response.status).toBe(200);
+			expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+				"https://game.gunbarrelhaus.com",
+			);
+		}));
+
+	test("does not allow a local origin", () =>
 		Effect.gen(function* () {
 			const response = yield* request("/api/leaderboard", {
 				method: "OPTIONS",
@@ -65,9 +79,7 @@ describe("leaderboard API", () => {
 				},
 			});
 			expect(response.status).toBe(204);
-			expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
-				"http://localhost:3000",
-			);
+			expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
 		}));
 
 	test("rejects an invalid Liftie resort name", () =>

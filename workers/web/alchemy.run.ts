@@ -33,7 +33,6 @@ const gameReleases = Effect.gen(function* () {
 				allowedMethods: ["GET", "HEAD"],
 				allowedOrigins: [
 					`https://game.${ROOT_ZONE_NAME}`,
-					"http://localhost:3000",
 				],
 				allowedHeaders: ["range"],
 				exposeHeaders: ["etag", "content-range"],

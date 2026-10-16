@@ -38,7 +38,7 @@ const limitRequest: MiddlewareHandler<{
 
 app.use("/api/*", (context, next) =>
 	cors({
-		origin: [context.env.GAME_ORIGIN, "http://localhost:3000"],
+		origin: [context.env.GAME_ORIGIN],
 		allowHeaders: ["Accept", "Content-Type", "X-Installation-Id"],
 		allowMethods: ["GET", "POST", "OPTIONS"],
 		exposeHeaders: ["X-Request-Id"],
