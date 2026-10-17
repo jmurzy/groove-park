@@ -120,22 +120,25 @@ func _update_action_hint(delta: float, input: RiderInputFrame, state: RiderState
 	elif state.run.jump_outcome == JumpOutcome.Value.CLEAN:
 		action_message = "CLEAN LANDING"
 	elif state.run.run_phase == RiderRunState.RunPhase.APPROACH:
-		action_message = "RIGHT / D: BUILD SPEED"
+		action_message = "%s: BUILD SPEED" % ControlLabels.action(&"move_right")
 		if state.jump.compression_active:
-			action_message = "X  COMPRESSING"
+			action_message = "%s  COMPRESSING" % ControlLabels.action(&"action_x")
 		elif input.brake_pressed:
-			action_message = "B  CHECKING SPEED"
+			action_message = "%s  CHECKING SPEED" % ControlLabels.action(&"action_b")
 		elif input.tuck_pressed:
-			action_message = "A  TUCKING"
+			action_message = "%s  TUCKING" % ControlLabels.action(&"action_a")
 	elif state.run.run_phase == RiderRunState.RunPhase.FLIGHT:
 		if state.jump.landing_prep_active:
-			action_message = "X  HOLD TO LAND"
+			action_message = "%s  HOLD TO LAND" % ControlLabels.action(&"action_x")
 		elif state.jump.tweak_active:
-			action_message = "B  TWEAK GRAB"
+			action_message = "%s  TWEAK GRAB" % ControlLabels.action(&"action_b")
 		elif state.jump.trick_tracker.grab_active:
-			action_message = "A  STANDARD GRAB"
+			action_message = "%s  STANDARD GRAB" % ControlLabels.action(&"action_a")
 		else:
-			action_message = "A  HOLD GRAB  /  B  HOLD TWEAK GRAB"
+			action_message = (
+				"%s  HOLD GRAB  /  %s  HOLD TWEAK GRAB"
+				% [ControlLabels.action(&"action_a"), ControlLabels.action(&"action_b")]
+			)
 	_status_label.text = action_message
 	_action_hint_time = maxf(_action_hint_time - delta, 0.0) if _action_hint_time > 0.0 else 1.5
 	_status_label.visible = not action_message.is_empty() and _action_hint_time > 0.0

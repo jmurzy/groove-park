@@ -93,7 +93,7 @@ func _build() -> void:
 	_add_leaderboard_overlay(_panel, leaderboard_entries)
 	_add_label(
 		_panel,
-		"PRESS START OR A FOR NEW ROUND",
+		"PRESS J FOR NEW ROUND" if ControlLabels.is_web() else "PRESS START OR A FOR NEW ROUND",
 		Vector2(0, 625),
 		Vector2(1180, 36),
 		17,
@@ -101,7 +101,7 @@ func _build() -> void:
 	)
 	_add_label(
 		_panel,
-		"PRESS BACK OR B FOR ATTRACT",
+		"PRESS K OR B FOR ATTRACT" if ControlLabels.is_web() else "PRESS BACK OR B FOR ATTRACT",
 		Vector2(0, 680),
 		Vector2(1180, 30),
 		15,

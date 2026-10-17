@@ -122,7 +122,11 @@ func _build() -> void:
 	_keyboard.refresh()
 	_add_label(
 		panel,
-		"UP / DOWN / LEFT / RIGHT NAVIGATE   A SELECT   B DELETE   X SKIP   START SUBMIT",
+		(
+			"ARROWS NAVIGATE   J SELECT   K / BACKSPACE DELETE   L SKIP   ENTER SUBMIT"
+			if ControlLabels.is_web()
+			else "UP / DOWN / LEFT / RIGHT NAVIGATE   A SELECT   B DELETE   X SKIP   START SUBMIT"
+		),
 		Vector2(0, 690),
 		Vector2(PANEL_WIDTH, 32),
 		15,

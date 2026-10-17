@@ -39,7 +39,11 @@ func _ready() -> void:
 	_leaderboard_overlay = LeaderboardOverlay.new()
 	add_child(_leaderboard_overlay)
 	_leaderboard_overlay.show_entries(_entries)
-	var hint := ArcadeTheme.make_label("PRESS ANY KEY OR BUTTON", 16, Color("fff7cf"))
+	var hint := ArcadeTheme.make_label(
+		"PRESS ANY KEY OR GAMEPAD BUTTON" if ControlLabels.is_web() else "PRESS ANY BUTTON",
+		16,
+		Color("fff7cf")
+	)
 	hint.position = Vector2(0, LeaderboardOverlay.OVERLAY_SIZE.y + 18)
 	hint.size = Vector2(LeaderboardOverlay.OVERLAY_SIZE.x, 28)
 	add_child(hint)

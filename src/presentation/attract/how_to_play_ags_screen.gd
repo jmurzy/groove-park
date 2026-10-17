@@ -94,14 +94,12 @@ func _add_footer(panel: Panel) -> void:
 	cabinet_hint.position = Vector2(0, 12)
 	cabinet_hint.size = Vector2(footer.size.x, 26)
 	footer.add_child(cabinet_hint)
-	var system := ArcadeTheme.make_label(
-		"SELECT  SWITCH CARD     B  BACK     EXIT  HOLD TO QUIT", 17, Color("d4efff")
-	)
+	var system := ArcadeTheme.make_label("SELECT  SWITCH CARD     B  BACK", 17, Color("d4efff"))
 	system.position = Vector2(0, 53)
 	system.size = Vector2(footer.size.x, 26)
 	footer.add_child(system)
 	var dismiss := ArcadeTheme.make_label(
-		"PRESS SELECT TO SWITCH   PRESS B TO RETURN", 18, Color("fff7cf")
+		"PRESS B TO RETURN   HOLD EXIT TO QUIT", 18, Color("fff7cf")
 	)
 	dismiss.position = Vector2(0, 93)
 	dismiss.size = Vector2(footer.size.x, 28)

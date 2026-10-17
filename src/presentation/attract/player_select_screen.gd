@@ -87,7 +87,13 @@ func _build_cards() -> void:
 
 func _build_hint() -> void:
 	var hint := ArcadeTheme.make_label(
-		"<  SELECT  >     A / START  READY     B / MENU  BACK", 20, Color("d4efff")
+		(
+			"LEFT / RIGHT  SELECT     J / ENTER  READY     ESC  BACK"
+			if ControlLabels.is_web()
+			else "<  SELECT  >     A / START  READY     B / MENU  BACK"
+		),
+		20,
+		Color("d4efff")
 	)
 	hint.position = Vector2(0, 970)
 	hint.size = Vector2(DESIGN_WIDTH, 40)

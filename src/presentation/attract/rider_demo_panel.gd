@@ -204,16 +204,16 @@ func _demo_animation() -> Dictionary:
 		if Input.is_action_pressed(&"action_x"):
 			skier = &"landing_prep"
 			snowboarder = &"landing_prep"
-			label = "X  HOLD TO LAND"
+			label = "%s  HOLD TO LAND" % ControlLabels.action(&"action_x")
 		elif _air_grab_held():
 			if _air_grab_is_tweak():
 				skier = &"grab_tweak"
 				snowboarder = &"grab_tweak"
-				label = "B  HOLD TWEAK GRAB"
+				label = "%s  HOLD TWEAK GRAB" % ControlLabels.action(&"action_b")
 			else:
 				skier = &"grab_hold"
 				snowboarder = &"grab_hold"
-				label = "A  HOLD GRAB"
+				label = "%s  HOLD GRAB" % ControlLabels.action(&"action_a")
 			if _spin_gesture.phase != SpinGestureController.Phase.WAITING_DIRECTION:
 				var spin_frame := _spin_frame()
 				return {
@@ -231,21 +231,24 @@ func _demo_animation() -> Dictionary:
 	if Input.is_action_pressed(&"action_x"):
 		skier = &"compression"
 		snowboarder = &"compression"
-		label = "X  CHARGE COMPRESSION"
+		label = "%s  CHARGE COMPRESSION" % ControlLabels.action(&"action_x")
 	elif Input.is_action_pressed(&"action_a"):
 		skier = &"tuck"
 		snowboarder = &"tuck"
-		label = "A  TUCK"
+		label = "%s  TUCK" % ControlLabels.action(&"action_a")
 	elif Input.is_action_pressed(&"move_down"):
-		label = "DOWN  PICK LINE"
+		label = "%s  PICK LINE" % ControlLabels.action(&"move_down")
 	elif Input.is_action_pressed(&"move_up"):
-		label = "UP  PICK LINE"
+		label = "%s  PICK LINE" % ControlLabels.action(&"move_up")
 	elif Input.is_action_pressed(&"move_left") or Input.is_action_pressed(&"action_b"):
 		skier = &"carve_uphill"
 		snowboarder = &"carve_heel"
-		label = "LEFT / B  CHECK SPEED"
+		label = (
+			"%s / %s  CHECK SPEED"
+			% [ControlLabels.action(&"move_left"), ControlLabels.action(&"action_b")]
+		)
 	elif Input.is_action_pressed(&"move_right"):
-		label = "RIGHT  BUILD SPEED"
+		label = "%s  BUILD SPEED" % ControlLabels.action(&"move_right")
 	return {"skier": skier, "snowboarder": snowboarder, "label": label}
 
 
@@ -306,7 +309,7 @@ func _spin_label_for(style_label: String) -> String:
 
 
 func _spin_trigger_label() -> String:
-	return "LT" if _spin_gesture.direction < 0 else "RT"
+	return ControlLabels.action(&"action_lt" if _spin_gesture.direction < 0 else &"action_rt")
 
 
 func _spin_style_label_skier() -> String:

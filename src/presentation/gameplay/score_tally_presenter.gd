@@ -173,9 +173,10 @@ func _update_footer_label() -> void:
 
 
 func _next_action_text() -> String:
+	var input_hint := "J" if ControlLabels.is_web() else "START OR A"
 	if _current_jump_number >= RoundState.MAX_JUMPS:
-		return "FINAL TALLY. PRESS START OR A TO HURRY"
-	return "JUMP %d NEXT! PRESS START OR A TO HURRY" % (_current_jump_number + 1)
+		return "FINAL TALLY. PRESS %s TO HURRY" % input_hint
+	return "JUMP %d NEXT! PRESS %s TO HURRY" % [_current_jump_number + 1, input_hint]
 
 
 func _counted_score(score: int) -> int:
