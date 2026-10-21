@@ -6,7 +6,7 @@
 		"#/*": "./src/*"
 	},
 	"scripts": {
-		"dev": "alchemy dev --config alchemy.run.ts --stage development --env-file .env",
+		"dev": "ALCHEMY_PROFILE=gunbarrelhaus alchemy dev --config alchemy.run.ts --stage development --env-file .env",
 		"generate-routes": "tsr generate",
 		"format": "biome format",
 		"lint": "biome lint",
