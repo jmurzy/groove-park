@@ -7,7 +7,7 @@
 		"node": "24.21.0"
 	},
 	"scripts": {
-		"dev": "alchemy dev --config alchemy.run.ts --stage development",
+		"dev": "ALCHEMY_PROFILE=gunbarrelhaus alchemy dev --config alchemy.run.ts --stage development",
 		"plan": "alchemy plan --detailed --config alchemy.run.ts --stage production ",
 		"deploy": "alchemy deploy --config alchemy.run.ts --stage production",
 		"destroy": "alchemy destroy --config alchemy.run.ts --stage production",
