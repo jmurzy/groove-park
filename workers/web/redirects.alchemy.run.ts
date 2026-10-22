@@ -172,6 +172,12 @@ export default Alchemy.Stack(
 	{ providers: Cloudflare.providers(), state: Cloudflare.state() },
 	Effect.gen(function* () {
 		const managedZone = yield* zone;
+		yield* Cloudflare.Rum.Site("GunbarrelHausWebAnalytics", {
+			zoneTag: managedZone.zoneId,
+			enabled: true,
+			autoInstall: true,
+			lite: false,
+		}).pipe(adopt(true));
 		yield* records(managedZone);
 		const ruleset = yield* redirects(managedZone);
 		return { rulesetId: ruleset.rulesetId };
