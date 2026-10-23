@@ -74,6 +74,8 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          # gh needs the repo context; avoid checking out source just to upload artifacts.
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
         run: |
           gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
