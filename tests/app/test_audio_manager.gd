@@ -20,6 +20,8 @@ func _run_tests() -> void:
 	await _test_owned_loops_stop_together()
 	await _test_attract_music_and_gameplay_ambience_do_not_overlap()
 	await _test_rapid_ui_events_use_a_player_pool()
+	# Give the audio server time to release stopped playback streams before exit.
+	await create_timer(0.1).timeout
 	if _failures.is_empty():
 		print("Audio-manager checks passed.")
 		quit(0)
@@ -146,22 +148,29 @@ func _test_loop_event_lifecycle() -> void:
 	manager.rider_state.jump.trick_tracker.grab_duration = tuning.minimum_grab_duration * 0.5
 	manager._sync_loop_events(tuning)
 	for loop_event: int in AudioManager.LoopEvent.values():
-		var player := audio.get_node("GameplayLoop%d" % loop_event) as AudioStreamPlayer
-		_expect(player.playing, "Run loop events must start their matching audio player.")
+		var player := audio.get_node_or_null("GameplayLoop%d" % loop_event) as AudioStreamPlayer
+		if AudioManager.GAMEPLAY_ACTION_LOOP_SOUNDS[loop_event] == null:
+			_expect(player == null, "Loops without audio assets must not create players.")
+		else:
+			_expect(player != null, "Configured loop events must have an audio player.")
+			if player != null:
+				_expect(player.playing, "Run loop events must start their matching audio player.")
 	var carve_player := (
-		audio.get_node("GameplayLoop%d" % AudioManager.LoopEvent.CARVE) as AudioStreamPlayer
+		audio.get_node_or_null("GameplayLoop%d" % AudioManager.LoopEvent.CARVE) as AudioStreamPlayer
 	)
-	_expect(
-		(
-			is_equal_approx(carve_player.volume_db, -22.0)
-			and is_equal_approx(carve_player.pitch_scale, 1.0)
-		),
-		"Run loop intensity must update the matching player's volume and pitch."
-	)
+	if carve_player != null:
+		_expect(
+			(
+				is_equal_approx(carve_player.volume_db, -22.0)
+				and is_equal_approx(carve_player.pitch_scale, 1.0)
+			),
+			"Run loop intensity must update the matching player's volume and pitch."
+		)
 	manager.suspend_loop_events()
 	for loop_event: int in AudioManager.LoopEvent.values():
-		var player := audio.get_node("GameplayLoop%d" % loop_event) as AudioStreamPlayer
-		_expect(not player.playing, "Suspending a run must stop every active audio loop.")
+		var player := audio.get_node_or_null("GameplayLoop%d" % loop_event) as AudioStreamPlayer
+		if player != null:
+			_expect(not player.playing, "Suspending a run must stop every active audio loop.")
 	controller.free()
 	audio.shutdown()
 	audio.free()

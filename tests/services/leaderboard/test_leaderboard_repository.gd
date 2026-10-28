@@ -75,6 +75,7 @@ func _test_available_operations_return_typed_values() -> void:
 		),
 		"Top-entry requests must use GET and return a typed leaderboard result."
 	)
+	repository.free()
 
 
 func _test_unavailable_service_returns_typed_failure() -> void:
@@ -94,6 +95,7 @@ func _test_unavailable_service_returns_typed_failure() -> void:
 		request.status == LeaderboardRepository.Request.Status.FAILED,
 		"Unavailable services must return a failed request."
 	)
+	repository.free()
 
 
 func _test_zero_score_does_not_qualify() -> void:
@@ -104,6 +106,7 @@ func _test_zero_score_does_not_qualify() -> void:
 		request.result is LeaderboardQualification and not request.result.qualified,
 		"A zero score must not qualify on an incomplete leaderboard."
 	)
+	repository.free()
 
 
 func _test_submission_is_not_duplicated_while_in_flight() -> void:
@@ -138,6 +141,7 @@ func _test_submission_is_not_duplicated_while_in_flight() -> void:
 		retry_request.result is LeaderboardSubmissionResult and repository.entries.size() == 1,
 		"A repeated round ID must return the original submission without another entry."
 	)
+	repository.free()
 
 
 func _test_cancelled_operation_cannot_complete_late() -> void:
@@ -154,6 +158,7 @@ func _test_cancelled_operation_cannot_complete_late() -> void:
 		request.status == LeaderboardRepository.Request.Status.CANCELLED,
 		"Cancellation must emit an explicit cancelled result."
 	)
+	repository.free()
 
 
 func _test_cancelled_submission_does_not_mutate_board() -> void:
@@ -176,6 +181,7 @@ func _test_cancelled_submission_does_not_mutate_board() -> void:
 		),
 		"A cancelled submission must not mutate the board when its deferred completion arrives."
 	)
+	repository.free()
 
 
 func _test_top_entries_are_limited_to_ten() -> void:
@@ -199,6 +205,7 @@ func _test_top_entries_are_limited_to_ten() -> void:
 		result != null and result.entries[0].total_score == 10,
 		"Top entries must preserve leaderboard rank order."
 	)
+	repository.free()
 
 
 func _test_installation_id_is_persisted() -> void:

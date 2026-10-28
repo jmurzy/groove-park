@@ -72,8 +72,28 @@ typecheck: import
     for f in $(git ls-files --cached --others --exclude-standard -- '*.gd'); do [ -f "$f" ] || continue; "{{ godot_bin }}" --headless --path . --check-only --script "res://$f" || exit $?; done
 
 [doc("Discover and run all headless test scripts in isolated Godot processes.")]
+[script]
 test: import
-    files=$(git ls-files --cached --others --exclude-standard -- 'tests/**/test_*.gd'); [ -n "$files" ] || { printf 'No tests found.\n' >&2; exit 1; }; for f in $files; do "{{ godot_bin }}" --headless --path . --script "res://$f" || exit $?; done
+    files=$(git ls-files --cached --others --exclude-standard -- 'tests/**/test_*.gd')
+    if [ -z "$files" ]; then
+        printf 'No tests found.\n' >&2
+        exit 1
+    fi
+
+    log=$(mktemp)
+    trap 'rm -f "$log"' EXIT
+    for f in $files; do
+        status=0
+        "{{ godot_bin }}" --headless --path . --script "res://$f" >"$log" 2>&1 || status=$?
+        cat "$log"
+        if [ "$status" -ne 0 ]; then
+            exit "$status"
+        fi
+        if grep -q '^SCRIPT ERROR:' "$log"; then
+            printf 'Script error in %s\n' "$f" >&2
+            exit 1
+        fi
+    done
 
 [doc("Check GitHub Actions workflows")]
 actionlint-check:

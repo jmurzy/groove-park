@@ -21,6 +21,8 @@ func _run_tests() -> void:
 	await _test_failed_and_cancelled_requests_do_not_show_an_overlay()
 	await _test_dismissal_consumes_only_keys_and_buttons()
 	await _test_overlay_motion_stays_inside_safe_bounds()
+	# Allow stopped audio playback to be released before the process exits.
+	await create_timer(0.1).timeout
 	if _failures.is_empty():
 		print("Attract idle-leaderboard checks passed.")
 		quit(0)

@@ -33,6 +33,8 @@ func _run_tests() -> void:
 	await _test_leaving_pending_submission_cancels_request()
 	await _test_results_start_opens_a_new_rider_select_flow()
 	await _test_results_back_returns_to_attract()
+	# Allow stopped audio playback to be released before the process exits.
+	await create_timer(0.1).timeout
 	if _failures.is_empty():
 		print("Screen-flow controller checks passed.")
 		quit(0)

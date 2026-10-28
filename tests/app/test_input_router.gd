@@ -45,6 +45,8 @@ func _test_keyboard_and_gamepad_claims() -> void:
 		gamepad_router.is_action_pressed(&"action_a"),
 		"Owned gamepad events must populate gameplay action state."
 	)
+	keyboard_router.free()
+	gamepad_router.free()
 
 
 func _test_claim_excludes_other_sources_and_releases_at_attract() -> void:
@@ -87,6 +89,7 @@ func _test_claim_excludes_other_sources_and_releases_at_attract() -> void:
 		router.claim_from_rider_select(keyboard_event),
 		"A released round must allow a new source to claim the next round."
 	)
+	router.free()
 
 
 func _test_cabinet_policy_rejects_keyboard_claiming() -> void:
@@ -100,6 +103,7 @@ func _test_cabinet_policy_rejects_keyboard_claiming() -> void:
 		router.claim_from_rider_select(_button_event(1, JOY_BUTTON_A)),
 		"Cabinet production policy must still accept a gamepad claim."
 	)
+	router.free()
 
 
 func _key_event(keycode: Key) -> InputEventKey:

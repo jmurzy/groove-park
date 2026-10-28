@@ -72,6 +72,7 @@ func _test_tally_start_continues_and_active_start_pauses() -> void:
 		controller.screen_command(unowned_start_event, session, input_router).is_empty(),
 		"An unowned controller must not advance a tally."
 	)
+	input_router.free()
 	session.free()
 
 
@@ -97,6 +98,7 @@ func _test_r_key_requires_terrain_debug_mode() -> void:
 		controller.screen_command(restart_event, session, input_router) == &"restart",
 		"R must restart an active run when terrain debug mode is enabled."
 	)
+	input_router.free()
 	session.free()
 
 
@@ -121,6 +123,7 @@ func _test_rescue_start_requests_session_skip() -> void:
 		controller.screen_command(unowned_start, session, input_router).is_empty(),
 		"An unowned controller must not request a crash-rescue skip command."
 	)
+	input_router.free()
 	session.free()
 
 
