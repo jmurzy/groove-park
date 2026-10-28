@@ -1,7 +1,6 @@
 {
 	"include": [
 		"alchemy.run.ts",
-		"zone.alchemy.run.ts",
 		"src/**/*.ts",
 		"src/**/*.tsx",
 		"vite.config.ts"

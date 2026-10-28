@@ -13,10 +13,7 @@
 		"typecheck": "tsc --noEmit",
 		"plan": "alchemy plan --detailed --config alchemy.run.ts --stage production",
 		"deploy": "alchemy deploy --config alchemy.run.ts --stage production",
-		"destroy": "alchemy destroy --config alchemy.run.ts --stage production",
-		"plan:zone": "alchemy plan --detailed --config zone.alchemy.run.ts --stage production",
-		"deploy:zone": "alchemy deploy --config zone.alchemy.run.ts --stage production",
-		"destroy:zone": "alchemy destroy --config zone.alchemy.run.ts --stage production"
+		"destroy": "alchemy destroy --config alchemy.run.ts --stage production"
 	},
 	"dependencies": {
 		"@tanstack/react-devtools": "0.10.13",
