@@ -27,13 +27,8 @@ jobs:
         uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5
         with:
           version: 2026.11.3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.21.0
-          cache: npm
-          cache-dependency-path: workers/api/package-lock.json
+          # Resolve Node.js from this worker's .nvmrc when mise installs tools.
+          working_directory: workers/api
 
       - name: Install dependencies
         run: just install
@@ -59,13 +54,8 @@ jobs:
         uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5
         with:
           version: 2026.11.3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.21.0
-          cache: npm
-          cache-dependency-path: workers/api/package-lock.json
+          # Resolve Node.js from this worker's .nvmrc when mise installs tools.
+          working_directory: workers/api
 
       - name: Install dependencies
         run: just install
