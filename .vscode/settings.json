@@ -46,7 +46,7 @@
     "editor.formatOnSave": true
   },
 
-  "godotTools.editorPath.godot4": "/Applications/Godot 4.6.3.app/Contents/MacOS/Godot",
+  "godotTools.editorPath.godot4": ".vscode/godot-mise",
   "godotTools.lsp.headless": true,
 
   "[javascript]": {

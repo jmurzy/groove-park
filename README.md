@@ -61,22 +61,35 @@ Width** in the path's Inspector to set its high-contrast guide line.
 
 ### Prerequisites
 
-- Godot `4.6.3` (the pinned version is in [`.godot-version`](.godot-version))
-- [just](https://github.com/casey/just)
-- `gdtoolkit` 4.x for formatting and linting
-- `pre-commit` and `actionlint` for the full check suite
+- [mise](https://mise.jdx.dev/getting-started.html) for the pinned development tools
+- Node.js 24.21.0 for the Workers
 
-On macOS, install the development dependencies with:
+Install the development tools and Worker dependencies with:
 
 ```sh
-just install
+mise install
 ```
 
-Set `GODOT_BIN` if Godot is not installed at the default Homebrew cask path. Verify the selected editor version with:
+Activate mise in your shell, or prefix commands with `mise exec --`. Optionally install the Git
+hook, which runs the game, API, and web checks:
+
+```sh
+mise exec -- pre-commit install --hook-type pre-commit
+```
+
+The tools in `mise.toml` include Godot, `just`, `gdtoolkit`, `actionlint`, `rumdl`, and `pre-commit`.
+Godot runs natively for editor, display, and controller access. Its version is checked against the
+pin in `mise.toml`.
+
+Set `GODOT_BIN` to use a different Godot executable. Verify the selected editor version with:
 
 ```sh
 just version
 ```
+
+The VS Code Godot Tools extension uses `.vscode/godot-mise` to select the pinned Godot version, even
+when VS Code is started outside an activated mise shell. The launcher looks for mise on PATH and in
+the standard mise and Homebrew install locations.
 
 ### Build Targets
 
@@ -90,7 +103,7 @@ just version
 | `just sente-high` | Run the Sente window check at 120 FPS. |
 | `just import` | Import resources headlessly, as performed before export. |
 | `just test` | Run the headless park-rider simulation tests. |
-| `just check` | Run game formatting, linting, type checks, simulation tests, and workflow linting. |
+| `just check` | Run game formatting, linting, type checks, tests, Markdown linting, and workflow linting. |
 | `just api check` | Run API Worker formatting, linting, type checks, and tests. |
 | `just web check` | Run Web Worker formatting, linting, and type checks. |
 | `just export-ags` | Create a local 64-bit Windows build at `build/ags/HEAVENLY.exe`. |
@@ -98,6 +111,11 @@ just version
 | `just package-ags` | Export, assemble the AGS payload, and create `HEAVENLY-windows-x86_64.zip` with a SHA-256 checksum. |
 
 The canonical cabinet package is the Windows x86_64 export. `just package-ags` includes the game, `Install.ps1`, and Polycade artwork in the release archive. For cabinet installation and AGS directory requirements, see [WINDOWS-INSTALL.md](WINDOWS-INSTALL.md).
+
+`mise install` also installs the pinned, checksum-verified Godot export templates when missing, even
+if Godot is already installed. The download is approximately 1.3 GB. When either required Web or
+Windows template is missing, the installer adds missing files without overwriting existing ones.
+Run `mise install` again if templates are removed.
 
 ### Standalone And Web Builds
 

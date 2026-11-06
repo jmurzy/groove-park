@@ -32,26 +32,12 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Install Just
-        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+      - name: Install development tools
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5
         with:
-          tool: just@1.58.0
-          fallback: none
-
-      # Sets up the verified editor and templates required for web exports.
-      - name: Set up Godot
-        uses: ./.github/actions/setup-godot
-        env:
-          GODOT_RELEASE: 4.6.3-stable
-          GODOT_TEMPLATE_VERSION: 4.6.3.stable
-        with:
-          release: ${{ env.GODOT_RELEASE }}
-          install-export-templates: "true"
-          template-version: ${{ env.GODOT_TEMPLATE_VERSION }}
+          version: 2026.11.3
 
       - name: Export Web game
-        env:
-          GODOT_BIN: godot
         run: just export-web
 
       - name: Upload Web release

@@ -1,5 +1,10 @@
 {
   "recommendations": [
-    "geequlim.godot-tools"
+    "geequlim.godot-tools",
+    "biomejs.biome",
+    "nefrob.vscode-just-syntax",
+    "github.vscode-github-actions",
+    "redhat.vscode-yaml",
+    "rvben.rumdl"
   ]
 }

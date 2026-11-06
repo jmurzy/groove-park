@@ -8,25 +8,35 @@ on:
       - "v*"
     paths:
       - ".github/workflows/**"
-      - ".godot-version"
+      - ".github/actions/**"
       - "assets/**"
       - "images/**"
       - "export_presets.cfg"
       - "justfile"
+      - "mise.toml"
+      - ".markdownlint.json"
+      - "**/*.md"
       - "project.godot"
       - "src/**"
+      - "scripts/**"
       - "tests/**"
+      - "tools/**"
   pull_request:
     paths:
       - ".github/workflows/**"
-      - ".godot-version"
+      - ".github/actions/**"
       - "assets/**"
       - "images/**"
       - "export_presets.cfg"
       - "justfile"
+      - "mise.toml"
+      - ".markdownlint.json"
+      - "**/*.md"
       - "project.godot"
       - "src/**"
+      - "scripts/**"
       - "tests/**"
+      - "tools/**"
   workflow_dispatch:
 
 jobs:
@@ -39,40 +49,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      # Provides the pinned task runner used for every project check.
-      - name: Install Just
-        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
+      # Installs the same pinned tools used for local checks.
+      - name: Install development tools
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5
         with:
-          tool: just@1.58.0
-          fallback: none
-
-      # Installs the exact workflow linter that `just check` invokes.
-      - name: Download and install pinned actionlint
-        env:
-          ACTIONLINT_VERSION: 1.7.12
-          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-        run: |
-          curl --fail --location --retry 3 \
-            --output "$RUNNER_TEMP/actionlint.tar.gz" \
-            "https://github.com/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
-          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
-          sudo install "$RUNNER_TEMP/actionlint" /usr/local/bin/actionlint
-
-      # Provides GDScript formatting and linting commands used by `just check`.
-      - name: Install gdtoolkit
-        run: pipx install "gdtoolkit==4.*"
-
-      # Provides the Godot CLI required to import, typecheck, and test the game.
-      - name: Set up Godot editor
-        uses: ./.github/actions/setup-godot
-        env:
-          GODOT_RELEASE: 4.6.3-stable
-        with:
-          release: ${{ env.GODOT_RELEASE }}
+          version: 2026.11.3
 
       # Runs the repository's complete validation suite before any release work.
       - name: Run checks
-        env:
-          GODOT_BIN: godot
         run: just check

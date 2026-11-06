@@ -1,0 +1,8 @@
+[tools]
+actionlint = "1.7.12"
+godot = { version = "4.6.3-stable", postinstall = { run = 'bash "$MISE_CONFIG_ROOT/scripts/install-godot-templates.sh"', when = "always" } }
+just = "1.59.0"
+pre-commit = "4.7.0"
+rumdl = "0.3.2"
+uv = "0.13.4"
+"pypi:gdtoolkit" = "4.5.0"

@@ -1,11 +1,12 @@
-# Override this when Godot is installed somewhere other than the standard
-# Homebrew cask location, for example: GODOT_BIN=godot just run.
-godot_bin := env_var_or_default("GODOT_BIN", "/Applications/Godot 4.6.3.app/Contents/MacOS/Godot")
-# GDScript lint/format tools from gdtoolkit 4.x (pipx install "gdtoolkit==4.*").
+# Override this to use a Godot executable other than the mise-managed version.
+godot_bin := env_var_or_default("GODOT_BIN", "godot")
+# GDScript lint/format tools from gdtoolkit.
 gdformat_bin := env_var_or_default("GDFORMAT_BIN", "gdformat")
 gdlint_bin := env_var_or_default("GDLINT_BIN", "gdlint")
-# GitHub Actions workflow linter (brew install actionlint).
+# GitHub Actions workflow linter.
 actionlint_bin := env_var_or_default("ACTIONLINT_BIN", "actionlint")
+# Markdown linter.
+rumdl_bin := env_var_or_default("RUMDL_BIN", "rumdl")
 
 [default]
 [doc("List available development commands.")]
@@ -14,7 +15,7 @@ help:
 
 [doc("Confirm the selected Godot executable matches the project's pinned version.")]
 version:
-    @expected=$(tr -d '[:space:]' < .godot-version); actual=$("{{ godot_bin }}" --version); case "$actual" in "$expected".*) ;; *) printf 'Expected Godot %s, found %s\n' "$expected" "$actual" >&2; exit 1 ;; esac
+    @expected=$(mise config get tools.godot.version) || exit 1; expected=$(printf '%s' "$expected" | tr '-' '.'); actual=$("{{ godot_bin }}" --version) || exit 1; case "$actual" in "$expected".*) ;; *) printf 'Expected Godot %s, found %s\n' "$expected" "$actual" >&2; exit 1 ;; esac
     @"{{ godot_bin }}" --version
 
 [doc("Open the project in the Godot editor.")]
@@ -48,12 +49,6 @@ sente-high: version
 [doc("Import resources headlessly, matching the CI pre-export check.")]
 import: version
     "{{ godot_bin }}" --headless --path . --import
-
-[doc("One-time developer setup: Homebrew bundle, gdtoolkit, and git hooks for just check.")]
-install:
-    brew bundle
-    pipx list --short 2>/dev/null | grep -q gdtoolkit || pipx install "gdtoolkit==4.*"
-    pre-commit install --hook-type pre-commit
 
 [doc("Check GDScript formatting without modifying files (gdtoolkit).")]
 format-check:
@@ -99,8 +94,14 @@ test: import
 actionlint-check:
     "{{ actionlint_bin }}"
 
-[doc("Run game, API, web, and GitHub Actions checks.")]
-check: format-check lint-check actionlint-check typecheck test
+markdownlint-check:
+    "{{ rumdl_bin }}" check .
+
+markdownlint:
+    "{{ rumdl_bin }}" check --fix .
+
+[doc("Run game, Markdown, and GitHub Actions checks.")]
+check: format-check lint-check markdownlint-check actionlint-check typecheck test
 
 [doc("Export the same game for same-origin Web/Wasm hosting.")]
 export-web: import

@@ -1,26 +1,26 @@
 # Local enforcement for `just check`. The blocking gate is the
 # `checks` CI job (bypassable locally with `git commit --no-verify`).
-# One-time setup: just install.
+# One-time setup: mise exec -- pre-commit install --hook-type pre-commit.
 repos:
   - repo: local
     hooks:
       - id: just-check
         name: just check
-        entry: just check
+        entry: mise exec -- just check
         language: system
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
       - id: just-api-check
         name: just api check
-        entry: just api check
+        entry: mise exec -- just api check
         language: system
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
       - id: just-web-check
         name: just web check
-        entry: just web check
+        entry: mise exec -- just web check
         language: system
         pass_filenames: false
         always_run: true
