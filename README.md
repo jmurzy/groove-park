@@ -94,14 +94,18 @@ Width** in the path's Inspector to set its high-contrast guide line.
 
 ### Prerequisites
 
-- [mise](https://mise.jdx.dev/getting-started.html) for the pinned development tools
-- Node.js 24.21.0 for the Workers
+- [mise](https://mise.jdx.dev/getting-started.html) for the pinned development tools, including Node.js for the Workers
 
-Install the development tools and Worker dependencies with:
+Install the development tools with:
 
 ```sh
 mise install
+# Node.js is pinned in the Worker directories, not at the repository root.
+(cd workers/api && mise install)
+(cd workers/web && mise install)
 ```
+
+Each Worker pins its Node.js version in its `.nvmrc`; a separate Node.js installation is not needed.
 
 Activate mise in your shell, or prefix commands with `mise exec --`. Optionally install the Git
 hook, which runs the game, API, and web checks:
