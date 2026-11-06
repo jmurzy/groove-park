@@ -10,12 +10,17 @@ Sente uses three artwork variants so the game reads clearly across the library a
 
 ## Artwork Direction
 
-The three images should use the same Sente visual identity: consistent logo treatment, palette, character or game imagery, and overall tone. Each file is a separately composed asset, not simply a crop of another size.
+The three images should use the same Sente visual identity: consistent logo treatment, palette, character or game
+imagery, and overall tone. Each file is a separately composed asset, not simply a crop of another size.
 
-- `header.png` should be optimized for browsing: bold subject, simple silhouette, and a title that remains clear within the tile.
-- `hero.png` should establish the game world and support contextual information in the detail view. Keep its most important imagery away from likely UI overlay areas.
-- `marquee.png` should feel like a physical arcade cabinet marquee translated to a digital display: high-impact branding, broad composition, and minimal small detail.
+- `header.png` should be optimized for browsing: bold subject, simple silhouette, and a title that remains clear within
+  the tile.
+- `hero.png` should establish the game world and support contextual information in the detail view. Keep its most
+  important imagery away from likely UI overlay areas.
+- `marquee.png` should feel like a physical arcade cabinet marquee translated to a digital display: high-impact
+  branding, broad composition, and minimal small detail.
 
 ## Packaging
 
-Place the final PNG files in `images/ags/` using the exact filenames and dimensions above. The `just package-ags` recipe adds `header.png`, `hero.png`, and `marquee.png` from that directory to the distributable package under `artwork/`.
+Place the final PNG files in `images/ags/` using the exact filenames and dimensions above. The `just package-ags` recipe
+adds `header.png`, `hero.png`, and `marquee.png` from that directory to the distributable package under `artwork/`.

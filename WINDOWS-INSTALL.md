@@ -1,6 +1,7 @@
 # Install HEAVENLY on the Polycade PC
 
-Use a tagged GitHub Release for normal installation. Use a GitHub Actions artifact only when testing an unreleased change.
+Use a tagged GitHub Release for normal installation. Use a GitHub Actions artifact only when testing an unreleased
+change.
 
 ## AGS location and DRM status
 
@@ -20,11 +21,19 @@ C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\
     ...other files from the release ZIP...
 ```
 
-Polycade documents this as the location for [DRM-free games or any Windows executable](https://help.apphq.co/api/articles/30281). The HEAVENLY GitHub Release ZIP is a DRM-free installation: it runs from its extracted files, does not require a Polycade store entitlement or Polycade sign-in, and should not be copied into Steam, GOG, or Itch.io directories. AGS may still offer optional account and store features; those do not apply to this local installation.
+Polycade documents this as the location for [DRM-free games or any Windows
+executable](https://help.apphq.co/api/articles/30281). The HEAVENLY GitHub Release ZIP is a DRM-free installation: it
+runs from its extracted files, does not require a Polycade store entitlement or Polycade sign-in, and should not be
+copied into Steam, GOG, or Itch.io directories. AGS may still offer optional account and store features; those do not
+apply to this local installation.
 
-The installer writes to both locations in one run and pre-creates them, so AGS does not need to run first. `Install.ps1` copies `game\` to `games\drm-free\HEAVENLY` and `artwork\` to `assets\drm-free\HEAVENLY`. Do not copy game files into the artwork directory or artwork files into the game directory.
+The installer writes to both locations in one run and pre-creates them, so AGS does not need to run first. `Install.ps1`
+copies `game\` to `games\drm-free\HEAVENLY` and `artwork\` to `assets\drm-free\HEAVENLY`. Do not copy game files into
+the artwork directory or artwork files into the game directory.
 
-Supported artwork names are lowercase (per [Polycade's official guide](https://polycade.gorgias.help/en-US/adding-custom-images-for-games-1106271); each can be jpg or png — close AGS before copying files in):
+Supported artwork names are lowercase (per [Polycade's official
+guide](https://polycade.gorgias.help/en-US/adding-custom-images-for-games-1106271); each can be jpg or png — close AGS
+before copying files in):
 
 | file | use | size (official) |
 |---|---|---|
@@ -34,7 +43,10 @@ Supported artwork names are lowercase (per [Polycade's official guide](https://p
 | `marquee` | digital marquee screen | `1920x360` |
 | `instructions` | controls/how-to overlay (png) | `1920x846` |
 
-Note: community reports mention `1920x1080` for hero working too, but the official spec is `1200x675` — prefer the official size. `background.png` / `icon.png` appear only in forum posts, not in the official guide, so treat them as unconfirmed. AGS may append a hash suffix to artwork filenames after its first scan (for example `headerabc123.png`); ship clean names and let AGS rename them.
+Note: community reports mention `1920x1080` for hero working too, but the official spec is `1200x675` — prefer the
+official size. `background.png` / `icon.png` appear only in forum posts, not in the official guide, so treat them as
+unconfirmed. AGS may append a hash suffix to artwork filenames after its first scan (for example `headerabc123.png`);
+ship clean names and let AGS rename them.
 
 ## Option A: Install a release
 
@@ -49,15 +61,19 @@ Get-Content .\HEAVENLY-windows-x86_64.zip.sha256
 ```
 
 5. Confirm the two displayed hashes match. Do not install the archive if they differ.
-6. Right-click the ZIP, select **Extract All**, and extract it to any temporary folder (for example Downloads). The extracted folder contains `Install.ps1` next to `game\` and `artwork\`.
+6. Right-click the ZIP, select **Extract All**, and extract it to any temporary folder (for example Downloads). The
+   extracted folder contains `Install.ps1` next to `game\` and `artwork\`.
 7. In the extracted folder, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Install.ps1
 ```
 
-8. Confirm the script reports both `games\drm-free\HEAVENLY\HEAVENLY.exe` and `assets\drm-free\HEAVENLY\`, not an extra nested directory such as `HEAVENLY\HEAVENLY\HEAVENLY.exe`.
-9. Edit `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY\game.cfg`. Set `game_api.base_url` to the deployed game API origin and `game_api.resort_slug` to the intended lowercase Liftie resort slug. The shipped values are placeholders.
+8. Confirm the script reports both `games\drm-free\HEAVENLY\HEAVENLY.exe` and `assets\drm-free\HEAVENLY\`, not an extra
+   nested directory such as `HEAVENLY\HEAVENLY\HEAVENLY.exe`.
+9. Edit `C:\Users\%USERNAME%\AppData\Roaming\polycade\games\drm-free\HEAVENLY\game.cfg`. Set `game_api.base_url` to the
+   deployed game API origin and `game_api.resort_slug` to the intended lowercase Liftie resort slug. The shipped values
+   are placeholders.
 10. Start or restart AGS so it discovers the local executable.
 11. Confirm HEAVENLY appears in the selector, then launch it with the cabinet A button.
 
@@ -70,18 +86,24 @@ powershell -ExecutionPolicy Bypass -File .\Install.ps1
 5. In the run's **Artifacts** section, download `HEAVENLY-windows-x86_64`.
 6. Extract GitHub's outer artifact ZIP.
 7. Verify the enclosed `HEAVENLY-windows-x86_64.zip` against its `.sha256` file as described above.
-8. Extract the verified game ZIP to a temporary folder and run `powershell -ExecutionPolicy Bypass -File .\Install.ps1` from the extracted folder, so the executable ends at `...\games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is pre-seeded under `...\assets\drm-free\HEAVENLY\`.
-9. Configure `game.cfg` next to `HEAVENLY.exe` as described in Option A, then start or restart AGS, confirm it finds HEAVENLY, and launch it.
+8. Extract the verified game ZIP to a temporary folder and run `powershell -ExecutionPolicy Bypass -File .\Install.ps1`
+   from the extracted folder, so the executable ends at `...\games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is
+   pre-seeded under `...\assets\drm-free\HEAVENLY\`.
+9. Configure `game.cfg` next to `HEAVENLY.exe` as described in Option A, then start or restart AGS, confirm it finds
+   HEAVENLY, and launch it.
 
-Workflow artifacts are temporary and may require authentication. They are for development testing, not permanent distribution.
+Workflow artifacts are temporary and may require authentication. They are for development testing, not permanent
+distribution.
 
 ## Update an existing installation
 
 1. Exit HEAVENLY and return to AGS.
 2. Download and verify the new release.
 3. Keep the existing installation until the new ZIP passes checksum verification.
-4. Extract the new ZIP to a temporary folder and re-run `Install.ps1`; it overwrites the game files and merges artwork in place.
-5. Confirm the path still ends in `games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is under `assets\drm-free\HEAVENLY\`.
+4. Extract the new ZIP to a temporary folder and re-run `Install.ps1`; it overwrites the game files and merges artwork
+   in place.
+5. Confirm the path still ends in `games\drm-free\HEAVENLY\HEAVENLY.exe` and artwork is under
+   `assets\drm-free\HEAVENLY\`.
 6. Restart AGS only if it no longer finds the game.
 7. Launch HEAVENLY and confirm both primary-only and dual-display behavior as applicable.
 
@@ -91,7 +113,9 @@ release-directory replacement.
 
 ## Windows warnings
 
-Early unsigned builds may trigger Microsoft Defender SmartScreen. Only continue when the ZIP came from this repository's expected Actions run or Release and its SHA-256 checksum matches. Code signing can be added in a later release-hardening milestone.
+Early unsigned builds may trigger Microsoft Defender SmartScreen. Only continue when the ZIP came from this repository's
+expected Actions run or Release and its SHA-256 checksum matches. Code signing can be added in a later release-hardening
+milestone.
 
 ## Troubleshooting
 

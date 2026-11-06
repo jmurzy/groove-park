@@ -1,4 +1,4 @@
-## Polycade Sente controls
+# Polycade Sente controls
 
 The Polycade Sente cabinet has two complete, identical control stations. The
 table below describes one station; the same controls and mappings apply to

@@ -1,6 +1,6 @@
 # Web Worker
 
-The Heavenly Web Worker is a web application deployed to the `game-web` Cloudflare Worker. 
+The Heavenly Web Worker is a web application deployed to the `game-web` Cloudflare Worker.
 It serves the web experience at `game.gunbarrelhaus.com`.
 
 ## Web hosting

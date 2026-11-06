@@ -1,6 +1,6 @@
 # API Worker
 
-The Heavenly API is a Cloudflare Worker that serves Liftie status, and fronts one SQLite-backed 
+The Heavenly API is a Cloudflare Worker that serves Liftie status, and fronts one SQLite-backed
 Durable Object named `leaderboard-global` for the shared leaderboard.
 
 `alchemy.run.ts` adopts the `gunbarrelhaus.com` zone and manages the API Worker domain, rate

@@ -1,32 +1,62 @@
-# Groove Park at Heavenly [![build](https://img.shields.io/github/actions/workflow/status/jmurzy/groove-park/windows-build.yml?branch=main&label=build)](https://github.com/jmurzy/groove-park/actions/workflows/windows-build.yml) [![api](https://img.shields.io/github/actions/workflow/status/jmurzy/groove-park/api-deploy.yml?branch=main&label=api)](https://github.com/jmurzy/groove-park/actions/workflows/api-deploy.yml) [![license: Proprietary](https://img.shields.io/badge/license-proprietary-red.svg)](LICENSE)
+# Groove Park at Heavenly
 
-Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing game for the Polycade Sente arcade cabinet. Pick a route down the slope, manage speed, time the pop at the lip, perform a trick, and land cleanly for the best score.
+[![build](https://img.shields.io/github/actions/workflow/status/jmurzy/groove-park/windows-build.yml?branch=main&label=build)](https://github.com/jmurzy/groove-park/actions/workflows/windows-build.yml)
+[![api](https://img.shields.io/github/actions/workflow/status/jmurzy/groove-park/api-deploy.yml?branch=main&label=api)](https://github.com/jmurzy/groove-park/actions/workflows/api-deploy.yml)
+[![license: Proprietary](https://img.shields.io/badge/license-proprietary-red.svg)](LICENSE)
 
+Groove Park is a '90s-style retro arcade, side-view 2.5D terrain-park skiing game for the Polycade Sente arcade cabinet.
+Pick a route down the slope, manage speed, time the pop at the lip, perform a trick, and land cleanly for the best
+score.
+
+<!-- rumdl-disable MD033 -->
 <img src="images/docs/game.gif">
+<!-- rumdl-enable MD033 -->
 
 ## Marquee And Live Lift Status
 
+<!-- rumdl-disable MD033 -->
 <img src="images/docs/marquee.gif">
+<!-- rumdl-enable MD033 -->
 
-The digital marquee is a dedicated 1920x360 Godot window. It shows an animated skier and snowboarder, a scrolling lift-status ticker, an operations footer, snowfall, and a `LIVE MOUNTAIN OPS` treatment designed for the Sente's overhead display.
+The digital marquee is a dedicated 1920x360 Godot window. It shows an animated skier and snowboarder, a scrolling
+lift-status ticker, an operations footer, snowfall, and a `LIVE MOUNTAIN OPS` treatment designed for the Sente's
+overhead display.
 
-The game starts with a local Heavenly lift lineup, then refreshes live lift information every 60 seconds from `game_api.base_url/api/liftie/resort/<game_api.resort_slug>`. Each request includes the generated installation ID. The API validates and normalizes Liftie responses, caches successful responses for 60 seconds, and the marquee updates its lift totals and ticker from the returned statuses.
+The game starts with a local Heavenly lift lineup, then refreshes live lift information every 60 seconds from
+`game_api.base_url/api/liftie/resort/<game_api.resort_slug>`. Each request includes the generated installation ID. The
+API validates and normalizes Liftie responses, caches successful responses for 60 seconds, and the marquee updates its
+lift totals and ticker from the returned statuses.
 
-Copy [game.cfg.example](game.cfg.example) to `game.cfg` in the repository for development. The packaged game receives this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
+Copy [game.cfg.example](game.cfg.example) to `game.cfg` in the repository for development. The packaged game receives
+this configuration next to `HEAVENLY.exe`; the installer preserves existing live configuration on updates.
 
-Both `game_api.base_url` and `game_api.resort_slug` are required. The game exits at startup when either is missing or blank. On cabinet builds, `game.cfg` beside `HEAVENLY.exe` overrides the packaged fallback; the installer preserves that operator-managed file during upgrades. Lift data is informational only; observe all posted resort signage and operations guidance.
+Both `game_api.base_url` and `game_api.resort_slug` are required. The game exits at startup when either is missing or
+blank. On cabinet builds, `game.cfg` beside `HEAVENLY.exe` overrides the packaged fallback; the installer preserves that
+operator-managed file during upgrades. Lift data is informational only; observe all posted resort signage and operations
+guidance.
 
 ## Polycade AGS
 
+<!-- rumdl-disable MD033 -->
 <img src="images/docs/sente_demo.png" align="left" width="280px">
+<!-- rumdl-enable MD033 -->
 
-Polycade AGS is the cabinet's game-selection and launch environment. It discovers locally installed games, presents their artwork in the cabinet interface, launches the selected executable, and returns to the game selector when the game exits.
+Polycade AGS is the cabinet's game-selection and launch environment. It discovers locally installed games, presents
+their artwork in the cabinet interface, launches the selected executable, and returns to the game selector when the game
+exits.
 
-The game is designed to run inside AGS as a DRM-free Windows game. The packaged installer places the executable and its `.pck` data in AGS's `games/drm-free/HEAVENLY` directory, and places the header, hero, and marquee artwork in AGS's matching `assets/drm-free/HEAVENLY` directory. This keeps the game, its cabinet presentation, and its two-display behavior integrated with the Sente.
+The game is designed to run inside AGS as a DRM-free Windows game. The packaged installer places the executable and its
+`.pck` data in AGS's `games/drm-free/HEAVENLY` directory, and places the header, hero, and marquee artwork in AGS's
+matching `assets/drm-free/HEAVENLY` directory. This keeps the game, its cabinet presentation, and its two-display
+behavior integrated with the Sente.
 
-AGS is the cabinet distribution target, not a runtime requirement. The exported Windows build is also a standalone executable that can run outside AGS. Without a second detected display it uses the primary game window; use `just sente` during development to preview both windows on one desktop.
+AGS is the cabinet distribution target, not a runtime requirement. The exported Windows build is also a standalone
+executable that can run outside AGS. Without a second detected display it uses the primary game window; use `just sente`
+during development to preview both windows on one desktop.
 
+<!-- rumdl-disable MD033 -->
 <br clear="left" />
+<!-- rumdl-enable MD033 -->
 
 ### Polycade Sente Compatibility
 
@@ -37,11 +67,14 @@ The game targets the Polycade Sente's two-display arcade setup.
 | Primary | 1920x1080 | Attract mode and gameplay |
 | Marquee | 1920x360 | Always-on mountain-operations ticker |
 
-The Sente uses Polycade Neo-Arcade Controller Boards in XInput mode. The game maps the cabinet's digital eight-way joystick and action controls to standard XInput inputs, with keyboard equivalents for development.
+The Sente uses Polycade Neo-Arcade Controller Boards in XInput mode. The game maps the cabinet's digital eight-way
+joystick and action controls to standard XInput inputs, with keyboard equivalents for development.
 
-The cabinet panel provides two matching control stations. HEAVENLY is a solo game: either station supplies input for the active rider. See [POLYCADE_SENTE_CONTROLS.md](POLYCADE_SENTE_CONTROLS.md) for the complete panel and XInput mapping.
+The cabinet panel provides two matching control stations. HEAVENLY is a solo game: either station supplies input for the
+active rider. See [POLYCADE_SENTE_CONTROLS.md](POLYCADE_SENTE_CONTROLS.md) for the complete panel and XInput mapping.
 
-On a cabinet with two displays, the primary window opens on the main display and the marquee opens on the other display. On a single display, The game runs primary-only unless marquee development overrides are enabled.
+On a cabinet with two displays, the primary window opens on the main display and the marquee opens on the other display.
+On a single display, The game runs primary-only unless marquee development overrides are enabled.
 
 ## Terrain editor
 
@@ -110,7 +143,9 @@ the standard mise and Homebrew install locations.
 | `just export-web` | Create the Web/Wasm release at `build/web/index.html`. |
 | `just package-ags` | Export, assemble the AGS payload, and create `HEAVENLY-windows-x86_64.zip` with a SHA-256 checksum. |
 
-The canonical cabinet package is the Windows x86_64 export. `just package-ags` includes the game, `Install.ps1`, and Polycade artwork in the release archive. For cabinet installation and AGS directory requirements, see [WINDOWS-INSTALL.md](WINDOWS-INSTALL.md).
+The canonical cabinet package is the Windows x86_64 export. `just package-ags` includes the game, `Install.ps1`, and
+Polycade artwork in the release archive. For cabinet installation and AGS directory requirements, see
+[WINDOWS-INSTALL.md](WINDOWS-INSTALL.md).
 
 `mise install` also installs the pinned, checksum-verified Godot export templates when missing, even
 if Godot is already installed. The download is approximately 1.3 GB. When either required Web or
@@ -119,10 +154,13 @@ Run `mise install` again if templates are removed.
 
 ### Standalone And Web Builds
 
-Godot can export the game as a standalone native application in addition to the AGS package. This repository currently defines and automates the 64-bit Windows desktop preset, which produces a standalone `HEAVENLY.exe` before it is assembled into the AGS installer payload.
+Godot can export the game as a standalone native application in addition to the AGS package. This repository currently
+defines and automates the 64-bit Windows desktop preset, which produces a standalone `HEAVENLY.exe` before it is
+assembled into the AGS installer payload.
 
 `just export-web` produces a non-threaded Godot Web/Wasm build in `build/web`. After a successful
-`Checks` run on `main`, GitHub Actions uploads each release under its commit SHA in the `game-releases` R2 bucket and promotes it through `current.json`. The game Worker serves a
+`Checks` run on `main`, GitHub Actions uploads each release under its commit SHA in the `game-releases` R2 bucket and
+promotes it through `current.json`. The game Worker serves a
 no-cache entry document at `game.gunbarrelhaus.com`; its injected release-specific base URL sends
 the Wasm, PCK, and JavaScript requests directly to R2's `assets.game.gunbarrelhaus.com` custom
 domain. The browser owns resizing and fullscreen; the game keeps its 1920x1080 presentation
